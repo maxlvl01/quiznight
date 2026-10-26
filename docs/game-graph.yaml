@@ -1,0 +1,151 @@
+# Quiznight? — game graph
+#
+# How the game works, as graphs: nodes (things) and edges (who talks to / leads to whom).
+# Drawn as boards on the "Quiznight? Game Graph" canvas:
+#   https://claude.ai/artifact/5rfsxSUX8ZNdqRqBXVT99U
+# When the game changes, change this file first, then ask Claude to redraw the matching board.
+#
+# Edge directions: host_sends = host → players, player_sends = players → host.
+
+meta:
+  game: Quiznight?
+  engine: Godot 4.7 / C#
+  written_for: 0.11.3b
+  idea: >
+    Jackbox-style quiz nights. The host is the quizmaster (never plays) and their app is the server;
+    players join with a 4-character room code from their own PCs.
+
+# ---------------------------------------------------------------- board: architecture
+architecture:
+  nodes:
+    host_ui:        { on: host_pc,   files: [Ui/Screens/RoomScreens.cs, Ui/Screens/HostGameScreen.cs], note: "quizmaster, never plays" }
+    host_session:   { on: host_pc,   file: Server/HostSession.cs, does: [messages ↔ room, per-viewer state, sending assets and media] }
+    room:           { on: host_pc,   file: Server/Room.cs, does: [players, settings, phases, ranking, seats kept on leave] }
+    game:           { on: host_pc,   file: Server/Game.cs, does: [question flow, buzz queue, judging, answers, play clock, reveal, scoring, jokers] }
+    quiz_store:     { on: host_pc,   file: Storage/QuizStore.cs, where: "user://quizzes", formats: [.quiznight.json, .quiznight.zip] }
+    results:        { on: host_pc,   files: [Storage/Results.cs, Storage/ResultsUpload.cs], note: "one CSV per night, Steam games from exported builds only" }
+    shared_media:   { on: host_pc,   note: "sound, video and pictures sent as AES-encrypted chunks in the background from the lobby on" }
+    transport:
+      on: network
+      steam: { file: Net/SteamTransport.cs, how: Steam relay (SteamNetworkingSockets), app_id: 480, lobby: makes the room code findable }
+      lan:   { file: Net/LanTransport.cs, how: plain TCP, port: 7777, note: testing on one PC / same Wi-Fi; hidden in exports until unlocked }
+    github:         { on: network,   repos: [quiznight-results, quiznight-releases, quiznight-test-releases], for: [results, share codes, signed updates, test logs] }
+    client_session: { on: player_pc, file: Net/ClientSession.cs, does: [auto-reconnect, keeps one client id per run] }
+    player_ui:      { on: player_pc, files: [Ui/Screens/RoomScreens.cs, Ui/Screens/PlayerGameScreen.cs], does: [buzz, answer, jokers] }
+    player_media:   { on: player_pc, files: [Ui/Screens/PlayerMedia.cs, Ui/Screens/PlayerVideo.cs], note: follows the host's play clock; video blurred until it first starts }
+  edges:
+    - { from: host_ui,        to: quiz_store,     label: load }
+    - { from: host_ui,        to: host_session,   label: show · judge · next }
+    - { from: host_session,   to: room,           label: rules }
+    - { from: room,           to: game,           label: Room.Tick() }
+    - { from: room,           to: results,        label: save }
+    - { from: results,        to: github,         label: upload }
+    - { from: game,           to: shared_media,   label: files }
+    - { from: host_session,   to: transport,      label: state · assets · media, kind: host_sends }
+    - { from: transport,      to: host_session,   label: join · buzz · answer,   kind: player_sends }
+    - { from: transport,      to: client_session, kind: host_sends }
+    - { from: client_session, to: transport,      kind: player_sends }
+    - { from: client_session, to: player_ui }
+    - { from: client_session, to: player_media }
+
+# ---------------------------------------------------------------- board: screens
+screens:
+  nodes:
+    home:            { file: Ui/Screens/HomeScreen.cs, note: "room code, menus" }
+    quizzes:         { file: Ui/Screens/QuizListScreen.cs }
+    quiz_overview:   { file: Ui/Screens/QuizOverviewScreen.cs, does: [order questions, share code, export .zip] }
+    question_editor: { file: Ui/Screens/QuestionEditorScreen.cs, note: one editor for all question types }
+    host_lobby:      { file: Ui/Screens/RoomScreens.cs, class: HostLobbyScreen, does: [rules, jokers, kick] }
+    host_game:       { file: Ui/Screens/HostGameScreen.cs, does: [show, unlock buzzers, judge, reveal, next] }
+    waiting_room:    { file: Ui/Screens/RoomScreens.cs, class: WaitingRoomScreen, note: downloads media before the start }
+    player_game:     { file: Ui/Screens/PlayerGameScreen.cs, does: [buzz, answer, play jokers] }
+    podium:          { file: Ui/Screens/RoomScreens.cs, class: PodiumScreen, note: "winners, then everyone's stats; back to the lobby for another quiz" }
+    results:         { note: CSV upload → eternal table }
+    menu:            { screens: [SettingsScreen, EternalTableScreen, MatchHistoryScreen, ProfileScreen] }
+  edges:
+    - { from: home,            to: quizzes,         label: make }
+    - { from: quizzes,         to: quiz_overview }
+    - { from: quiz_overview,   to: question_editor }
+    - { from: home,            to: host_lobby,      label: host }
+    - { from: host_lobby,      to: host_game,       label: start }
+    - { from: host_game,       to: podium,          label: finish }
+    - { from: podium,          to: results }
+    - { from: home,            to: waiting_room,    label: join with code }
+    - { from: waiting_room,    to: player_game,     label: start }
+    - { from: player_game,     to: podium }
+    - { from: home,            to: menu }
+    - { from: host_lobby,      to: waiting_room,    label: state, kind: host_sends }
+    - { from: waiting_room,    to: host_lobby,      label: join,  kind: player_sends }
+    - { from: host_game,       to: player_game,     label: state, kind: host_sends }
+    - { from: player_game,     to: host_game,       label: buzz,  kind: player_sends }
+
+# ---------------------------------------------------------------- board: question_loop
+question_loop:
+  nodes:
+    hidden:           { state: "Game.Shown = false", note: players get none of its content; jokers can be played or taken back }
+    shown:            { by: host, call: ShowQuestion, note: the host starts sound/video by hand }
+    buzzer:           { kind: decision, asks: is it a buzzer question? }
+    everyone_answers: { timer: RoomSettings.AnswerTimeSec, ends: time up or everyone answered }
+    buzz_queue:       { by: host, call: SetBuzzers, note: buzzers stay locked until the host unlocks them; a Fast Pass answers first }
+    judge:            { kind: decision, by: host, call: Judge, asks: right? }
+    reveal:           { call: HostReveal, does: [points, Double ×2, host bonus (ToggleBonus), score changes (AdjustScore)] }
+    finished:         { phase: finished, next: podium + results }
+  edges:
+    - { from: hidden,     to: shown,            label: Show }
+    - { from: shown,      to: buzzer }
+    - { from: buzzer,     to: everyone_answers, label: "no" }
+    - { from: buzzer,     to: buzz_queue,       label: "yes" }
+    - { from: everyone_answers, to: reveal }
+    - { from: buzz_queue, to: judge }
+    - { from: judge,      to: reveal,           label: right }
+    - { from: judge,      to: buzz_queue,       label: wrong · next in line }
+    - { from: reveal,     to: hidden,           label: Next → next question }
+    - { from: reveal,     to: finished,         label: last question }
+  side_rules:
+    paused:      a player dropped out → Game.Paused (no timers, buzzes, answers, Show or Next) until they're back or the host continues
+    late_join:   new players can join a running game; during an open question they sit it out (Game.LateJoin)
+  variants:
+    steps:       the host flips hints (NextHint); each hint makes a right answer worth less (hints − hint index)
+    picture:     the host flips slides (SetSlide, ◀ ▶); players flip on their own once all are shown
+    interactive: recording (mic) → listening (host plays each clip) → voting, or the host picks a favourite
+    order:       timeline variant plays in turns (NextTurn, SkipTurn, PlaceCurrentForFree)
+
+# ---------------------------------------------------------------- board: messages
+# Msg in Shared/Protocol.cs, roughly in the order a game uses them.
+messages:
+  - { name: join,          kind: player_sends, carries: "{ code, name }",      note: code checked, Steam id confirmed }
+  - { name: joined,        kind: host_sends,   carries: "{ playerId }",        note: same id = your seat back }
+  - { name: state,         kind: host_sends,   carries: "{ RoomState }",       note: "made per viewer (Room.ToState), no answers before the reveal" }
+  - { name: asset,         kind: host_sends,   carries: media chunks,          note: "pictures, sound, video; AES, ≤300 KB parts" }
+  - { name: mediaProgress, kind: player_sends, carries: "{ percent }",         note: the lobby's Start waits for downloads }
+  - { name: joker,         kind: player_sends, carries: "{ double | fastPass }", note: secret until the question is shown }
+  - { name: buzz,          kind: player_sends,                                 note: joins the buzz queue; Fast Pass goes first }
+  - { name: answer,        kind: player_sends, carries: "{ text | pick | pin | order … }", note: checked on the host }
+  - { name: answerResult,  kind: host_sends,                                   note: right / wrong }
+  - { name: recording,     kind: player_sends, carries: "{ part }",            note: "interactive questions, 16 kHz mono WAV in parts" }
+  - { name: rename,        kind: player_sends }
+  - { name: assetReq,      kind: player_sends,                                 note: fallback when a picture isn't downloaded yet }
+  - { name: leave,         kind: player_sends }
+  - { name: closed,        kind: host_sends,                                   note: host left = room closed }
+  - { name: kicked,        kind: host_sends,                                   note: kicked players stay out }
+
+# ---------------------------------------------------------------- board: question_types
+question_types:
+  mapPin:      { answer: a pin on a map,           scores: closest (or top 3), note: "built-in maps with real scale, or your own picture" }
+  estimation:  { answer: a number,                 scores: closest (or top 3), note: optional unit and picture }
+  classic:     { answer: buzz · everyone types · A B C D · multiple choice, scores: host judges / matching answers ticked }
+  picture:     { shows: one picture or a slideshow, answer: like classic }
+  sound:       { plays: on every PC (MP3/OGG/WAV),  answer: buzz in, note: pauses while someone answers }
+  video:       { plays: .ogv on every PC,          answer: buzz in, note: blurred until it first starts }
+  image:       { shows: zoom or pixel reveal,      answer: buzz in }
+  order:       { answer: put items in order,       variant: timeline, note: items shuffled per game }
+  steps:       { hints: 2–5 hardest first,         answer: buzz in, worth: hints − hint index }
+  interactive: { answer: record with the mic,      then: everyone votes (a point per vote) or the host picks }
+
+rules:
+  jokers:
+    double:   counts the question's points twice (also bonuses and ticks)
+    fastPass: your buzz answers first; one player per question
+    limits:   each once per player and match; allowed per lobby; secret until the question is shown
+  pace:       questions open hidden and buzzers locked until the host shows / unlocks them (both lobby rules)
+  ranking:    [points, who reached that score first, average buzz/answer time, average km off]
