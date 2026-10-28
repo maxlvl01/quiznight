@@ -496,15 +496,21 @@ public static class SelfTest
 	}
 
 	/// <summary>What comes from outside: joins over Steam, pictures, packed quizzes, recordings, CSV cells, frames.</summary>
+	/// <summary>
+	/// The built-in map files are here: dev runs; an exported build has none of them (they're downloads, MapPacks), so
+	/// its self-test leaves out what needs them.
+	/// </summary>
+	static bool MapFilesHere => !Storage.MapPacks.Optional;
+
 	/// <summary>Built-in maps as downloads (MapPacks): packs line up with the files, a pack unpacks safely.</summary>
 	static void MapPacksChecks()
 	{
 		Check(MapPresets.All.Where(p => p.Id != WowAtlas.PresetId).All(p => p.ImagePath == $"{Storage.MapPacks.MapsRes}{p.Id}.webp"),
 			"each built-in map is the file its pack is named after (tools/map_packs.py)");
-		Check(Storage.MapPacks.Has("skyrim") && Storage.MapPacks.Missing(Dev.SampleQuiz.Build()).Count == 0, "dev runs have every map");
+		if (MapFilesHere) Check(Storage.MapPacks.Has("skyrim") && Storage.MapPacks.Missing(Dev.SampleQuiz.Build()).Count == 0, "dev runs have every map");
 		Eq(Storage.MapPacks.Used(Dev.SampleQuiz.Build()).Count, 2, "the sample quiz uses two built-in maps");
 		var wowFiles = Storage.MapPacks.FilesOf(MapPresets.Get(WowAtlas.PresetId)!);
-		Check(wowFiles.Count > 200 && wowFiles.All(f => f.StartsWith("wow/")), "the WoW pack is the wow folder");
+		if (MapFilesHere) Check(wowFiles.Count > 200 && wowFiles.All(f => f.StartsWith("wow/")), "the WoW pack is the wow folder");
 		static byte[] Zip(params string[] names)
 		{
 			using var ms = new System.IO.MemoryStream();
@@ -761,10 +767,13 @@ public static class SelfTest
 		Eq(g.View("bob").Question.Map!.PresetId, "skyrim", "built-in map by preset");
 		// (built-in maps aren't in exported games: players get them from the host like custom maps, MapPacks)
 		var bobMap = g.View("bob").Question;
-		Check(bobMap.Map!.AssetKey == "q3/map" && bobMap.Files?.ContainsKey("q3/map") == true, "a built-in map is unlocked for players like a custom one");
-		Check(g.AssetDataUrl("q3/map")?.StartsWith("data:image/webp") == true, "the host hands out a built-in map's picture");
-		Check(room.SharedFiles.Any(f => f.Asset == Game.BuiltinAsset("skyrim")) && room.SharedFiles.Any(f => f.Asset == Game.BuiltinAsset(WowAtlas.PresetId) && f.Mime == Storage.MapPacks.ZipMime),
-			"built-in maps go to players ahead of time (WoW as a zip)");
+		if (MapFilesHere)
+		{
+			Check(bobMap.Map!.AssetKey == "q3/map" && bobMap.Files?.ContainsKey("q3/map") == true, "a built-in map is unlocked for players like a custom one");
+			Check(g.AssetDataUrl("q3/map")?.StartsWith("data:image/webp") == true, "the host hands out a built-in map's picture");
+			Check(room.SharedFiles.Any(f => f.Asset == Game.BuiltinAsset("skyrim")) && room.SharedFiles.Any(f => f.Asset == Game.BuiltinAsset(WowAtlas.PresetId) && f.Mime == Storage.MapPacks.ZipMime),
+				"built-in maps go to players ahead of time (WoW as a zip)");
+		}
 
 		// Sound: the play clock only counts while playing.
 		for (var i = 0; i < 5; i++) room.Next();
@@ -981,7 +990,7 @@ public static class SelfTest
 		// Built-in maps: every image ships, ids are unique, and all but the WoW atlas have a real width.
 		// (decoded like in the game: the maps ship as plain WebP files, so this also catches a map the export left out)
 		var broken = MapPresets.All.Where(p => Storage.Images.LoadBuiltinImage(p.ImagePath) == null).Select(p => p.Id).ToList();
-		Check(broken.Count == 0, "every built-in map image loads: " + string.Join(", ", broken));
+		if (MapFilesHere) Check(broken.Count == 0, "every built-in map image loads: " + string.Join(", ", broken));
 		Eq(MapPresets.All.Select(p => p.Id).Distinct().Count(), MapPresets.All.Count, "built-in map ids are unique");
 		Check(MapPresets.All.All(p => p.Id == WowAtlas.PresetId || p.WidthKm > 0), "built-in maps have a scale");
 		Eq(MapPresets.Get("botw")!.WidthKm, 12.0, "Hyrule is 12 km wide");
@@ -1274,6 +1283,7 @@ public static class SelfTest
 		Check(Math.Abs(WowAtlas.DistanceKm(a, b) - 100 * 0.9144 / 1000) < 0.001, "same-continent distance in yards");
 		var kalimdor = WowAtlas.LocationToWorld(new WowAtlas.Location(1, 0, 0));
 		Check(WowAtlas.DistanceKm(a, kalimdor) > WowAtlas.DistanceKm(a, b) * 100, "wrong continent is far");
+		if (!MapFilesHere) return;
 		Eq(Ui.WowMapArt.Tiles.Count, 207, "seamless map tiles are in the game");
 		Check(Storage.Images.LoadBuiltinImage(WowAtlas.ImagePath(WowAtlas.World)) != null && Storage.Images.LoadBuiltinImage(Ui.WowMapArt.Tiles[0].Path) != null, "WoW world map and a zone tile load");
 		var goldshire = WowAtlas.LocationToWorld(new WowAtlas.Location(0, -9465, 64));
