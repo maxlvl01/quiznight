@@ -61,8 +61,9 @@ sign() {
 
 # (keeps Godot from importing what's in build/, e.g. the map packs)
 mkdir -p build && touch build/.gdignore
-# (the game downloads the built-in maps from the "maps" release: it has to have these maps before a build goes out)
-tools/map_packs.sh --check || exit 1
+# (the game downloads the built-in maps from the "maps" release, test builds from the test repo's: it has to have these
+# maps before a build goes out)
+tools/map_packs.sh --check ${TEST:+--test} || exit 1
 dotnet build "QuizNight!.csproj" -nologo -v q
 # The Windows build uses our slim engine (export_presets custom_template/release; built from the Godot source with
 # tools/engine_profile.py, see CLAUDE.md): 37 MB instead of the stock 105 MB.
@@ -75,7 +76,7 @@ rm -rf "$OUT" && mkdir -p "$OUT"
 # FFmpeg isn't bundled: AnyConverter helps players install it the first time.
 [ -f "$ANYCONVERTER" ] || { echo "AnyConverter.exe not found at $ANYCONVERTER (build it with PyInstaller, or set ANYCONVERTER)"; exit 1; }
 mkdir -p "$OUT/AnyConverter" && cp "$ANYCONVERTER" "$OUT/AnyConverter/AnyConverter.exe"
-# The built-in maps aren't part of the game (export_presets leaves them out of the .pck): since 0.12.8d1 the game
+# The built-in maps aren't part of the game (export_presets leaves them out of the .pck): since 0.12.8b the game
 # downloads each one when a quiz needs it, from the "maps" release (tools/map_packs.sh, Storage/MapPacks.cs).
 # .NET's debugger and crash-dump helpers and its spare garbage collector come with every export; players never use them
 # (crash reports are our own, Storage/CrashReports). ~6.5 MB.

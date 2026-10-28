@@ -13,7 +13,7 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
-## [0.12.8d1]
+## [0.12.8b]
 
 ### Added
 - **Multiple choice can score per right answer.** Until now a multiple choice question gave its points only to players who picked exactly the right answers: two right out of three got nothing, the same as picking all wrong ones. The question's settings now have **Points per right answer** (on for new multiple choice questions): every right pick scores the points, and every wrong pick takes as many off again, so ticking every answer doesn't pay. A player never goes below 0 unless "Wrong answers cost points" is on too. The points field then reads "Points per right answer" and has + and − buttons like the bonus points. Players see how it scores before they lock in. Questions made before keep scoring only the exact set (quiz file format 12; older games read such a question the old way). (Thanks for the idea!)
@@ -21,6 +21,7 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ### Changed
 - **The built-in maps are a download now, not part of the game.** All 20 game maps (Skyrim, GTA, Zelda, PUBG, WoW Forever …) used to come with every install: about 46 MB that everyone downloaded, even people who never make a map question. Now the game downloads a map the first time it's needed: when you pick it in the editor (the map list says "⬇ downloads when picked"), open a quiz that uses it ("Download now" on the quiz page), or open the lobby for it. Each map is downloaded once and kept. Players don't download anything themselves: the host sends the maps a quiz uses along with its pictures, sounds and videos, the lobby's Start waits for them like for the rest, and they're thrown away after the night. Deleting a quiz asks whether to **also delete its maps** from your PC (only maps no other quiz of yours uses). When this update installs, the maps your saved quizzes use are kept and the rest are deleted. The maps come from the releases page, signed with the same key as updates, so nobody can slip in another file. (Thanks for the idea!)
+- **The Beta table has Beta Quiz #2** (28 October, three players).
 
 ### Fixed
 - **Players sometimes missed "The host closed the room" on LAN.** When the host closed the room while players were still downloading the quiz's files, the message was queued behind megabytes of video and thrown away with the connection, so players only saw "Lost the connection" and kept trying to reconnect for a minute. Now the files' unsent pieces are dropped and the closing message goes out first.

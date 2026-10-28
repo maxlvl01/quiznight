@@ -158,7 +158,7 @@ public partial class App : Control
 			else _audio.SkipGreeting();
 			WhatsNew.ShowIfUpdated(this);
 			if (Updater.Enabled) Updater.CleanUp();
-			// (an update from before 0.12.8d1 left the maps folder next to the game: the quizzes' maps move, the rest goes)
+			// (an update from before 0.12.8b left the maps folder next to the game: the quizzes' maps move, the rest goes)
 			MapPacks.MoveOldMaps();
 			UpdatePrompt.CheckAndInstall(this);
 		}

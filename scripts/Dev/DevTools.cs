@@ -479,6 +479,7 @@ public sealed class DevTools
 	async void MapPacksCheck()
 	{
 		MapPacks.Simulate = true;
+		MapPacks.FromTestRepo = Has("--maps-from-test-repo");
 		var presets = new[] { MapPresets.Get("skyrim")!, MapPresets.Get(WowAtlas.PresetId)! };
 		MapPacks.Delete(presets.Select(p => p.Id));
 		var before = presets.Count(p => MapPacks.Has(p.Id));

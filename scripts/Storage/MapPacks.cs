@@ -1,6 +1,6 @@
-// The built-in maps as an optional download (from 0.12.8d1). Exported games no longer ship them: each built-in map is
-// one pack ("skyrim", or "wow" for the whole WoW Forever map with its tiles) on the public releases repo's "maps"
-// release, listed in maps.json (each pack's zip with its SHA-256 and files; signed with Max's release key like updates,
+// The built-in maps as an optional download (from 0.12.8b). Exported games no longer ship them: each built-in map is
+// one pack ("skyrim", or "wow-azeroth" for the whole WoW Forever map with its tiles) on the public releases repo's "maps"
+// release (test builds: the private test repo's, so maps are tried there first), listed in maps.json (each pack's zip with its SHA-256 and files; signed with Max's release key like updates,
 // made by tools/map_packs.py). A map is downloaded the first time it's needed: picked in the editor, a quiz using it
 // opened or hosted. It's kept in user://maps/ (installed.json says which packs are complete) until a quiz using it is
 // deleted with "Also delete its maps". Players don't download anything: the host sends the maps a quiz uses with the
@@ -31,10 +31,11 @@ public static class MapPacks
 	public const string MapsRes = "res://assets/maps/";
 	public const string ZipMime = "application/zip";
 	const string ReleaseTag = "maps";
-	static string ListUrl => $"https://github.com/{Updater.ReleasesRepo}/releases/download/{ReleaseTag}/maps.json";
 
 	/// <summary>Dev runs acting like an export: maps from user://maps/, downloaded when missing (--map-packs).</summary>
 	public static bool Simulate;
+	/// <summary>Take the maps from the test repo like a test build (--maps-from-test-repo, with --map-packs-check).</summary>
+	public static bool FromTestRepo;
 	/// <summary>Maps live in user://maps/ and may be missing (exported builds, or Simulate).</summary>
 	public static bool Optional => OS.HasFeature("template") || Simulate;
 	static string Dir => ProjectSettings.GlobalizePath("user://maps");
@@ -280,13 +281,9 @@ public static class MapPacks
 	{
 		try
 		{
-			using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
-			http.DefaultRequestHeaders.UserAgent.ParseAdd("Quiznight-Maps");
-			// (QUIZNIGHT_MAPS_FEED: a folder or server with maps.json and the packs, to test against; debug builds only)
-			var feed = OS.IsDebugBuild() ? OS.GetEnvironment("QUIZNIGHT_MAPS_FEED").TrimEnd('/') : "";
-			var listUrl = feed.Length > 0 ? feed + "/maps.json" : ListUrl;
-			var bytes = await Get(http, listUrl);
-			var sig = await Get(http, listUrl + ".sig");
+			using var http = NewClient(TimeSpan.FromSeconds(20));
+			var bytes = await Fetch(http, "maps.json");
+			var sig = await Fetch(http, "maps.json.sig");
 			if (!Updater.SignedByMax(SHA256.HashData(bytes), sig))
 			{
 				GD.Print("The map list isn't signed with Max's release key: not used.");
@@ -304,17 +301,75 @@ public static class MapPacks
 		catch (Exception e)
 		{
 			GD.Print($"Couldn't get the map list: {e.Message}");
+			Trace.Log("maps", $"list failed: {e.Message}");
+			_testAssets = null;
 			return null;
 		}
 	}
 
-	static async Task<byte[]> Get(HttpClient http, string url) =>
-		url.StartsWith("http") ? await http.GetByteArrayAsync(url) : await File.ReadAllBytesAsync(url);
-
-	static string PackUrl(Pack pack)
+	static HttpClient NewClient(TimeSpan timeout)
 	{
-		var feed = OS.IsDebugBuild() ? OS.GetEnvironment("QUIZNIGHT_MAPS_FEED").TrimEnd('/') : "";
-		return feed.Length > 0 ? feed + "/" + pack.File : $"https://github.com/{Updater.ReleasesRepo}/releases/download/{ReleaseTag}/{pack.File}";
+		var http = new HttpClient { Timeout = timeout };
+		http.DefaultRequestHeaders.UserAgent.ParseAdd("Quiznight-Maps");
+		return http;
+	}
+
+	/// <summary>Test builds: the private test repo's "maps" release, file name → its API address (fetched once).</summary>
+	static Dictionary<string, string>? _testAssets;
+
+	/// <summary>
+	/// One file of the maps release (maps.json, its .sig, a pack), with progress. From the public releases repo; test
+	/// builds take it from the private test repo instead (with the token they ship, like their updates), so new maps are
+	/// tried in a test build before they go public (tools/map_packs.sh --test). Debug builds: QUIZNIGHT_MAPS_FEED, a
+	/// folder or address with the files (tools/map_packs.sh --dry-run makes one).
+	/// </summary>
+	static async Task<byte[]> Fetch(HttpClient http, string name, Action<int>? read = null, long max = 64L << 20)
+	{
+		var feed = OS.IsDebugBuild() ? OS.GetEnvironment("QUIZNIGHT_MAPS_FEED").TrimEnd('/', '\\') : "";
+		if (feed.Length > 0 && !feed.StartsWith("http"))
+		{
+			var bytes = await File.ReadAllBytesAsync(Path.Combine(feed, name));
+			read?.Invoke(bytes.Length);
+			return bytes;
+		}
+		HttpRequestMessage request;
+		if (feed.Length > 0) request = new HttpRequestMessage(HttpMethod.Get, feed + "/" + name);
+		else if (Updater.TestChannel || FromTestRepo)
+		{
+			if (ResultsUpload.Token is not { } token) throw new InvalidOperationException("no token for the test repo");
+			if (_testAssets == null)
+			{
+				using var ask = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Updater.TestRepo}/releases/tags/{ReleaseTag}");
+				ask.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+				using var answer = await http.SendAsync(ask);
+				answer.EnsureSuccessStatusCode();
+				_testAssets = ((JsonNode.Parse(await answer.Content.ReadAsStringAsync()) as JsonObject)?["assets"] as JsonArray)?.OfType<JsonObject>()
+					.Where(a => a["name"] != null && a["url"] != null)
+					.ToDictionary(a => a["name"]!.GetValue<string>(), a => a["url"]!.GetValue<string>()) ?? new();
+			}
+			if (!_testAssets.TryGetValue(name, out var url)) throw new FileNotFoundException($"{name} isn't on the test repo's maps release");
+			// (the asset's API address: with the token and "octet-stream" it sends you on to the file; the token isn't passed on)
+			request = new HttpRequestMessage(HttpMethod.Get, url);
+			request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+			request.Headers.Accept.ParseAdd("application/octet-stream");
+		}
+		else request = new HttpRequestMessage(HttpMethod.Get, $"https://github.com/{Updater.ReleasesRepo}/releases/download/{ReleaseTag}/{name}");
+		using (request)
+		{
+			using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+			response.EnsureSuccessStatusCode();
+			await using var from = await response.Content.ReadAsStreamAsync();
+			using var ms = new MemoryStream();
+			var buffer = new byte[1 << 16];
+			int n;
+			while ((n = await from.ReadAsync(buffer)) > 0)
+			{
+				ms.Write(buffer, 0, n);
+				read?.Invoke(n);
+				if (ms.Length > max) throw new InvalidDataException("bigger than the list says");
+			}
+			return ms.ToArray();
+		}
 	}
 
 	/// <summary>How much downloading these maps takes (bytes; 0 if they're here, or the list can't be had).</summary>
@@ -365,37 +420,16 @@ public static class MapPacks
 			if (todo.Count == 0) return null;
 			var total = Math.Max(1, todo.Sum(t => t.Pack.Size));
 			long done = 0;
-			using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(20) };
-			http.DefaultRequestHeaders.UserAgent.ParseAdd("Quiznight-Maps");
+			using var http = NewClient(TimeSpan.FromMinutes(20));
 			foreach (var (preset, pack) in todo)
 			{
 				try
 				{
-					var url = PackUrl(pack);
-					byte[] zip;
-					if (url.StartsWith("http"))
+					var zip = await Fetch(http, pack.File, n =>
 					{
-						using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-						response.EnsureSuccessStatusCode();
-						await using var from = await response.Content.ReadAsStreamAsync();
-						using var ms = new MemoryStream();
-						var buffer = new byte[1 << 16];
-						int read;
-						while ((read = await from.ReadAsync(buffer)) > 0)
-						{
-							ms.Write(buffer, 0, read);
-							done += read;
-							Report((float)Math.Min(1, (double)done / total));
-							if (ms.Length > pack.Size + (1 << 20)) throw new InvalidDataException("bigger than the list says");
-						}
-						zip = ms.ToArray();
-					}
-					else
-					{
-						zip = await File.ReadAllBytesAsync(url);
-						done += zip.Length;
+						done += n;
 						Report((float)Math.Min(1, (double)done / total));
-					}
+					}, pack.Size + (1 << 20));
 					// (the signed list's SHA-256: nothing else is unpacked)
 					if (!Convert.ToHexString(SHA256.HashData(zip)).Equals(pack.Sha256, StringComparison.OrdinalIgnoreCase))
 						throw new InvalidDataException("it arrived damaged");
@@ -441,7 +475,7 @@ public static class MapPacks
 	// ---------- updating from an install that still had them ----------
 
 	/// <summary>
-	/// At startup (exported builds): an install from before 0.12.8d1 has every map in a "maps" folder next to the game.
+	/// At startup (exported builds): an install from before 0.12.8b has every map in a "maps" folder next to the game.
 	/// The maps the saved quizzes use move to user://maps/ (so they keep working offline); the folder goes.
 	/// </summary>
 	public static void MoveOldMaps()

@@ -1,0 +1,26 @@
+date,quiz,questions,players,place,player_id,player,points,questions_scored,avg_answer_s,answers,avg_km_off,map_answers,joined_at,left_at,avg_pct_off,estimate_answers,host,host_id,avg_buzz_s,buzzes,host_points,started,question,type,subtype,category,q_points,right,answered,q_buzzes,wrong_buzzes,buzz_s,answer_s,km_off,pct_off,hint,joker,placements,placements_right,typos,arcade,arcade_value
+2026-10-28 22:13,Beta Quiz #2,6,3,1,steam:76561198120191253,Legolars,9,5,6.577,3,,0,,,6.548,2,[OTB] maxlvl01,steam:76561198038635340,16.528,4,0,2026-10-28 22:00,,,,,,,,,,,,,,,,,,,,
+2026-10-28 22:13,Beta Quiz #2,6,3,2,steam:76561197960471359,Sxy_Grownz,1,1,11.705,3,,0,,,17.738,2,[OTB] maxlvl01,steam:76561198038635340,8.467,2,0,2026-10-28 22:00,,,,,,,,,,,,,,,,,,,,
+2026-10-28 22:13,Beta Quiz #2,6,3,3,steam:76561198035643435,[LCB] BassGaming,0,0,13.511,3,,0,,,32.976,2,[OTB] maxlvl01,steam:76561198038635340,20.438,3,0,2026-10-28 22:00,,,,,,,,,,,,,,,,,,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,1,classic,buzzer,Politics,1,1,1,2,1,3.516,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,1,classic,buzzer,Politics,0,0,1,1,1,2.800,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,1,classic,buzzer,Politics,0,0,1,2,1,4.232,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,2,classic,choice,Sport,1,1,1,0,0,,3.833,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,2,classic,choice,Sport,1,1,1,0,0,,5.249,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,2,classic,choice,Sport,0,0,1,0,0,,2.051,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,3,classic,buzzer,Sport,0,0,1,1,1,5.750,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,3,classic,buzzer,Sport,0,0,1,1,1,14.133,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,3,classic,buzzer,Sport,0,0,1,1,1,4.517,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,4,estimation,closestWins,Sport,1,1,1,0,0,,12.949,,13.095,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,4,estimation,closestWins,Sport,0,0,1,0,0,,26.199,,34.524,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,4,estimation,closestWins,Sport,0,0,1,0,0,,29.982,,44.048,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,5,estimation,closestWins,Games,1,1,1,0,0,,2.949,,0.000,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,5,estimation,closestWins,Games,0,0,1,0,0,,3.666,,0.952,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,5,estimation,closestWins,Games,0,0,1,0,0,,8.499,,21.905,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,6,steps,sentence,,5,1,1,1,0,4.366,,,,1,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,6,steps,sentence,,0,0,0,0,0,,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,6,steps,sentence,,0,0,0,0,0,,,,,,,0,0,,,
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198038635340,[OTB] maxlvl01,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reaction_avg,263
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198120191253,Legolars,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reaction_avg,213
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561197960471359,Sxy_Grownz,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reaction_avg,202
+2026-10-28 22:13,Beta Quiz #2,,,,steam:76561198035643435,[LCB] BassGaming,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,reaction_avg,210

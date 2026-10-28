@@ -42,12 +42,12 @@ the original design decisions; most still apply.
   scale is noted in `MapPresets.cs`; `tools/stitch_map.gd` builds them from downloaded tiles (run one Godot at a
   time: two at once hang). All map images (also WoW's) are imported as **"keep"** and decoded by
   `Images.LoadBuiltinImage` (WebP + mipmaps): Godot's texture import stored them 2–7× bigger. Exports leave
-  `assets/maps/` out of the .pck and, since 0.12.8d1, don't ship them at all: **map packs** (`Storage/MapPacks.cs`), one
+  `assets/maps/` out of the .pck and, since 0.12.8b, don't ship them at all: **map packs** (`Storage/MapPacks.cs`), one
   zip per map (WoW: the whole `wow/` folder) on the public releases repo's `maps` pre-release with a signed `maps.json`,
   downloaded when a map is picked, a quiz using it opened or hosted (`Ui/MapDownload`), kept in `user://maps/`.
   Players get them from the host with the quiz's files (`Game.ShareFiles`, asset `builtin:ID`; WoW as a zip unpacked
-  into the player's media cache, `MapPacks.AddTemp`). **A new or changed map needs `tools/map_packs.sh`** (publishes the
-  packs; `release.sh` stops if they're out of date). Dev runs use res:// unless `--map-packs`; `--map-packs-check` with
+  into the player's media cache, `MapPacks.AddTemp`). **A new or changed map needs `tools/map_packs.sh --test`** (the test repo's maps,
+  which test builds use), then plain `tools/map_packs.sh` once it's public; `release.sh` stops if they're out of date. Dev runs use res:// unless `--map-packs`; `--map-packs-check` with
   `QUIZNIGHT_MAPS_FEED=<folder from map_packs.sh --dry-run>` tries a download. New map images need the same 3-line `importer="keep"` .import file,
   and a thumbnail for the editor's map grid: `assets/map-thumbs/<same name>.webp`, 400 px wide (made with Pillow), also
   "keep" — those stay in the .pck via the export `include_filter` (`Images.MapThumb`).
