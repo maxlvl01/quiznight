@@ -256,12 +256,16 @@ public partial class MediaField : VBoxContainer
 
 public static class RoundSettings
 {
-	public static VBoxContainer Points(Question q, Action changed) =>
-		U.Field("Points", new NumberField(q.Points, v =>
+	public static VBoxContainer Points(Question q, Action changed)
+	{
+		var field = new NumberField(q.Points, v =>
 		{
 			q.Points = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.PointsMin), QuestionLimits.PointsMin, QuestionLimits.PointsMax);
 			changed();
-		}, QuestionLimits.PointsMin, QuestionLimits.PointsMax, true));
+		}, QuestionLimits.PointsMin, QuestionLimits.PointsMax, true);
+		// (multiple choice per right pick: + and − like the bonus points)
+		return q.ScoresPerPick ? U.Field("Points per right answer", field.WithSteps()) : U.Field("Points", field);
+	}
 
 	public static VBoxContainer TimeLimit(Question q, Action changed) =>
 		U.Field("Time limit (seconds)", new NumberField(q.TimeLimitSec, v =>

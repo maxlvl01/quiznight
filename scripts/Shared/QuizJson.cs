@@ -96,6 +96,7 @@ public static class QuizJson
 				o["correctChoice"] = q.CorrectChoice;
 				o["correctChoices"] = new JsonArray(q.CorrectChoices.Select(i => (JsonNode)JsonValue.Create(i)!).ToArray());
 				if (q.WrongCosts) o["wrongCosts"] = true;
+				if (q.IsMulti) o["perCorrect"] = q.PerCorrect;
 				o["timeLimitSec"] = q.TimeLimitSec;
 				break;
 			case QuestionType.Sound:
@@ -215,6 +216,8 @@ public static class QuizJson
 		q.Unit = Str(o, "unit");
 		q.TieRule = Str(o, "tieRule", TieRule.AllScore) is var tie && TieRule.All.Any(t => t.Id == tie) ? tie : TieRule.AllScore;
 		q.WrongCosts = o["wrongCosts"] is JsonValue wc && wc.TryGetValue<bool>(out var costs) && costs;
+		// (missing = a file from before format 12: the whole question's points for exactly the right set, as then)
+		q.PerCorrect = o["perCorrect"] is JsonValue pc && pc.TryGetValue<bool>(out var perCorrect) && perCorrect;
 		q.Scoring = Str(o, "scoring", Scoring.ClosestWins) == Scoring.Top3 ? Scoring.Top3 : Scoring.ClosestWins;
 		if (o["rankPoints"] is JsonArray rankPoints)
 			q.RankPoints = rankPoints.Select(p => p is JsonValue v && (v.TryGetValue<double>(out var n) || v.TryGetValue<int>(out var i) && (n = i) == i) ? (int)Math.Clamp(n, 0, ScoringPresets.PointsMax) : 0)

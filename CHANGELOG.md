@@ -13,6 +13,9 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+### Added
+- **Multiple choice can score per right answer.** Until now a multiple choice question gave its points only to players who picked exactly the right answers: two right out of three got nothing, the same as picking all wrong ones. The question's settings now have **Points per right answer** (on for new multiple choice questions): every right pick scores the points, and every wrong pick takes as many off again, so ticking every answer doesn't pay. A player never goes below 0 unless "Wrong answers cost points" is on too. The points field then reads "Points per right answer" and has + and − buttons like the bonus points. Players see how it scores before they lock in. Questions made before keep scoring only the exact set (quiz file format 12; older games read such a question the old way). (Thanks for the idea!)
+
 ## [0.12.7b]
 
 ### Added

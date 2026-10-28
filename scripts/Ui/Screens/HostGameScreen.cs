@@ -138,7 +138,9 @@ public partial class HostGameScreen : Control, IRoomScreen
 				if (reveal == null) box.AddChild(StepsParts.Worth(q, 20));
 			}
 			if (q.Choices != null) box.AddChild(GameParts.ChoiceGrid(game));
-			if (reveal == null && q.Mode == ClassicMode.Multi) box.AddChild(U.Muted("Several answers can be right — players pick all they think are.", 16));
+			if (reveal == null && q.Mode == ClassicMode.Multi) box.AddChild(U.Muted(q.PerCorrect
+				? "Several answers can be right — players pick all they think are. Each right pick scores, each wrong one takes as much off."
+				: "Several answers can be right — players pick all they think are.", 16));
 			if (reveal == null && q.Type == QuestionType.Estimation)
 				box.AddChild(U.Muted(string.IsNullOrEmpty(q.Unit) ? Lang.T("Everyone types a number on their own screen.") : Lang.F("Everyone types a number in {0} on their own screen.", q.Unit), 16));
 			if (reveal == null && q.Type == QuestionType.MapPin) box.AddChild(U.Muted("Everyone places a pin on the map on their own screen.", 16));

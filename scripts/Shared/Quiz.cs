@@ -312,6 +312,12 @@ public sealed class Question
 	public List<int> CorrectChoices = new();
 	/// <summary>A–D and multiple choice: a wrong answer loses the question's points. Put in order: each item in a wrong place does. Off by default.</summary>
 	public bool WrongCosts;
+	/// <summary>
+	/// Multi mode: Points is per right pick (each wrong pick takes that many off again, at least 0 unless WrongCosts),
+	/// instead of the whole question's points for exactly the right set. Format 12; older files read as off.
+	/// </summary>
+	public bool PerCorrect;
+	public bool ScoresPerPick => IsMulti && PerCorrect;
 
 	/// <summary>Classic choice, estimation and map pin: how long everyone has to answer.</summary>
 	public int TimeLimitSec = QuestionLimits.TimeLimitDefault;
@@ -475,7 +481,7 @@ public static class QuizRules
 	/// 10: map pin questions remember the version their correct spot was checked on (mapCheckedIn).
 	/// 11: questions remember when they were made (createdAt), for sorting the quiz overview's list.
 	/// </summary>
-	public const int FormatVersion = 11;
+	public const int FormatVersion = 12;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 
@@ -581,6 +587,7 @@ public static class QuizRules
 			case QuestionType.Classic:
 			case QuestionType.Picture:
 				q.TimeLimitSec = QuestionLimits.ChoiceTimeLimitSec;
+				q.PerCorrect = true;
 				break;
 			case QuestionType.Sound:
 				q.Prompt = "Name this song!";

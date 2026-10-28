@@ -249,6 +249,8 @@ public sealed class PublicQuestion
 	public bool RankScoring;
 	/// <summary>Choice questions: a wrong answer costs the question's points.</summary>
 	public bool WrongCosts;
+	/// <summary>Multiple choice: Points is per right pick, and a wrong pick takes as many off.</summary>
+	public bool PerCorrect;
 	/// <summary>The question's category, if the lobby shows categories and it isn't kept secret (else empty).</summary>
 	public string Category = "";
 	/// <summary>Interactive questions: players vote, or the host picks (for "how it works" before it's shown).</summary>

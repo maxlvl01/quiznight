@@ -211,6 +211,8 @@ public partial class QuestionEditorScreen : Control
 					if (mode == Typed) mode = ClassicMode.Buzzer;
 					// Keep the marked answer when switching between the two choice modes.
 					if (mode == ClassicMode.Multi && _draft.CorrectChoices.Count == 0) _draft.CorrectChoices = new() { _draft.CorrectChoice };
+					// (a question that becomes multiple choice scores per right answer, like a new one)
+					if (mode == ClassicMode.Multi && _draft.Mode != ClassicMode.Multi) _draft.PerCorrect = true;
 					if (mode == ClassicMode.Choice && _draft.CorrectChoices.Count > 0) _draft.CorrectChoice = _draft.CorrectChoices.Min();
 					_draft.Mode = mode;
 					Changed(true);
@@ -239,6 +241,17 @@ public partial class QuestionEditorScreen : Control
 		settings.Add(choice || _draft.IsTyped
 			? RoundSettings.Row(RoundSettings.TimeLimit(_draft, () => Changed()), RoundSettings.Points(_draft, () => Changed()))
 			: RoundSettings.Points(_draft, () => Changed()));
+		if (_draft.IsMulti)
+		{
+			var perPick = new CheckBox { Text = Lang.T("Points per right answer"), ButtonPressed = _draft.PerCorrect, MouseDefaultCursorShape = CursorShape.PointingHand };
+			perPick.Toggled += on =>
+			{
+				_draft.PerCorrect = on;
+				// (rebuilds: the points field's label and buttons change)
+				Changed(true);
+			};
+			settings.Add(perPick.Tip("Each right pick scores the points, each wrong pick takes as many off again (not below 0). Off: only players who pick exactly the right ones score."));
+		}
 		if (choice)
 		{
 			// (off by default: a wrong pick loses the question's points)
@@ -252,7 +265,9 @@ public partial class QuestionEditorScreen : Control
 			settings.Add(costs.Tip("A wrong answer loses as many points as a right one gets. Not answering costs nothing."));
 		}
 		settings.Add(RoundSettings.Bonus(_draft, () => Changed()));
-		settings.Add(U.Muted(_draft.IsTyped ? TypedHelp : _draft.IsMulti
+		settings.Add(U.Muted(_draft.IsTyped ? TypedHelp : _draft.ScoresPerPick
+			? "Everyone picks all the answers they think are right on their own screen. Each right pick scores the points, each wrong pick takes as many off again. The answer is revealed when everyone has answered, the time runs out, or you reveal it."
+			: _draft.IsMulti
 			? "Everyone picks all the answers they think are right on their own screen. Only players who pick exactly the right ones get the points. The answer is revealed when everyone has answered, the time runs out, or you reveal it."
 			: choice
 			? "Everyone picks A, B, C or D on their own screen. Everyone who picks the right one gets the points. The answer is revealed when everyone has answered, the time runs out, or you reveal it."

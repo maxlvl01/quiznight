@@ -972,6 +972,19 @@ public static class SelfTest
 		var multi = Dev.SampleQuiz.Build().Questions.First(x => x.IsMulti).Clone();
 		Eq(multi.Mode, ClassicMode.Multi, "multi mode is saved");
 		Eq(string.Join(",", multi.CorrectChoices), "0,1", "multi correct answers are saved");
+		Check(!multi.PerCorrect && QuizJson.ReadQuestion(new System.Text.Json.Nodes.JsonObject { ["type"] = QuestionType.Classic, ["mode"] = ClassicMode.Multi }).PerCorrect == false,
+			"multi questions from before format 12 keep scoring only the exact set");
+		Check(QuizRules.NewQuestion(QuestionType.Classic, "x").PerCorrect, "new questions score multiple choice per right answer");
+		multi.PerCorrect = true;
+		multi.Points = 3;
+		Check(multi.Clone().ScoresPerPick, "points per right answer is saved");
+		Eq(Game.ChoicePoints(multi, new[] { 0, 1 }), 6, "per right answer: both right score twice");
+		Eq(Game.ChoicePoints(multi, new[] { 0 }), 3, "per right answer: half the set scores half");
+		Eq(Game.ChoicePoints(multi, new[] { 0, 2 }), 0, "per right answer: a wrong pick takes a right one off");
+		Eq(Game.ChoicePoints(multi, new[] { 0, 1, 2, 3 }), 0, "per right answer: picking everything doesn't pay");
+		Eq(Game.ChoicePoints(multi, new[] { 2, 3 }), 0, "per right answer: not below 0");
+		multi.WrongCosts = true;
+		Eq(Game.ChoicePoints(multi, new[] { 2, 3 }), -6, "per right answer with wrong answers costing: below 0");
 		var timelineQ = Dev.SampleQuiz.Build().Questions.First(x => x.IsTimeline).Clone();
 		Check(timelineQ.IsTimeline && string.Join(",", timelineQ.ItemLabels) == "1993,1998,2007,2022" && timelineQ.KeepGoing, "timeline settings are saved");
 		var shuffledTl = QuizRules.ShuffleOrder(timelineQ, new Random(3));

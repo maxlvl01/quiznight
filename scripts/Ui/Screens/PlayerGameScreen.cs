@@ -365,7 +365,9 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		var error = U.Error();
 		var list = U.V(10);
 		if (multi && locked == null) list.AddChild(U.Muted("Several answers can be right. Pick all you think are, then lock in.", 15, false, HorizontalAlignment.Center).Center());
-		if (game.Question.WrongCosts && locked == null)
+		if (multi && game.Question.PerCorrect && locked == null)
+			list.AddChild(U.Text(Lang.F("Each right pick scores {0}, each wrong pick takes {0} off.", U.Plural(game.Question.Points, "point", "points")), 15, C.Coral, Fonts.Bold).Center());
+		else if (game.Question.WrongCosts && locked == null)
 			list.AddChild(U.Text(Lang.F("Careful: a wrong answer costs {0}.", U.Plural(game.Question.Points, "point", "points")), 15, C.Coral, Fonts.Bold).Center());
 		Button? lockIn = null;
 		for (var i = 0; i < (game.Question.Choices?.Count ?? 0); i++)

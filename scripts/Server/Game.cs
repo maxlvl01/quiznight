@@ -957,6 +957,23 @@ public sealed class Game
 		return result;
 	}
 
+	/// <summary>
+	/// A–D and multiple choice: what a player's picks (sorted) score. Multi: exactly the right set scores — or, per right
+	/// pick, each right pick scores and each wrong one takes as much off again (else ticking every answer would always
+	/// win), at least 0 unless wrong answers cost.
+	/// </summary>
+	public static int ChoicePoints(Question q, IReadOnlyList<int> picks)
+	{
+		var right = q.CorrectSet;
+		if (q.ScoresPerPick)
+		{
+			var hits = picks.Count(right.Contains);
+			var perPick = (hits - (picks.Count - hits)) * q.Points;
+			return q.WrongCosts ? perPick : Math.Max(0, perPick);
+		}
+		return picks.SequenceEqual(right) ? q.Points : q.WrongCosts ? -q.Points : 0;
+	}
+
 	RevealView ComputeReveal()
 	{
 		var q = Question;
@@ -1067,15 +1084,13 @@ public sealed class Game
 			{
 				var picks = Picks(a.Value);
 				foreach (var i in picks) counts[i]++;
-				// Multi: only exactly the right set counts — no points for half of it.
-				var correct = picks.SequenceEqual(right);
 				return new RevealEntry
 				{
 					PlayerId = a.PlayerId,
 					Value = a.Value,
 					Text = ChoiceText(q, picks),
-					Correct = correct,
-					Points = correct ? q.Points : q.WrongCosts ? -q.Points : 0,
+					Correct = picks.SequenceEqual(right),
+					Points = ChoicePoints(q, picks),
 				};
 			}).ToList();
 			return new RevealView
@@ -1266,6 +1281,7 @@ public sealed class Game
 				pq.Choices = q.Choices.Select(c => string.IsNullOrWhiteSpace(c) ? null : c).ToList();
 				pq.TimeLimitSec = q.TimeLimitSec;
 				pq.WrongCosts = q.WrongCosts;
+				pq.PerCorrect = q.ScoresPerPick;
 			}
 		}
 		if (q.Type == QuestionType.Order)
