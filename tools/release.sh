@@ -59,8 +59,10 @@ sign() {
 # in git, so a fresh checkout or worktree needs it copied in from the main checkout.)
 [ -s results-token.txt ] || { echo "results-token.txt is missing (copy it from the main checkout): no results, logs or test updates without it"; exit 1; }
 
-# (keeps Godot from importing what's in build/, e.g. the maps copied next to the Windows build)
+# (keeps Godot from importing what's in build/, e.g. the map packs)
 mkdir -p build && touch build/.gdignore
+# (the game downloads the built-in maps from the "maps" release: it has to have these maps before a build goes out)
+tools/map_packs.sh --check || exit 1
 dotnet build "QuizNight!.csproj" -nologo -v q
 # The Windows build uses our slim engine (export_presets custom_template/release; built from the Godot source with
 # tools/engine_profile.py, see CLAUDE.md): 37 MB instead of the stock 105 MB.
@@ -73,10 +75,8 @@ rm -rf "$OUT" && mkdir -p "$OUT"
 # FFmpeg isn't bundled: AnyConverter helps players install it the first time.
 [ -f "$ANYCONVERTER" ] || { echo "AnyConverter.exe not found at $ANYCONVERTER (build it with PyInstaller, or set ANYCONVERTER)"; exit 1; }
 mkdir -p "$OUT/AnyConverter" && cp "$ANYCONVERTER" "$OUT/AnyConverter/AnyConverter.exe"
-# The built-in maps aren't in the .pck (export_presets excludes them): they go next to the game as plain
-# files, so updates only download the maps that changed (Images.BuiltinFile).
-copy_maps() { mkdir -p "$1/maps" && (cd assets/maps && find . -name '*.webp' -exec cp --parents {} "../../$1/maps/" \;); }
-copy_maps "$OUT"
+# The built-in maps aren't part of the game (export_presets leaves them out of the .pck): since 0.12.8d1 the game
+# downloads each one when a quiz needs it, from the "maps" release (tools/map_packs.sh, Storage/MapPacks.cs).
 # .NET's debugger and crash-dump helpers and its spare garbage collector come with every export; players never use them
 # (crash reports are our own, Storage/CrashReports). ~6.5 MB.
 strip_dotnet() { (cd "$1" && rm -f mscordbi.dll mscordaccore.dll mscordaccore_amd64_amd64_*.dll Microsoft.DiaSymReader.Native.amd64.dll createdump.exe clrgc.dll   libmscordbi.so libmscordaccore.so createdump libclrgc.so); }
@@ -91,7 +91,6 @@ rm -rf "$OUT_LINUX" && mkdir -p "$OUT_LINUX"
 rm -rf build/anyconverter-linux && mkdir -p build/anyconverter-linux "$OUT_LINUX/AnyConverter"
 /c/Windows/System32/tar.exe -x -f "$ANYCONVERTER_LINUX" -C build/anyconverter-linux
 cp build/anyconverter-linux/AnyConverter-linux/AnyConverter "$OUT_LINUX/AnyConverter/AnyConverter"
-copy_maps "$OUT_LINUX"
 strip_dotnet "$OUT_LINUX/data_QuizNight!_linuxbsd_x86_64"
 # (the export builds the C# for Linux; build it for Windows again for the editor and the self-test)
 dotnet build "QuizNight!.csproj" -nologo -v q

@@ -29,9 +29,24 @@ public abstract class AssetSource
 	/// <summary>The texture if it's here; otherwise starts fetching it and returns null (watch Loaded).</summary>
 	public abstract Texture2D? Get(string key);
 
-	/// <summary>A question's map: built-in maps come from the game files, custom ones from the source.</summary>
+	/// <summary>
+	/// A question's map: built-in maps from this PC's maps if it has them, else (like custom maps) from the source: the
+	/// host sent it with the quiz's files. (WoW's many files come as a zip that's unpacked for MapPacks: see MapReady.)
+	/// </summary>
 	public Texture2D? Map(PublicMap map) =>
-		MapPresets.Get(map.PresetId) is { } preset ? Images.BuiltinTexture(preset.ImagePath) : map.AssetKey != null ? Get(map.AssetKey) : null;
+		MapPresets.Get(map.PresetId) is { } preset && MapPacks.Has(preset.Id) ? Images.BuiltinTexture(preset.ImagePath)
+		: map.AssetKey != null ? Get(map.AssetKey) : null;
+
+	/// <summary>
+	/// Whether the map can be drawn now. Only the WoW map (drawn from its own files) has to wait for them; other maps
+	/// draw at once and get their picture when it's here (Loaded).
+	/// </summary>
+	public bool MapReady(PublicMap map)
+	{
+		if (map.PresetId != WowAtlas.PresetId || MapPacks.Has(map.PresetId)) return true;
+		if (map.AssetKey != null) Get(map.AssetKey);
+		return MapPacks.Has(map.PresetId);
+	}
 }
 
 public sealed class HostAssets(Func<Room?> room) : AssetSource
@@ -102,7 +117,8 @@ public sealed class ClientAssets(Action<string> request, ClientMedia media) : As
 
 	Texture2D? Unlocked(string key, SharedFileRef file)
 	{
-		if (media.GetImage(file.Id, file.Key, file.Mime) is not { } tex) return null;
+		var tex = file.Mime == MapPacks.ZipMime ? media.GetMapPack(file.Id, file.Key) : media.GetImage(file.Id, file.Key, file.Mime);
+		if (tex == null) return null;
 		Cache[key] = tex;
 		return tex;
 	}
@@ -160,7 +176,8 @@ public sealed class ClientAssets(Action<string> request, ClientMedia media) : As
 			return;
 		}
 		GD.Print($"Picture {part.Key}: arrived from the host directly");
-		Cache[part.Key] = Images.TextureFromDataUrl($"data:{entry.Mime};base64,{sb}");
+		Cache[part.Key] = entry.Mime == MapPacks.ZipMime ? media.UnpackMapPack(Convert.FromBase64String(sb.ToString()))
+			: Images.TextureFromDataUrl($"data:{entry.Mime};base64,{sb}");
 		RaiseLoaded(part.Key);
 	}
 }

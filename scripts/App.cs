@@ -116,6 +116,8 @@ public partial class App : Control
 		if (args.Contains("--selftest")) Lang.Use("en");
 		// (shows the exported game's home screen, LAN hidden, when run from the editor)
 		if (args.Contains("--lan-locked")) LanUnlocked = false;
+		// (built-in maps like an export: from user://maps/, downloaded when missing; QUIZNIGHT_MAPS_FEED for a local list)
+		if (args.Contains("--map-packs")) MapPacks.Simulate = true;
 		if (!args.Contains("--no-steam") && !args.Contains("--selftest") && !args.Contains("--bot")) SteamService.Init();
 		_dev = DevTools.FromArgs(this, args);
 		if (_dev?.TakesOver == true) return;
@@ -156,6 +158,8 @@ public partial class App : Control
 			else _audio.SkipGreeting();
 			WhatsNew.ShowIfUpdated(this);
 			if (Updater.Enabled) Updater.CleanUp();
+			// (an update from before 0.12.8d1 left the maps folder next to the game: the quizzes' maps move, the rest goes)
+			MapPacks.MoveOldMaps();
 			UpdatePrompt.CheckAndInstall(this);
 		}
 		if (cards != null) cards.TreeExited += Popups;
@@ -530,6 +534,8 @@ public partial class App : Control
 			ShowError(Lang.F("Couldn't open the lobby: {0}", issues[0]));
 			return;
 		}
+		// (the built-in maps it uses: downloaded first if they aren't here, the host sends them to the players)
+		if (!await Ui.MapDownload.Ensure(this, MapPacks.Used(quiz))) return;
 		var mode = forceMode ?? NetMode;
 		Show(new MessageScreen(mode == NetMode.Steam ? "Opening the lobby on Steam…" : "Opening the lobby…"));
 		ServerClock.Reset();

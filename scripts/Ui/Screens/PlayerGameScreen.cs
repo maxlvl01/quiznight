@@ -207,7 +207,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		else if (q.Type == QuestionType.Order) _panel.Set($"{key}{closed}|{game.MyAnswer?.Picks != null}", () => Order(room));
 		else if (q.Written) _panel.Set($"{key}{closed}|{game.MyAnswer?.Text}", () => Write(room));
 		else if (q.Type == QuestionType.Estimation) _panel.Set($"{key}{closed}|{game.MyAnswer?.Num}", () => Estimate(room));
-		else _panel.Set($"{key}{closed}|{game.MyAnswer?.Point != null}", () => MapPin(room));
+		else _panel.Set($"{key}{closed}|{game.MyAnswer?.Point != null}|{q.Map == null || _client.Assets.MapReady(q.Map)}", () => MapPin(room));
 	}
 
 	/// <summary>
@@ -617,6 +617,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		var game = room.Game!;
 		var q = game.Question;
 		if (game.MyAnswer?.Point != null) return Status(U.Bold("Pin locked in", 24), U.Muted(Waiting(game), 15));
+		if (q.Map != null && !_client.Assets.MapReady(q.Map)) return MapComing(q.Map);
 		NormPoint? pin = null;
 		var error = U.Error();
 		var lockIn = U.Btn("Tap the map to place your pin", "TealButton", null, 18);
@@ -659,6 +660,21 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		return box;
 	}
 
+	/// <summary>The WoW map's files are still on their way from the host (or being unpacked): look again once they're here.</summary>
+	Control MapComing(PublicMap map)
+	{
+		var status = Status(U.Bold("Getting the map…", 24), U.Muted("It comes from the host with the quiz's other files.", 15));
+		void OnLoaded(string k)
+		{
+			if (k != map.AssetKey) return;
+			_client.Assets.Loaded -= OnLoaded;
+			if (IsInstanceValid(this)) Callable.From(() => Refresh(_room)).CallDeferred();
+		}
+		_client.Assets.Loaded += OnLoaded;
+		status.TreeExiting += () => _client.Assets.Loaded -= OnLoaded;
+		return status;
+	}
+
 	Control Reveal(RoomState room)
 	{
 		var game = room.Game!;
@@ -691,7 +707,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		if (!q.Buzzer && q.Type != QuestionType.MapPin && reveal.Entries.Count > 0) box.AddChild(GameParts.RevealPanel(room, heading: false));
 		// Image reveal: everyone gets the whole picture now.
 		if (q.Type == QuestionType.Image && q.ImageKey != null) box.AddChild(new AssetImage(_client.Assets, q.ImageKey, U.Flexible) { Zoomable = true });
-		if (q.Type == QuestionType.MapPin && q.Map != null)
+		if (q.Type == QuestionType.MapPin && q.Map != null && _client.Assets.MapReady(q.Map))
 		{
 			// The answer on the left, the map with everyone's pins as big as the rest of the card.
 			box.RemoveChild(panel);

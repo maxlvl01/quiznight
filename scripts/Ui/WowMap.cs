@@ -33,7 +33,17 @@ public static class WowMapArt
 	public sealed record Tile(string Path, Rect2 World);
 
 	/// <summary>Every tile, with the part of the world map (0–1) it covers.</summary>
-	public static readonly IReadOnlyList<Tile> Tiles = FindTiles();
+	public static IReadOnlyList<Tile> Tiles => _tiles ??= FindTiles();
+	static List<Tile>? _tiles;
+
+	/// <summary>The map's files came or went (MapPacks): look for the tiles again, drop what was loaded.</summary>
+	public static void Forget()
+	{
+		_tiles = null;
+		Loaded.Clear();
+		Recent.Clear();
+		Cut.Clear();
+	}
 	public static readonly Rect2 TileSource = new(1, 1, (float)TileStep, (float)TileStep);
 
 	/// <summary>All the tiles as one map, downsized to px pixels per world-map pixel (2 or 4; tools/openmap_overview.py).</summary>

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using QuizNight.Shared;
@@ -77,16 +78,27 @@ public partial class QuizListScreen : Control
 	/// <summary>The trash can: deletes the quiz, after asking (unless "Don't ask me again" was ticked once).</summary>
 	Button TrashButton(Quiz quiz)
 	{
+		var dropMaps = false;
+		// (its downloaded built-in maps no other quiz uses: offered to go with it, MapPacks)
+		List<MapPreset> OnlyHere() => MapPacks.Used(quiz)
+			.Where(p => MapPacks.SizeOnDisk(p) > 0 && !QuizStore.List().Where(o => o.Id != quiz.Id).SelectMany(MapPacks.Used).Contains(p)).ToList();
 		void Delete()
 		{
+			var maps = dropMaps ? OnlyHere() : new();
 			QuizStore.Delete(quiz.Id);
+			if (maps.Count > 0) MapPacks.Delete(maps.Select(m => m.Id));
 			Refresh();
 		}
 		var button = U.Small("", () =>
 		{
-			if (!Settings.AskBeforeDeletingQuiz) Delete();
+			var maps = OnlyHere();
+			var option = maps.Count == 0 ? null
+				: Lang.F("Also delete its maps from this PC ({0}, {1} MB)", string.Join(", ", maps.Select(m => m.Name)), Math.Max(1, maps.Sum(MapPacks.SizeOnDisk) / 1_000_000));
+			dropMaps = false;
+			if (!Settings.AskBeforeDeletingQuiz && option == null) Delete();
 			else Dialogs.Confirm(this, Lang.F("Delete \"{0}\"? This can't be undone — export it first if you want a backup.", quiz.Title), "Delete", Delete,
-				dontAskAgain: () => Settings.AskBeforeDeletingQuiz = false);
+				dontAskAgain: Settings.AskBeforeDeletingQuiz ? () => Settings.AskBeforeDeletingQuiz = false : null,
+				option: option, optionChosen: on => dropMaps = on);
 		});
 		// Just the red can, no box. Under the mouse it grows, lights up and says "Delete?".
 		foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) button.AddThemeStyleboxOverride(state, new StyleBoxEmpty());

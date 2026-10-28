@@ -459,21 +459,34 @@ public static class Dialogs
 {
 	/// <summary>Asks a yes/no question; runs onYes only on yes.</summary>
 	/// <param name="dontAskAgain">With it, a "Don't ask me again" box; ticked and confirmed, this runs too.</param>
-	public static void Confirm(Node owner, string text, string yes, Action onYes, string title = "Are you sure?", Action? dontAskAgain = null)
+	/// <param name="option">With it, a box of its own (ticked to start with); confirmed, optionChosen hears whether it's still ticked.</param>
+	public static void Confirm(Node owner, string text, string yes, Action onYes, string title = "Are you sure?", Action? dontAskAgain = null,
+		string? option = null, Action<bool>? optionChosen = null)
 	{
 		var d = new ConfirmationDialog { Title = Lang.T(title), DialogText = Lang.T(text), OkButtonText = Lang.T(yes), CancelButtonText = Lang.T("Cancel"), DialogAutowrap = true };
 		d.MinSize = new Vector2I(460, 0);
-		if (dontAskAgain != null)
+		if (dontAskAgain != null || option != null)
 		{
 			// (a dialog's own text and an added control would sit on top of each other: both go in one column instead)
 			d.DialogText = "";
-			var box = new CheckBox { Text = Lang.T("Don't ask me again"), MouseDefaultCursorShape = Control.CursorShape.PointingHand };
 			var question = new Label { Text = Lang.T(text), AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(420, 0) };
-			d.AddChild(U.V(12, question, box));
-			d.Confirmed += () =>
+			var column = U.V(12, question);
+			if (option != null)
 			{
-				if (box.ButtonPressed) dontAskAgain();
-			};
+				var extra = new CheckBox { Text = Lang.T(option), ButtonPressed = true, MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+				column.AddChild(extra);
+				d.Confirmed += () => optionChosen?.Invoke(extra.ButtonPressed);
+			}
+			if (dontAskAgain != null)
+			{
+				var box = new CheckBox { Text = Lang.T("Don't ask me again"), MouseDefaultCursorShape = Control.CursorShape.PointingHand };
+				column.AddChild(box);
+				d.Confirmed += () =>
+				{
+					if (box.ButtonPressed) dontAskAgain();
+				};
+			}
+			d.AddChild(column);
 		}
 		d.Confirmed += () => onYes();
 		d.Confirmed += d.QueueFree;

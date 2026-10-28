@@ -266,6 +266,12 @@ public partial class QuizOverviewScreen : Control
 		if (issues.Count > 0 && _quiz.Questions.Count > 0)
 			_foot.AddChild(U.Muted(Lang.F("{0} to fix before hosting.", U.Plural(issues.Count, "thing", "things")), 13));
 		if (NightSaves.Load(_quiz.Id) is { } save) _foot.AddChild(ContinueBox(this, _quiz, save, issues.FirstOrDefault(), RefreshFoot));
+		// (built-in maps it uses that aren't on this PC: MapPacks)
+		if (MapDownload.MissingText(_quiz) is { Length: > 0 } maps)
+			_foot.AddChild(U.H(10, U.Muted(maps, 13).Raw().Grow(), U.Small("Download now", async () =>
+			{
+				if (await MapDownload.Ensure(this, MapPacks.Missing(_quiz)) && IsInstanceValid(this)) RefreshFoot();
+			})));
 		var host = U.Btn("Open lobby", "AccentButton", () => App.I.HostQuiz(_quiz)).Grow().Tip(issues.FirstOrDefault());
 		host.Disabled = issues.Count > 0;
 		_foot.AddChild(U.H(8, U.Btn("Copy share code", "", () => ShareInfo.Copy(this, _quiz)), U.Btn("Export file", "",() => QuizListScreen.ExportQuiz(this, _quiz, _error)), host));

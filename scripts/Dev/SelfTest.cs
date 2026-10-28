@@ -496,6 +496,45 @@ public static class SelfTest
 	}
 
 	/// <summary>What comes from outside: joins over Steam, pictures, packed quizzes, recordings, CSV cells, frames.</summary>
+	/// <summary>Built-in maps as downloads (MapPacks): packs line up with the files, a pack unpacks safely.</summary>
+	static void MapPacksChecks()
+	{
+		Check(MapPresets.All.Where(p => p.Id != WowAtlas.PresetId).All(p => p.ImagePath == $"{Storage.MapPacks.MapsRes}{p.Id}.webp"),
+			"each built-in map is the file its pack is named after (tools/map_packs.py)");
+		Check(Storage.MapPacks.Has("skyrim") && Storage.MapPacks.Missing(Dev.SampleQuiz.Build()).Count == 0, "dev runs have every map");
+		Eq(Storage.MapPacks.Used(Dev.SampleQuiz.Build()).Count, 2, "the sample quiz uses two built-in maps");
+		var wowFiles = Storage.MapPacks.FilesOf(MapPresets.Get(WowAtlas.PresetId)!);
+		Check(wowFiles.Count > 200 && wowFiles.All(f => f.StartsWith("wow/")), "the WoW pack is the wow folder");
+		static byte[] Zip(params string[] names)
+		{
+			using var ms = new System.IO.MemoryStream();
+			using (var z = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, true))
+				foreach (var n in names)
+				{
+					using var w = z.CreateEntry(n).Open();
+					w.Write(new byte[] { 1, 2, 3 });
+				}
+			return ms.ToArray();
+		}
+		var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "qn-mappack-" + System.Environment.ProcessId);
+		try
+		{
+			Eq(string.Join(",", Storage.MapPacks.Unpack(Zip("wow/a.webp", "b.webp"), dir)), "wow/a.webp,b.webp", "a map pack unpacks");
+			Check(System.IO.File.Exists(System.IO.Path.Combine(dir, "wow", "a.webp")), "into its folder");
+			foreach (var bad in new[] { "../evil.webp", "wow/../../evil.webp", "x.exe" })
+			{
+				var refused = false;
+				try { Storage.MapPacks.Unpack(Zip(bad), dir); }
+				catch (System.IO.InvalidDataException) { refused = true; }
+				Check(refused, $"a map pack with {bad} is refused");
+			}
+		}
+		finally
+		{
+			if (System.IO.Directory.Exists(dir)) System.IO.Directory.Delete(dir, true);
+		}
+	}
+
 	static void Safety()
 	{
 		var room = new Room("ABCD", Dev.SampleQuiz.Build());
@@ -720,6 +759,12 @@ public static class SelfTest
 		Check(g.AssetDataUrl("q3/image") != null, "current image available");
 		Check(g.AssetDataUrl("q5/image") == null, "future image hidden");
 		Eq(g.View("bob").Question.Map!.PresetId, "skyrim", "built-in map by preset");
+		// (built-in maps aren't in exported games: players get them from the host like custom maps, MapPacks)
+		var bobMap = g.View("bob").Question;
+		Check(bobMap.Map!.AssetKey == "q3/map" && bobMap.Files?.ContainsKey("q3/map") == true, "a built-in map is unlocked for players like a custom one");
+		Check(g.AssetDataUrl("q3/map")?.StartsWith("data:image/webp") == true, "the host hands out a built-in map's picture");
+		Check(room.SharedFiles.Any(f => f.Asset == Game.BuiltinAsset("skyrim")) && room.SharedFiles.Any(f => f.Asset == Game.BuiltinAsset(WowAtlas.PresetId) && f.Mime == Storage.MapPacks.ZipMime),
+			"built-in maps go to players ahead of time (WoW as a zip)");
 
 		// Sound: the play clock only counts while playing.
 		for (var i = 0; i < 5; i++) room.Next();
@@ -941,6 +986,7 @@ public static class SelfTest
 		Check(MapPresets.All.All(p => p.Id == WowAtlas.PresetId || p.WidthKm > 0), "built-in maps have a scale");
 		Eq(MapPresets.Get("botw")!.WidthKm, 12.0, "Hyrule is 12 km wide");
 		Eq(MapPresets.Get("fh6")!.WidthKm, 17.214, "FH6 Japan width");
+		MapPacksChecks();
 
 		var again = QuizJson.Parse(QuizJson.Write(quiz), out _)!;
 		Eq(QuizJson.Write(again), QuizJson.Write(quiz), "write/read round trip");
@@ -1322,6 +1368,9 @@ public static class SelfTest
 		ann.Answer(1, AnswerValue.Number(2), r => res = r);
 		Check(await Until(() => res != null) && res!.Ok, "answer accepted");
 
+		// (the quiz's files, the WoW map's 15 MB among them, finish first: the players here can't read while the host
+		// waits for its last messages to go out, as they would in a game of their own)
+		Check(await Until(() => host.State.Downloads?.Values.All(p => p == 100) != false, 60), "players get all the quiz's files");
 		host.Close("Test over.");
 		Check(await Until(() => ended != null), "players learn the room closed");
 		Eq(ended, "Test over.", "close reason");

@@ -111,14 +111,42 @@ public sealed class LanHostTransport : IHostTransport
 	public void Disconnect(string peer)
 	{
 		if (!_peers.Remove(peer, out var p)) return;
-		// (whatever is still queued, e.g. "you were removed", goes out first)
-		while (p.Out.Count > 0)
-		{
-			p.Tcp.PutData(p.Out.Dequeue().AsSpan(p.OutPos).ToArray());
-			p.OutPos = 0;
-		}
+		FlushLast(p);
+		// (and what the player still sent us is read off: closing with unread data makes Windows reset the connection,
+		// and a reset throws away what the player hasn't read yet, the message above among it)
+		p.Tcp.Poll();
+		if (p.Tcp.GetAvailableBytes() is > 0 and var unread) p.Tcp.GetData(unread);
 		p.Tcp.DisconnectFromHost();
 		PeerDisconnected?.Invoke(peer);
+	}
+
+	/// <summary>
+	/// Before a connection closes: whatever is still queued, e.g. "you were removed" or "the host closed the room", goes
+	/// out first. Pieces of the quiz's files not yet begun are left out (no use any more, and there may be
+	/// megabytes of them); the rest is written for at most a second, without blocking (a player in the same game, e.g.
+	/// the self-test's, can't read while the host waits).
+	/// </summary>
+	static void FlushLast(Peer p)
+	{
+		var keep = new Queue<byte[]>();
+		var first = true;
+		foreach (var frame in p.Out)
+		{
+			if (first && p.OutPos > 0 || frame.Length < 5 || frame[4] != MediaChunk.Marker) keep.Enqueue(frame);
+			first = false;
+		}
+		p.Out.Clear();
+		foreach (var frame in keep) p.Out.Enqueue(frame);
+		var until = Time.GetTicksMsec() + 1000;
+		while (p.Out.Count > 0 && Time.GetTicksMsec() < until && p.Tcp.GetStatus() == StreamPeerTcp.Status.Connected)
+		{
+			Flush(p);
+			if (p.Out.Count > 0)
+			{
+				OS.DelayMsec(5);
+				p.Tcp.Poll();
+			}
+		}
 	}
 
 	public void Poll()
@@ -176,8 +204,8 @@ public sealed class LanHostTransport : IHostTransport
 
 	public void Dispose()
 	{
-		foreach (var p in _peers.Values) p.Tcp.DisconnectFromHost();
-		_peers.Clear();
+		// (like Disconnect: what's queued, e.g. "the host closed the room" behind a big file, goes out first)
+		foreach (var id in _peers.Keys.ToList()) Disconnect(id);
 		_server.Stop();
 	}
 }

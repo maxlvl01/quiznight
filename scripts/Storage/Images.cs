@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using QuizNight.Server;
 using QuizNight.Shared;
@@ -109,17 +110,17 @@ public static class Images
 	public static Texture2D? MapThumb(string mapPath) =>
 		BuiltinTexture($"res://assets/map-thumbs/{System.IO.Path.GetFileNameWithoutExtension(mapPath)}.webp");
 
-	const string MapsRes = "res://assets/maps/";
-
 	/// <summary>
-	/// Where a built-in map file really is: res://assets/maps/… when running from the project; in exported
-	/// builds the maps sit next to the game in a "maps" folder (release.sh copies them there and leaves them
-	/// out of the .pck), so an update only downloads the maps that changed, not all of them inside the .pck.
+	/// Where a built-in map file really is: res://assets/maps/… when running from the project; in exported builds the
+	/// maps aren't part of the game (they're out of the .pck) but downloaded when needed (MapPacks).
 	/// </summary>
-	public static string BuiltinFile(string path) =>
-		OS.HasFeature("template") && path.StartsWith(MapsRes)
-			? OS.GetExecutablePath().GetBaseDir() + "/maps/" + path[MapsRes.Length..]
-			: path;
+	public static string BuiltinFile(string path) => MapPacks.FileFor(path);
+
+	/// <summary>Drops cached built-in pictures under this path (map files came or went).</summary>
+	public static void ForgetBuiltin(string prefix)
+	{
+		foreach (var key in Builtin.Keys.Where(k => k.StartsWith(prefix)).ToList()) Builtin.Remove(key);
+	}
 
 	/// <summary>
 	/// A built-in map image, with mipmaps. The maps ship as their original WebP files (imported as "keep")

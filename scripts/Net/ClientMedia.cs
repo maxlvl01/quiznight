@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Godot;
 using QuizNight.Shared;
@@ -101,6 +102,32 @@ public sealed class ClientMedia : IDisposable
 	public Texture2D? GetImage(string id, string key, string mime) =>
 		Get(id, key, ".img", path => Images.TextureFromBytes(System.IO.File.ReadAllBytes(path), mime)) as Texture2D;
 
+	/// <summary>
+	/// A built-in map of many files (WoW) the host sent as a zip: unpacked into this game's folder for MapPacks, the same
+	/// way. Returns a stand-in texture once it's usable (the map draws itself from the files).
+	/// </summary>
+	public Texture2D? GetMapPack(string id, string key) =>
+		Get(id, key, ".zip", path => UnpackMapPack(System.IO.File.ReadAllBytes(path))) as Texture2D;
+
+	/// <summary>Unpacks a map zip from the host (null if it isn't one we know).</summary>
+	public Texture2D? UnpackMapPack(byte[] zip)
+	{
+		try
+		{
+			var folder = Path.Combine(_dir, "maps");
+			var files = MapPacks.Unpack(zip, folder);
+			// (WoW is the only map of many files: everything in it is under wow/)
+			if (files.Count == 0 || !files.All(f => f.StartsWith("wow/"))) return null;
+			MapPacks.AddTemp(WowAtlas.PresetId, folder);
+			return new PlaceholderTexture2D { Size = Vector2.One };
+		}
+		catch (Exception e)
+		{
+			GD.Print($"Couldn't unpack the map from the host: {e.Message}");
+			return null;
+		}
+	}
+
 	/// <summary>The file is all here but couldn't be unlocked or read (then it's fetched another way).</summary>
 	public bool Failed(string id) => _ready.TryGetValue(id, out var res) && res == null;
 
@@ -151,6 +178,7 @@ public sealed class ClientMedia : IDisposable
 	{
 		foreach (var f in _incoming.Values) f.File.Dispose();
 		_incoming.Clear();
+		MapPacks.RemoveTemp(_dir);
 		try
 		{
 			if (Directory.Exists(_dir)) Directory.Delete(_dir, true);

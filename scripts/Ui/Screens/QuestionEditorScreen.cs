@@ -813,6 +813,18 @@ public partial class QuestionEditorScreen : Control
 			: _draft.Target != null ? "Correct spot set. Click again to move it." : "Click the map to set the correct spot. Scroll to zoom, drag to move.";
 
 		var credit = MapPresets.Get(map.PresetId)?.Credit;
+		// (a built-in map that isn't on this PC yet, MapPacks: download it to set the spot)
+		if (MapPresets.Get(map.PresetId) is { } missing && !MapPacks.Has(missing.Id))
+		{
+			_mapCol.AddChild(U.Panel(U.V(10,
+				U.Bold(Lang.F("{0} isn't downloaded yet.", missing.Name), 17).Raw(),
+				U.Muted("Built-in maps are downloaded the first time they're used. Players get it from you when you host.", 13),
+				U.Btn("Download the map", "AccentButton", async () =>
+				{
+					if (await MapDownload.Ensure(this, new[] { missing }) && IsInstanceValid(this)) BuildMapColumn();
+				}, 15))));
+			return;
+		}
 		if (map.PresetId == WowAtlas.PresetId)
 		{
 			_mapCol.AddChild(new WowAtlasView(_draft.Target, p =>
@@ -894,8 +906,15 @@ public partial class QuestionEditorScreen : Control
 		{
 			var preset = p;
 			var width = preset.WidthKm is { } km ? Lang.F("{0} km wide", Km(km)) : preset.Id == WowAtlas.PresetId ? Lang.T("World → continents → zones") : "";
+			// (not on this PC yet: downloaded when picked, MapPacks)
+			var here = MapPacks.Has(preset.Id);
+			if (!here) width = (width == "" ? "" : width + " · ") + Lang.T("⬇ downloads when picked");
 			grid.AddChild(MapCard(Images.MapThumb(preset.ImagePath), preset.Name, width, current?.PresetId == preset.Id, MapPresets.IsNew(preset, App.Version),
-				() => Pick(() => ChoosePreset(preset.Id))));
+				async () =>
+				{
+					if (!here && (!await MapDownload.Ensure(this, new[] { preset }) || !IsInstanceValid(this))) return;
+					Pick(() => ChoosePreset(preset.Id));
+				}));
 		}
 		grid.AddChild(MapCard(null, Lang.T("+ Upload a new map"), Lang.T("Any picture of a map"), false, false, () =>
 		{

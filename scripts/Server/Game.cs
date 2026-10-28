@@ -178,11 +178,23 @@ public sealed class Game
 					if (q.Slides[s].DataUrl != "") files.Add(Make(i, q.Slides[s].DataUrl, "image/webp", SlideKey(i, s)));
 			if (q.Type == QuestionType.MapPin && quiz.MapById(q.MapId) is { PresetId: null, Image.DataUrl: not "" } map && maps.Add(map.Id))
 				files.Add(Make(i, map.Image.DataUrl, "image/webp", "map:" + map.Id));
+			// (built-in maps aren't part of the game any more: players get them from the host too, MapPacks)
+			if (q.Type == QuestionType.MapPin && MapPresets.Get(quiz.MapById(q.MapId)?.PresetId) is { } preset && maps.Add("builtin:" + preset.Id)
+				&& Storage.MapPacks.BundleDataUrl(preset) is { } bundle)
+				files.Add(Make(i, bundle, "image/webp", BuiltinAsset(preset.Id)));
 			if (q.Media is { DataUrl: not "" } media && (q.Type == QuestionType.Sound || q.Type == QuestionType.Video && Storage.Media.CanPlayVideo(media)))
 				files.Add(Make(i, media.DataUrl, media.Mime, null));
 		}
 		return files;
 	}
+
+	/// <summary>A built-in map's file for players (SharedMedia.Asset).</summary>
+	public static string BuiltinAsset(string presetId) => "builtin:" + presetId;
+
+	/// <summary>The SharedMedia asset of a question's map: "map:ID" (custom) or "builtin:ID".</summary>
+	string? MapAsset(Question q) => q.Type != QuestionType.MapPin ? null
+		: _quiz.MapById(q.MapId) is not { } m ? null
+		: MapPresets.Get(m.PresetId) is { } preset ? BuiltinAsset(preset.Id) : "map:" + m.Id;
 
 	/// <summary>The current question's sound or video file, if it has one.</summary>
 	public SharedMedia? CurrentMedia => SharedFiles.FirstOrDefault(v => v.Index == Index && !v.IsPicture);
@@ -191,7 +203,7 @@ public sealed class Game
 	public IEnumerable<SharedMedia> CurrentFiles()
 	{
 		var q = Question;
-		var mapAsset = q.Type == QuestionType.MapPin && _quiz.MapById(q.MapId) is { PresetId: null } m ? "map:" + m.Id : null;
+		var mapAsset = MapAsset(q);
 		return SharedFiles.Where(f => f.Index == Index && f.Asset is not { } a || f.Asset is { } asset
 			&& (asset.StartsWith($"q{Index}/") || asset == mapAsset));
 	}
@@ -1310,7 +1322,8 @@ public sealed class Game
 				Height = map.Image.Height,
 				WidthKm = map.WidthKm,
 				PresetId = builtIn ? map.PresetId : null,
-				AssetKey = builtIn ? null : MapKey(Index),
+				// (built-in maps too: players who don't have it get it from the host)
+				AssetKey = MapKey(Index),
 			};
 			pq.TimeLimitSec = q.TimeLimitSec;
 		}
@@ -1344,7 +1357,7 @@ public sealed class Game
 		// (every picture the host has shown, so players can flip back through them)
 		if (q.Type == QuestionType.Picture)
 			for (var s = 0; s < Math.Min(q.Slides.Count, pq.AllSlidesShown ? q.Slides.Count : _slidesSeen); s++) Unlock(SlideKey(Index, s), null);
-		if (pq.Map?.AssetKey is { } mapKey && _quiz.MapById(q.MapId) is { } usedMap) Unlock(mapKey, "map:" + usedMap.Id);
+		if (pq.Map?.AssetKey is { } mapKey) Unlock(mapKey, MapAsset(q));
 		if (files.Count > 0) pq.Files = files;
 		if (CurrentMedia is { } video)
 		{
@@ -1516,7 +1529,8 @@ public sealed class Game
 		if (!host && index == Index && !Shown && Stage == Shared.Stage.Open) return null;
 		var q = _quiz.Questions[index];
 		if (parts[1] == "image" && q.HasImageField && q.Image != null) return q.Image.DataUrl;
-		if (parts[1] == "map" && q.Type == QuestionType.MapPin) return _quiz.MapById(q.MapId)?.Image.DataUrl;
+		if (parts[1] == "map" && q.Type == QuestionType.MapPin)
+			return MapPresets.Get(_quiz.MapById(q.MapId)?.PresetId) is { } preset ? Storage.MapPacks.BundleDataUrl(preset) : _quiz.MapById(q.MapId)?.Image.DataUrl;
 		// (recordings: once recording is over, while the question and its reveal are on)
 		if (parts[1].StartsWith("rec") && int.TryParse(parts[1].AsSpan(3), out var clip) && q.IsInteractive && index == Index
 			&& (host || _iaPhase != InteractivePhase.Recording || Stage != Shared.Stage.Open) && clip >= 0 && clip < _clipOrder.Count)

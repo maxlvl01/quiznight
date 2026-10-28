@@ -237,6 +237,11 @@ public sealed class DevTools
 			TakesOver = true;
 			SteamCheck();
 		}
+		else if (Has("--map-packs-check"))
+		{
+			TakesOver = true;
+			MapPacksCheck();
+		}
 		else if (Has("--share-check"))
 		{
 			TakesOver = true;
@@ -465,6 +470,27 @@ public sealed class DevTools
 			GD.PrintErr($"Share check failed: {e.Message}");
 			_app.Quit(1);
 		}
+	}
+
+	/// <summary>
+	/// Downloads Skyrim and the WoW map like an exported game (from GitHub, or QUIZNIGHT_MAPS_FEED: a folder made by
+	/// tools/map_packs.sh --dry-run), checks they load, and deletes them again.
+	/// </summary>
+	async void MapPacksCheck()
+	{
+		MapPacks.Simulate = true;
+		var presets = new[] { MapPresets.Get("skyrim")!, MapPresets.Get(WowAtlas.PresetId)! };
+		MapPacks.Delete(presets.Select(p => p.Id));
+		var before = presets.Count(p => MapPacks.Has(p.Id));
+		var size = await MapPacks.DownloadSize(presets);
+		var error = await MapPacks.EnsureAsync(presets);
+		await _app.ToSignal(_app.GetTree(), SceneTree.SignalName.ProcessFrame);
+		var ok = error == null && before == 0 && presets.All(p => MapPacks.Has(p.Id))
+			&& Images.LoadBuiltinImage(presets[0].ImagePath) != null && Ui.WowMapArt.Tiles.Count == 207
+			&& MapPacks.BundleDataUrl(presets[1])?.StartsWith("data:" + MapPacks.ZipMime) == true;
+		GD.Print($"Map packs check: {(ok ? "downloaded and loaded" : "FAILED")} ({size / 1_000_000} MB{(error != null ? ", " + error : "")})");
+		MapPacks.Delete(presets.Select(p => p.Id));
+		_app.Quit(ok ? 0 : 1);
 	}
 
 	/// <summary>Opens a Steam lobby, finds it again by its code, closes it. Needs Steam running.</summary>
