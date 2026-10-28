@@ -58,6 +58,38 @@ public partial class MicRecorder : Node
 	{
 		_mic?.Stop();
 		Recording = false;
+		Loopback = false;
+	}
+
+	AudioStreamPlayer? _echo;
+	AudioStreamGeneratorPlayback? _echoOut;
+	/// <summary>How far behind you hear yourself: a little, so it doesn't sound like your own voice in your head.</summary>
+	const float EchoDelaySec = 0.15f;
+
+	/// <summary>Play the microphone back (after Microphone volume) so you hear yourself: Settings' mic test.</summary>
+	public bool Loopback
+	{
+		get => _echo != null;
+		set
+		{
+			if (value == Loopback || (value && _capture == null)) return;
+			if (value)
+			{
+				_echo = new AudioStreamPlayer { Stream = new AudioStreamGenerator { MixRate = _mixRate, BufferLength = 0.5f } };
+				AddChild(_echo);
+				_echo.Play();
+				_echoOut = (AudioStreamGeneratorPlayback)_echo.GetStreamPlayback();
+				// (the delay: silence first, then the microphone keeps the buffer that far ahead)
+				for (var i = 0; i < (int)(_mixRate * EchoDelaySec); i++) _echoOut.PushFrame(Vector2.Zero);
+			}
+			else
+			{
+				_echo!.Stop();
+				_echo.QueueFree();
+				_echo = null;
+				_echoOut = null;
+			}
+		}
 	}
 
 	public void Start()
@@ -86,6 +118,8 @@ public partial class MicRecorder : Node
 		var frames = _capture.GetBuffer(n);
 		var peak = 0f;
 		var gain = Storage.Settings.MicGain;
+		// (what doesn't fit into the loopback's buffer is dropped: it only falls behind if the game stutters)
+		var echoRoom = _echoOut?.GetFramesAvailable() ?? 0;
 		foreach (var f in frames)
 		{
 			var mono = (f.X + f.Y) / 2 * gain;
@@ -93,6 +127,7 @@ public partial class MicRecorder : Node
 			mono = Math.Clamp(mono, -1f, 1f);
 			peak = Math.Max(peak, Math.Abs(mono));
 			if (Recording) _samples.Add(mono);
+			if (echoRoom-- > 0) _echoOut!.PushFrame(new Vector2(mono, mono));
 		}
 		Level = Math.Max(peak, Level - (float)delta * 2);
 		if (Recording && Seconds >= QuestionLimits.RecordingMaxSec)

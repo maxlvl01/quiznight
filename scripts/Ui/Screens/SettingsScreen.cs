@@ -325,12 +325,24 @@ public partial class SettingsScreen : Control
 		// (how loud recordings are, saved at once like the microphone; the meter only listens while it's switched on)
 		var meter = new MicMeter();
 		var check = new CheckButton { Text = Lang.T("Check the level"), FocusMode = FocusModeEnum.None };
-		check.Toggled += on => meter.Listening = on;
+		// (hearing yourself needs the microphone on, so it switches the level check on too; switching that off stops both)
+		var hear = new CheckButton { Text = Lang.T("Hear yourself"), FocusMode = FocusModeEnum.None };
+		hear.Tip("Plays your microphone back, a moment late, as your recordings will sound. Use headphones, or your speakers feed back into the microphone.");
+		check.Toggled += on =>
+		{
+			meter.Listening = on;
+			if (!on) hear.SetPressedNoSignal(false);
+		};
+		hear.Toggled += on =>
+		{
+			if (on && !check.ButtonPressed) check.ButtonPressed = true;
+			meter.Loopback = on;
+		};
 		return U.V(8, field,
 			Volume("Microphone volume", "How loud your recordings are. 50% is as your microphone gives it; turn it up if you sound quiet, down if the meter turns red.", Settings.MicVolume, v => Settings.MicVolume = v)
 				.With(r => New.Mark((Control)r.GetChild(0), "settings.micvolume")),
-			U.H(12, check, meter.Grow()),
-			U.Muted("Speak normally: the bar should reach the yellow part. Red means too loud (it crackles): turn it down.", 12));
+			U.H(12, check, meter.Grow(), hear.With(h => New.Mark(h, "settings.loopback"))),
+			U.Muted("Speak normally: the bar should reach the yellow part. Red means too loud (it crackles): turn it down. To hear yourself, wear headphones.", 12));
 	}
 
 	/// <summary>The picture beside the game: the choices, and a button to use one from your PC.</summary>
@@ -435,6 +447,16 @@ public partial class MicMeter : Control
 				_mic = null;
 			}
 			QueueRedraw();
+		}
+	}
+
+	/// <summary>Also play the microphone back (only while listening).</summary>
+	public bool Loopback
+	{
+		get => _mic?.Loopback ?? false;
+		set
+		{
+			if (_mic != null) _mic.Loopback = value;
 		}
 	}
 
