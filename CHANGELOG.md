@@ -13,6 +13,10 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+Your mom is so fat that when she sat on the buzzer, it stayed locked for everyone.
+
+Removed Herobrine.
+
 ## [0.12.8b]
 
 ### Added
