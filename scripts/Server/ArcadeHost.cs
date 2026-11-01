@@ -36,6 +36,8 @@ public sealed class ArcadeHost
 
 	/// <summary>Who can be challenged: everyone in the room on a game that has the mini games (0.12 on), and the host.</summary>
 	public Func<IEnumerable<string>> Players = () => Array.Empty<string>();
+	/// <summary>Who's still downloading the quiz's files: they can't start or join a Pong or billiard match yet.</summary>
+	public Func<IEnumerable<string>> Downloading = () => Array.Empty<string>();
 	public string HostName = "Host";
 
 	// (60 frames a second: the screens smooth between them, and the more often they come, the smaller each correction)
@@ -57,9 +59,13 @@ public sealed class ArcadeHost
 		TetrisBest = new Dictionary<string, int>(_tetris),
 		ReactionBest = new Dictionary<string, int>(_reaction),
 		HostName = HostName,
+		Downloading = Downloading().ToList(),
 	};
 
 	bool Busy(string id) => _matches.Any(m => m.Has(id));
+
+	/// <summary>Busy, or still downloading the quiz (no 1 vs 1 until they have it).</summary>
+	bool Unavailable(string id) => Busy(id) || Downloading().Contains(id);
 
 	/// <summary>
 	/// A request from someone in the lobby; returns whether the lobby's view changed, and frames to send (a match that
@@ -70,7 +76,7 @@ public sealed class ArcadeHost
 		var frames = new List<ArcadeFrame>();
 		switch (r.Kind)
 		{
-			case ArcadeRequest.Challenge when ArcadeGame.Versus.Contains(r.Game) && r.Who != from && Players().Contains(r.Who) && !Busy(from) && !Busy(r.Who):
+			case ArcadeRequest.Challenge when ArcadeGame.Versus.Contains(r.Game) && r.Who != from && Players().Contains(r.Who) && !Unavailable(from) && !Unavailable(r.Who):
 				_invites.RemoveAll(i => i.From == from);
 				_invites.Add(new ArcadeInvite { From = from, To = r.Who, Game = r.Game });
 				return (true, frames);
@@ -78,7 +84,7 @@ public sealed class ArcadeHost
 				return (_invites.RemoveAll(i => i.From == from) > 0, frames);
 			case ArcadeRequest.Decline:
 				return (_invites.RemoveAll(i => i.From == r.Who && i.To == from) > 0, frames);
-			case ArcadeRequest.Accept when _invites.FirstOrDefault(i => i.From == r.Who && i.To == from) is { } invite && !Busy(from) && !Busy(r.Who):
+			case ArcadeRequest.Accept when _invites.FirstOrDefault(i => i.From == r.Who && i.To == from) is { } invite && !Unavailable(from) && !Unavailable(r.Who):
 			{
 				_invites.RemoveAll(i => i.From == from || i.To == from || i.From == r.Who || i.To == r.Who);
 				var m = new Match { Id = $"m{++_next}", Game = invite.Game, A = invite.From, B = from };

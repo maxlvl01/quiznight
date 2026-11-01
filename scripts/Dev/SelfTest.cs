@@ -1461,6 +1461,13 @@ public static class SelfTest
 				var point = PongRules.Step(shown, 0.02, predict: true);
 				Check(late.VelX > 0 && missed.VelX < 0 && point == 0 && shown.VelX == 0,
 					"Pong: a paddle that was there a moment ago still counts; screens don't serve or score on their own");
+				var loading = new List<string> { "ben" };
+				var lobby = new ArcadeHost { Players = () => new[] { "ann", "ben", "cat" }, Downloading = () => loading };
+				var refused = !lobby.Request("ann", new ArcadeRequest { Kind = ArcadeRequest.Challenge, Game = ArcadeGame.Pong, Who = "ben" }).Changed
+					&& !lobby.Request("ben", new ArcadeRequest { Kind = ArcadeRequest.Challenge, Game = ArcadeGame.Pong, Who = "cat" }).Changed;
+				loading.Clear();
+				Check(refused && lobby.Request("ann", new ArcadeRequest { Kind = ArcadeRequest.Challenge, Game = ArcadeGame.Pong, Who = "ben" }).Changed,
+					"no Pong or billiard with someone still downloading the quiz, open once they have it");
 			}
 			arcade.Request(ArcadeGame.HostId, new ArcadeRequest { Kind = ArcadeRequest.Challenge, Game = ArcadeGame.Billiard, Who = "ann" });
 			arcade.Request("ann", new ArcadeRequest { Kind = ArcadeRequest.Accept, Who = ArcadeGame.HostId });

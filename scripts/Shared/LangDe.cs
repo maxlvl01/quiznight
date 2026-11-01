@@ -1743,6 +1743,8 @@ public static class LangDe
 		["Good luck!"] = "Viel Glück!",
 		["Click to close"] = "Klicken zum Schließen",
 		["Play in teams"] = "In Teams spielen",
+		["⏳ Pong and billiard open once you have the quiz's files. Tetris and Reaction work already."] = "⏳ Pong und Billard gehen, sobald du die Dateien des Quiz hast. Tetris und Reaktion gehen schon.",
+		["downloading the quiz…"] = "lädt das Quiz…",
 		["{0} teams wouldn't be fair with {1} players."] = "{0} Teams wären mit {1} Spielern nicht fair.",
 		["{0} players can't be split into fair teams."] = "{0} Spieler lassen sich nicht in faire Teams aufteilen.",
 		["{0} players can't be split into fair teams. 4, 6 or more work."] = "{0} Spieler lassen sich nicht in faire Teams aufteilen. 4, 6 oder mehr gehen.",

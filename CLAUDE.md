@@ -139,7 +139,8 @@ the original design decisions; most still apply.
   player; a team's is its members' sum (`Room.Teams()`, `RoomState.Teams`). Podium: `FinalResults.Teams`/`Ranked`. Team
   nights aren't uploaded (no Ewige Tabelle). Test lab → Team draw; `--screen testlab --team-draw 8,3`.
 - **Mini games over the internet** (0.13.2): the host runs Pong/billiard (`ArcadeHost`, frames 60/s with `ArcadeFrame.Time`)
-  and sends no background files to a player in a match (`ArcadeHost.Playing`; Steam has one ordered line per player, our
+  and allows no Pong/billiard for players still downloading the quiz (`ArcadeHost.Downloading`, `ArcadeView.Downloading`),
+  nor background files to a player in a match (`ArcadeHost.Playing`; Steam has one ordered line per player, our
   Facepunch 2.3.3 has no lanes). `PongView` predicts the ball (`PongRules.Step(predict: true)`) and fades corrections;
   the host accepts paddle positions from the last 0.25 s (`LagAllowance`). `BilliardView` plays back 0.1 s behind,
   interpolating frames. Test with two copies: the player with `--net-lag 120`.

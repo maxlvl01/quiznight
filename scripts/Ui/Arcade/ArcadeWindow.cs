@@ -190,7 +190,8 @@ public partial class ArcadeWindow : Control
 		{
 			var from = invite.From;
 			versus.AddChild(U.H(6, U.Text(Lang.F("{0} challenges you to {1}!", _link.Name(from), Lang.T(ArcadeGame.Label(invite.Game))), 14, C.Gold, null, true).Grow(),
-				U.Small("Accept", () => _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Accept, Who = from })),
+				U.Small("Accept", () => _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Accept, Who = from }))
+					.With(b => b.Disabled = view!.Downloading.Contains(me) || view.Downloading.Contains(from)),
 				U.Small("No thanks", () => _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Decline, Who = from }))));
 		}
 		var mine = view?.Invites.FirstOrDefault(i => i.From == me);
@@ -198,6 +199,10 @@ public partial class ArcadeWindow : Control
 			versus.AddChild(U.H(6, U.Muted(Lang.F("Waiting for {0} to accept {1} …", _link.Name(mine.To), Lang.T(ArcadeGame.Label(mine.Game))), 13).Grow(),
 				U.Small("Cancel", () => _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Cancel }))));
 		var busy = view?.Matches.SelectMany(m => new[] { m.A, m.B }).ToHashSet() ?? new HashSet<string>();
+		var loading = view?.Downloading.ToHashSet() ?? new HashSet<string>();
+		// (still getting the quiz: 1 vs 1 only once that's done, the match would lag behind the files)
+		if (loading.Contains(me))
+			versus.AddChild(U.Text("⏳ Pong and billiard open once you have the quiz's files. Tetris and Reaction work already.", 13, C.Orange, null, true));
 		// Pick the game first (Pong or Billiard, and which billiard game; kept while the window is open), then challenge
 		// someone to it. (Until 0.12.3d3 Pong was only a small button next to each player, so with nobody to play it
 		// didn't show at all.)
@@ -225,9 +230,10 @@ public partial class ArcadeWindow : Control
 			var who = id;
 			var row = U.H(6, U.Text(_link.Name(id), 15, C.Text).Raw().Grow());
 			if (busy.Contains(id)) row.AddChild(U.Muted("playing", 12, false));
+			else if (loading.Contains(id)) row.AddChild(U.Muted("downloading the quiz…", 12, false));
 			else
 				row.AddChild(U.Small(Lang.F("Challenge to {0}", Lang.T(ArcadeGame.Label(game))), () => _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Challenge, Game = game, Who = who }))
-					.With(b => b.Disabled = mine != null || busy.Contains(me)));
+					.With(b => b.Disabled = mine != null || busy.Contains(me) || loading.Contains(me)));
 			versus.AddChild(row);
 		}
 
@@ -303,7 +309,7 @@ public partial class ArcadeWindow : Control
 				{
 					link.Send(new ArcadeRequest { Kind = ArcadeRequest.Accept, Who = from });
 					open();
-				}),
+				}).With(b => b.Disabled = view!.Downloading.Contains(link.MyId) || view.Downloading.Contains(from)),
 				U.Small("No thanks", () => link.Send(new ArcadeRequest { Kind = ArcadeRequest.Decline, Who = from }))), "Inset"));
 		}
 		var rivals = Rivalries(view, link.Name).Take(2).ToList();

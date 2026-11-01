@@ -36,6 +36,9 @@ public sealed class HostSession : IDisposable
 		_net.Received += OnReceived;
 		// (the mini games: everyone in the lobby whose game has them, and the host)
 		Arcade.Players = () => Room.Players.Where(p => p.Connected && p.Version != "").Select(p => p.Id).Append(ArcadeGame.HostId);
+		// (no 1 vs 1 for anyone still getting the quiz's files: their match would wait behind them)
+		Arcade.Downloading = () => Room.SharedFiles.Count == 0 ? Enumerable.Empty<string>()
+			: Room.Players.Where(p => p.Connected && DownloadPercent(p.Id, Room.SharedFiles) < 100).Select(p => p.Id);
 	}
 
 	public RoomState State => StateFor("host");

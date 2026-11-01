@@ -68,6 +68,9 @@ public sealed class ArcadeView
 	public Dictionary<string, int> ReactionBest = new();
 	/// <summary>The host's name, as the mini games show them.</summary>
 	public string HostName = "Host";
+	/// <summary>Who's still getting the quiz's files: no Pong or billiard for them until they have everything (the match's
+	/// frames would wait behind the files; Tetris and Reaction are on their own PC and stay open).</summary>
+	public List<string> Downloading = new();
 }
 
 public sealed class ArcadeInvite
