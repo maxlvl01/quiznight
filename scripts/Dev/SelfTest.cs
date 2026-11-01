@@ -179,6 +179,18 @@ public static class SelfTest
 		var shown = r3.Game.View("ann").Question;
 		Check(shown.AfterText == first.AfterText && shown.Source == first.Source && shown.AfterImageKey == Server.Game.AfterKey(0)
 			&& shown.Files?.ContainsKey(Server.Game.AfterKey(0)) == true && r3.Game.AssetDataUrl(Server.Game.AfterKey(0)) != null, "the reveal shows it, picture unlocked");
+
+		// (format 14: the answer as a picture, locked until the reveal like the answer itself)
+		var pictured = Dev.SampleQuiz.Build();
+		pictured.Questions[0].AnswerImage = pictured.Questions.First(x => x.Image is { DataUrl: not "" }).Image!.Clone();
+		Check(QuizJson.Parse(QuizJson.Write(pictured), out _)!.Questions[0].AnswerImage?.DataUrl == pictured.Questions[0].AnswerImage!.DataUrl, "the answer picture survives saving");
+		var (r4, _) = NewRoom(pictured, "ann", "bob");
+		r4.Start();
+		Check(r4.Game!.View("ann").Question.AnswerImageKey == null && r4.Game.AssetDataUrl(Server.Game.AnswerKey(0)) == null, "players can't get the answer picture before the reveal");
+		Check(r4.Game.HostReveal(), "host reveals (answer picture)");
+		var answered = r4.Game.View("ann").Question;
+		Check(answered.AnswerImageKey == Server.Game.AnswerKey(0) && answered.Files?.ContainsKey(Server.Game.AnswerKey(0)) == true
+			&& r4.Game.AssetDataUrl(Server.Game.AnswerKey(0)) != null, "the reveal unlocks the answer picture");
 	}
 
 	static void TypedAndBonus()

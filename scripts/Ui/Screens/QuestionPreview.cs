@@ -18,6 +18,9 @@ public partial class QuestionPreview : Control
 	/// <summary>The preview open now, if any (Escape and the mouse's back button close it, App).</summary>
 	public static QuestionPreview? Current { get; private set; }
 
+	/// <summary>Dev (--preview-reveal): the preview goes straight to the reveal.</summary>
+	internal static bool RevealAtOnce;
+
 	readonly Quiz _quiz;
 	readonly Control _stage = new() { SizeFlagsVertical = SizeFlags.ExpandFill, ClipContents = true };
 	readonly HBoxContainer _actions = U.H(10);
@@ -106,7 +109,12 @@ public partial class QuestionPreview : Control
 	{
 		if (_host is not { } host || _client is not { } client) return;
 		// (the player is in: the match starts at once)
-		if (client.MyId != null && host.Room.Phase == Phase.Lobby) host.Start();
+		if (client.MyId != null && host.Room.Phase == Phase.Lobby)
+		{
+			host.Start();
+			// (dev, --preview-reveal: straight to the reveal, for screenshots)
+			if (RevealAtOnce) host.Reveal();
+		}
 		if (client.State is not { Game: { } } state) return;
 		if (_screen == null)
 		{

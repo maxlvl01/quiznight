@@ -171,8 +171,8 @@ public partial class QuestionEditorScreen : Control
 	/// </summary>
 	Control AfterSection(bool stacked)
 	{
-		if (!_afterOpen && !_draft.HasAfter)
-			return U.Link("+ Fun fact, source or picture for after the answer", () =>
+		if (!_afterOpen && !_draft.HasAfter && _draft.AnswerImage == null)
+			return U.Link("+ Answer as a picture, fun fact or source for the reveal", () =>
 			{
 				_afterOpen = true;
 				BuildForm();
@@ -193,8 +193,14 @@ public partial class QuestionEditorScreen : Control
 			_draft.AfterImage = img;
 			Changed();
 		}, Images.ScreenshotMax, "e.g. the cover, or the game's store page"));
-		return U.Card(10, U.Bold("After the answer", 17), U.Muted("Shown to everyone with the answer, at the reveal.", 13),
-			stacked ? U.V(12, text, source, picture) : Columns((U.V(12, text, source), 1.4f), (picture, 1f)));
+		// (the answer itself as a picture: shown big, above the fun fact)
+		var answer = U.Field("The answer as a picture (optional)", new ImageField(_draft.AnswerImage, img =>
+		{
+			_draft.AnswerImage = img;
+			Changed();
+		}, Images.ScreenshotMax, "e.g. the game a Steam review is about"), "Shown big to everyone at the reveal, with the answer.");
+		return U.Card(10, U.Bold("At the reveal", 17), U.Muted("Shown to everyone with the answer, at the reveal.", 13),
+			stacked ? U.V(12, answer, text, source, picture) : U.V(12, answer, Columns((U.V(12, text, source), 1.4f), (picture, 1f))));
 	}
 
 	static HBoxContainer Columns(params (Control Col, float Ratio)[] cols)

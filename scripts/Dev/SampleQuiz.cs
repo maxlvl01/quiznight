@@ -95,6 +95,8 @@ public static class SampleQuiz
 					Picture(1280, 720, new Color("#2a475e"), new Color("#1b2838"), "REVIEW 2"),
 					Picture(1280, 720, new Color("#66c0f4"), new Color("#1b2838"), "REVIEW 3"),
 				},
+				// (the answer as a picture: the game's store page, at the reveal)
+				AnswerImage = Picture(1280, 720, new Color("#c6d4df"), new Color("#1b2838"), "STORE PAGE"),
 			},
 			new()
 			{

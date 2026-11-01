@@ -80,6 +80,7 @@ public static class QuizJson
 		if (q.AfterText != "") o["afterText"] = q.AfterText;
 		if (q.Source != "") o["source"] = q.Source;
 		if (q.AfterImage is { DataUrl: not "" }) o["afterImage"] = WriteImage(q.AfterImage);
+		if (q.AnswerImage is { DataUrl: not "" }) o["answerImage"] = WriteImage(q.AnswerImage);
 		if (q.Category != "")
 		{
 			o["category"] = q.Category;
@@ -246,6 +247,7 @@ public static class QuizJson
 		q.AfterText = Cut(Str(o, "afterText"), QuestionLimits.AfterTextMaxLength);
 		q.Source = Cut(Str(o, "source"), QuestionLimits.SourceMaxLength);
 		q.AfterImage = ReadImage(o["afterImage"]) is { DataUrl: not "" } after ? after : null;
+		q.AnswerImage = ReadImage(o["answerImage"]) is { DataUrl: not "" } answer ? answer : null;
 		q.Category = Categories.Clean(Str(o, "category"));
 		// "Write the answer" was its own type until 0.10.3b; it's the classic question's "Everyone types" now
 		if (q.Type == QuestionType.Write)

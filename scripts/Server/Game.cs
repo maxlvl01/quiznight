@@ -176,6 +176,7 @@ public sealed class Game
 			// (pictures first: they're small and needed the moment a question is shown)
 			if (q.HasImageField && q.Image is { DataUrl: not "" } image) files.Add(Make(i, image.DataUrl, "image/webp", ImageKey(i)));
 			if (q.AfterImage is { DataUrl: not "" } after) files.Add(Make(i, after.DataUrl, "image/webp", AfterKey(i)));
+			if (q.AnswerImage is { DataUrl: not "" } answer) files.Add(Make(i, answer.DataUrl, "image/webp", AnswerKey(i)));
 			if (q.Type == QuestionType.Picture)
 				for (var s = 0; s < q.Slides.Count; s++)
 					if (q.Slides[s].DataUrl != "") files.Add(Make(i, q.Slides[s].DataUrl, "image/webp", SlideKey(i, s)));
@@ -1287,6 +1288,7 @@ public sealed class Game
 	public static string SlideKey(int index, int slide) => $"q{index}/slide{slide}";
 	/// <summary>The picture for after the answer (players get it only once the answer is revealed).</summary>
 	public static string AfterKey(int index) => $"q{index}/after";
+	public static string AnswerKey(int index) => $"q{index}/answer";
 
 	/// <summary>Picture questions: the picture showing now (the host flips through them).</summary>
 	public int Slide { get; private set; }
@@ -1441,6 +1443,12 @@ public sealed class Game
 				pq.AfterImageKey = AfterKey(Index);
 				Unlock(pq.AfterImageKey, null);
 			}
+		}
+		// (the answer as a picture: from the reveal on, like the rest of the answer)
+		if (Stage == Shared.Stage.Reveal && q.AnswerImage is { DataUrl: not "" })
+		{
+			pq.AnswerImageKey = AnswerKey(Index);
+			Unlock(pq.AnswerImageKey, null);
 		}
 		if (files.Count > 0) pq.Files = files;
 		if (CurrentMedia is { } video)
@@ -1621,6 +1629,7 @@ public sealed class Game
 		if (parts[1] == "image" && q.HasImageField && q.Image != null) return q.Image.DataUrl;
 		// (the picture for after the answer: from its reveal on)
 		if (parts[1] == "after" && q.AfterImage is { DataUrl: not "" } after && (host || index < Index || Stage == Shared.Stage.Reveal)) return after.DataUrl;
+		if (parts[1] == "answer" && q.AnswerImage is { DataUrl: not "" } answer && (host || index < Index || Stage == Shared.Stage.Reveal)) return answer.DataUrl;
 		if (parts[1] == "map" && q.Type == QuestionType.MapPin)
 			return MapPresets.Get(_quiz.MapById(q.MapId)?.PresetId) is { } preset ? Storage.MapPacks.BundleDataUrl(preset) : _quiz.MapById(q.MapId)?.Image.DataUrl;
 		// (recordings: once recording is over, while the question and its reveal are on)

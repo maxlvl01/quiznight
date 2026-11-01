@@ -281,10 +281,23 @@ public static class GameParts
 	}
 
 	/// <summary>
-	/// After the answer (the reveal): the quiz maker's fun fact or story, where it's from (a link opens in the browser) and
-	/// a picture to go with it. Null if the question has none.
+	/// After the answer (the reveal): the answer as a picture, the quiz maker's fun fact or story, where it's from (a link
+	/// opens in the browser) and a picture to go with it. Null if the question has none.
 	/// </summary>
 	public static Control? After(PublicQuestion q, AssetSource? assets)
+	{
+		var good = Good(q, assets);
+		// (the answer as a picture, big, above the fun fact: one card for everything the reveal adds)
+		if (q.AnswerImageKey == null || assets == null) return good;
+		// (no heading of its own: it sits right under the answer, which already has one)
+		Control answer = new AssetImage(assets, q.AnswerImageKey, 420) { Zoomable = true };
+		var panel = U.Panel(good == null ? answer : U.V(14, answer, good), "Clear");
+		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(C.Teal, 0.08f), 12, new Color(C.Teal, 0.6f), 1, 16, 12));
+		return panel;
+	}
+
+	/// <summary>The fun fact, its source and its picture ("Good to know"), or null.</summary>
+	static Control? Good(PublicQuestion q, AssetSource? assets)
 	{
 		if (q.AfterText == null && q.Source == null && q.AfterImageKey == null) return null;
 		var text = U.V(8, U.Eyebrow("Good to know"));

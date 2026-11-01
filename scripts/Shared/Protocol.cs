@@ -269,6 +269,8 @@ public sealed class PublicQuestion
 	public string? AfterText;
 	public string? Source;
 	public string? AfterImageKey;
+	/// <summary>At the reveal only: the answer as a picture (Question.AnswerImage), shown big.</summary>
+	public string? AnswerImageKey;
 	/// <summary>Asset key of the question image, if it has one (picture questions: the slide showing now).</summary>
 	public string? ImageKey;
 	/// <summary>

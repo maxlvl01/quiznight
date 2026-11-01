@@ -301,6 +301,8 @@ public sealed class Question
 	public string Source = "";
 	/// <summary>After the answer: a picture shown with it (a cover, a store page …).</summary>
 	public ImageAsset? AfterImage;
+	/// <summary>The answer as a picture (optional), shown big to everyone at the reveal: e.g. the game a Steam review is about.</summary>
+	public ImageAsset? AnswerImage;
 	/// <summary>Optional category ("Geography", or the quiz maker's own): shown to players only if the lobby allows it.</summary>
 	public string Category = "";
 	/// <summary>Never show this question's category, even when the lobby shows categories (it would give it away).</summary>
@@ -522,7 +524,8 @@ public static class QuizRules
 	/// 13: every question can have something for after the answer (afterText, source, afterImage) and the bonus's
 	///     answer for the host (bonusAnswer); interactive questions can be a typed list (judging "list").
 	/// </summary>
-	public const int FormatVersion = 13;
+	/// 14: every question can have its answer as a picture (answerImage), shown at the reveal.
+	public const int FormatVersion = 14;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 
