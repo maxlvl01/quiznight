@@ -33,11 +33,11 @@ public static class WhatsNew
 		if (releases.Count > 0) Show(owner, releases.Take(3).ToList());
 	}
 
-	/// <summary>The notes of this version (from the version link on Home).</summary>
-	public static void ShowCurrent(Node owner)
+	/// <summary>The notes of this version (from the version link on Home), or of another one (dev: --whats-new VERSION).</summary>
+	public static void ShowCurrent(Node owner, string? version = null)
 	{
 		var releases = Read();
-		var current = releases.FirstOrDefault(r => r.Version is { } v && AppVersion.Parse(App.Version) is { } now && v.CompareTo(now) == 0) ?? releases.FirstOrDefault();
+		var current = releases.FirstOrDefault(r => r.Version is { } v && AppVersion.Parse(version ?? App.Version) is { } now && v.CompareTo(now) == 0) ?? releases.FirstOrDefault();
 		if (current != null) Show(owner, new List<Changelog.Release> { current });
 	}
 
@@ -50,7 +50,8 @@ public static class WhatsNew
 		foreach (var release in releases)
 		{
 			if (releases.Count > 1 || release.Title != "")
-				box.AddChild(U.Bold($"{release.Shown}" + (release.Title != "" ? $" — {release.Title}" : ""), 18).Raw());
+				// (wrapped: a named update's long title on one line made the page wider than the window, cutting off every line)
+				box.AddChild(U.Bold($"{release.Shown}" + (release.Title != "" ? $" — {release.Title}" : ""), 18, null, true).Raw());
 			foreach (var section in release.Sections.Where(s => s.Items.Count > 0))
 			{
 				var (label, color) = Kind(section.Kind);

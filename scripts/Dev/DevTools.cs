@@ -303,10 +303,11 @@ public sealed class DevTools
 		}
 		else if (Has("--whats-new"))
 		{
-			// --whats-new: the home screen with this version's notes open
+			// --whats-new [VERSION]: the home screen with this version's notes open (or that version's, e.g. 0.13.0b)
 			TakesOver = true;
 			_app.GoHome();
-			Callable.From(() => Ui.Screens.WhatsNew.ShowCurrent(_app)).CallDeferred();
+			var notesOf = Value("--whats-new") is { Length: > 0 } v && !v.StartsWith("--") ? v : null;
+			Callable.From(() => Ui.Screens.WhatsNew.ShowCurrent(_app, notesOf)).CallDeferred();
 		}
 		else if (Has("--buzzer"))
 		{

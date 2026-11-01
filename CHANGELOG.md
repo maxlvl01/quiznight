@@ -13,6 +13,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.1d2]
+
+### Fixed
+- **"What's new" ran off the right edge of the screen** (on 16:9 and other screens not much wider). The line with the update's name ("0.13 — "Sauce Please": the podium as a show…") was written in one line without wrapping, and that line alone was wider than the window, so the whole page got as wide as it and every line was cut off on the right. It wraps now, and the page fits the window. (Thanks for reporting it, maxlvl01!)
+
 ## [0.13.1d1]
 
 ### Before we start
