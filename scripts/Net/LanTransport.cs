@@ -235,7 +235,30 @@ public sealed class LanClientTransport : IClientTransport
 
 	public void Send(byte[] data)
 	{
-		if (_connected && !_done) _tcp.PutData(FrameReader.Frame(data));
+		if (!_connected || _done) return;
+		if (Lag > 0) _out.Enqueue((Due(ref _outDue), data));
+		else _tcp.PutData(FrameReader.Frame(data));
+	}
+
+	// ---------- dev: a laggy connection on one PC (--net-lag MS) ----------
+
+	/// <summary>Dev (--net-lag MS): each way delayed by this, plus up to a third more at random, in order like TCP.</summary>
+	public static double Lag;
+	readonly Queue<(double Due, byte[] Data)> _out = new(), _in = new();
+	double _outDue, _inDue;
+
+	static double Due(ref double last)
+	{
+		var now = Time.GetTicksMsec() / 1000.0;
+		last = Math.Max(last, now + Lag / 1000.0 * (1 + Random.Shared.NextDouble() / 3));
+		return last;
+	}
+
+	void Deliver()
+	{
+		var now = Time.GetTicksMsec() / 1000.0;
+		while (_out.Count > 0 && _out.Peek().Due <= now) _tcp.PutData(FrameReader.Frame(_out.Dequeue().Data));
+		while (_in.Count > 0 && _in.Peek().Due <= now && !_done) Received?.Invoke(_in.Dequeue().Data);
 	}
 
 	void Fail(string reason)
@@ -271,6 +294,7 @@ public sealed class LanClientTransport : IClientTransport
 			_connected = true;
 			Connected?.Invoke();
 		}
+		Deliver();
 		var available = _tcp.GetAvailableBytes();
 		if (available <= 0) return;
 		var res = _tcp.GetData(available);
@@ -280,7 +304,8 @@ public sealed class LanClientTransport : IClientTransport
 			foreach (var m in _reader.Feed(res[1].AsByteArray()))
 			{
 				if (_done) break;
-				Received?.Invoke(m);
+				if (Lag > 0) _in.Enqueue((Due(ref _inDue), m));
+				else Received?.Invoke(m);
 			}
 		}
 		catch (InvalidOperationException)

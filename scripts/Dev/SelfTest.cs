@@ -1449,6 +1449,19 @@ public static class SelfTest
 			var view = arcade.View();
 			Check(started && winner is "ann" or "ben" && view.Records.Count == 1 && view.Records[0].WinsA + view.Records[0].WinsB == 1 && view.Matches.Count == 0,
 				"mini games: a Pong match is played to 5 and counted");
+			{
+				// The lag allowance: A's paddle has just moved away from the ball (on A's screen it was still there), so with
+				// that recent position the ball bounces; without it, it gets past. Screens never serve or score themselves.
+				PongState Coming() => new() { BallX = PongState.PaddleX + 0.05, BallY = 0.5, VelX = -2, VelY = 0, Wait = 0, PaddleA = 2.5 };
+				var late = Coming();
+				PongRules.Step(late, 0.01, recentA: new[] { 0.5 });
+				var missed = Coming();
+				PongRules.Step(missed, 0.01);
+				var shown = new PongState { BallX = -0.5, BallY = 1, Wait = 0.01 };
+				var point = PongRules.Step(shown, 0.02, predict: true);
+				Check(late.VelX > 0 && missed.VelX < 0 && point == 0 && shown.VelX == 0,
+					"Pong: a paddle that was there a moment ago still counts; screens don't serve or score on their own");
+			}
 			arcade.Request(ArcadeGame.HostId, new ArcadeRequest { Kind = ArcadeRequest.Challenge, Game = ArcadeGame.Billiard, Who = "ann" });
 			arcade.Request("ann", new ArcadeRequest { Kind = ArcadeRequest.Accept, Who = ArcadeGame.HostId });
 			arcade.Request(ArcadeGame.HostId, new ArcadeRequest { Kind = ArcadeRequest.Shot, Angle = 0, Power = 1 });

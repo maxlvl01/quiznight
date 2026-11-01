@@ -12,7 +12,6 @@ public partial class BilliardView : Control
 {
 	readonly ArcadeLink _link;
 	ArcadeFrame _frame;
-	double _since;
 	Vector2? _drag;
 
 	static readonly Color Cloth = new("#1f7a4d"), CaromCloth = new("#2a5fa8"), Rail = new("#5a3a22");
@@ -45,12 +44,57 @@ public partial class BilliardView : Control
 	/// <summary>Which billiard game this is (BilliardMode).</summary>
 	public string Mode => _frame.Billiard?.Mode ?? _frame.Game;
 
+	// The balls are played back a little behind the host (Delay), between the two frames around that moment, so they roll
+	// smoothly however unevenly the frames arrive. Billiard is turn by turn, so a tenth of a second behind costs nothing.
+
+	/// <summary>Recent frames with the host's clock; the oldest are dropped once playback is past them.</summary>
+	readonly System.Collections.Generic.List<ArcadeFrame> _recent = new();
+	/// <summary>Local clock minus the host's, from the fastest frame seen (the slow ones only waited longer on the way).</summary>
+	double? _offset;
+	const double Delay = 0.1;
+
+	static double LocalNow => Time.GetTicksMsec() / 1000.0;
+
 	public void Take(ArcadeFrame frame)
 	{
+		var offset = LocalNow - frame.Time;
+		// (the smallest delay seen so far, creeping up slowly in case the clocks drift)
+		_offset = _offset is { } o ? Math.Min(offset, o + 0.002) : offset;
 		_frame = frame;
-		_since = 0;
+		_recent.Add(frame);
+		if (_recent.Count > 30) _recent.RemoveAt(0);
 		QueueRedraw();
 	}
+
+	/// <summary>Where ball i is shown now: between the frames around the playback moment (or the newest, at rest).</summary>
+	Vector2 ShownAt(BilliardState newest, int i)
+	{
+		var at = new Vector2((float)newest.X[i], (float)newest.Y[i]);
+		if (_offset is not { } offset || !newest.Moving && _recent.Count > 0 && LocalNow - offset - Delay > _recent[^1].Time) return at;
+		var play = LocalNow - offset - Delay;
+		for (var n = _recent.Count - 1; n > 0; n--)
+		{
+			var (a, b) = (_recent[n - 1], _recent[n]);
+			if (a.Time > play || a.Billiard is not { } sa || b.Billiard is not { } sb) continue;
+			// (a different table, e.g. racked after the lag: no in-between)
+			if (sa.X.Count != sb.X.Count || i >= sa.X.Count || sa.In[i]) return at;
+			var t = b.Time > a.Time ? (float)Math.Clamp((play - a.Time) / (b.Time - a.Time), 0, 1) : 1;
+			return new Vector2((float)sa.X[i], (float)sa.Y[i]).Lerp(new Vector2((float)sb.X[i], (float)sb.Y[i]), t);
+		}
+		return at;
+	}
+
+	/// <summary>Whether ball i is shown as potted yet: once playback has reached the frame it went in with.</summary>
+	bool ShownIn(BilliardState newest, int i)
+	{
+		if (!newest.In[i] || _offset is not { } offset) return newest.In[i];
+		var play = LocalNow - offset - Delay;
+		var before = _recent.LastOrDefault(f => f.Time <= play)?.Billiard;
+		return before == null || before.X.Count != newest.X.Count || before.In[i];
+	}
+
+	/// <summary>True while playback hasn't caught up with the newest frame yet (keep drawing).</summary>
+	bool PlayingBack => _offset is { } o && _recent.Count > 0 && LocalNow - o - Delay <= _recent[^1].Time;
 
 	/// <summary>My side ("A" left, "B" right).</summary>
 	string Me => _frame.A == _link.MyId ? "A" : "B";
@@ -110,8 +154,7 @@ public partial class BilliardView : Control
 
 	public override void _Process(double delta)
 	{
-		_since += delta;
-		if (_frame.Billiard is { Moving: true }) QueueRedraw();
+		if (_frame.Billiard is { Moving: true } || PlayingBack) QueueRedraw();
 	}
 
 	public override void _Draw()
@@ -126,10 +169,8 @@ public partial class BilliardView : Control
 		var r = (float)BilliardState.R * k;
 		for (var i = 0; i < s.X.Count; i++)
 		{
-			if (s.In[i]) continue;
-			// (moved on between the host's frames by its speed)
-			var dt = s.Moving ? Math.Min(_since, 0.05) : 0;
-			var at = t.Position + new Vector2((float)(s.X[i] + s.VX[i] * dt), (float)(s.Y[i] + s.VY[i] * dt)) * k;
+			if (ShownIn(s, i)) continue;
+			var at = t.Position + ShownAt(s, i) * k;
 			// (the lag's two balls are both plain white)
 			var (colour, stripe, number) = s.Lag ? (Colors.White, false, "") : Look(s.Mode, i);
 			DrawCircle(at + new Vector2(1.5f, 2), r, new Color(0, 0, 0, 0.35f));

@@ -117,6 +117,8 @@ public sealed class ArcadeFrame
 	public int ScoreB;
 	/// <summary>Set when it's over: the winner's id ("" = cut off, counts for nobody).</summary>
 	public string? Winner;
+	/// <summary>The host's clock when this was the state (seconds): screens play billiard back in step with it.</summary>
+	public double Time;
 	public PongState? Pong;
 	public BilliardState? Billiard;
 }
@@ -139,13 +141,18 @@ public static class PongRules
 {
 	const double StartSpeed = 2.4, MaxSpeed = 6, SpeedUp = 1.06;
 
-	/// <summary>Moves the game on; returns +1 when A scored, -1 when B scored, 0 otherwise.</summary>
-	public static int Step(PongState s, double dt)
+	/// <summary>
+	/// Moves the game on; returns +1 when A scored, -1 when B scored, 0 otherwise.
+	/// recentA / recentB: where that paddle was lately besides now (the host's lag allowance: over the internet a paddle
+	/// arrives a little late, so a ball that met it on the player's own screen still bounces). predict: a screen moving
+	/// the ball on between the host's frames: no serve (it's random) and no points (the host's frame brings those).
+	/// </summary>
+	public static int Step(PongState s, double dt, IReadOnlyList<double>? recentA = null, IReadOnlyList<double>? recentB = null, bool predict = false)
 	{
 		if (s.Wait > 0)
 		{
 			s.Wait -= dt;
-			if (s.Wait <= 0)
+			if (s.Wait <= 0 && !predict)
 			{
 				var angle = (Random.Shared.NextDouble() - 0.5) * 0.9;
 				s.VelX = Math.Cos(angle) * StartSpeed * s.ServeTo;
@@ -156,17 +163,23 @@ public static class PongRules
 		s.BallX += s.VelX * dt;
 		s.BallY += s.VelY * dt;
 		if (s.BallY < PongState.Ball && s.VelY < 0 || s.BallY > PongState.H - PongState.Ball && s.VelY > 0) s.VelY = -s.VelY;
-		Bounce(s, PongState.PaddleX, s.PaddleA, 1);
-		Bounce(s, PongState.W - PongState.PaddleX, s.PaddleB, -1);
+		Bounce(s, PongState.PaddleX, s.PaddleA, recentA, 1);
+		Bounce(s, PongState.W - PongState.PaddleX, s.PaddleB, recentB, -1);
+		if (predict) return 0;
 		if (s.BallX < -0.2) return Serve(s, -1);
 		if (s.BallX > PongState.W + 0.2) return Serve(s, 1);
 		return 0;
 	}
 
 	/// <summary>Off a paddle: the further from its middle, the steeper; a little faster every hit.</summary>
-	static void Bounce(PongState s, double x, double paddle, int dir)
+	static void Bounce(PongState s, double x, double now, IReadOnlyList<double>? recent, int dir)
 	{
 		if (Math.Sign(s.VelX) == dir || Math.Abs(s.BallX - x) > PongState.Ball + 0.04) return;
+		// (where the paddle is now, or was lately: whichever is closest to the ball)
+		var paddle = now;
+		if (recent != null)
+			foreach (var y in recent)
+				if (Math.Abs(s.BallY - y) < Math.Abs(s.BallY - paddle)) paddle = y;
 		var off = (s.BallY - paddle) / (PongState.PaddleH / 2 + PongState.Ball);
 		if (Math.Abs(off) > 1) return;
 		var speed = Math.Min(MaxSpeed, Math.Sqrt(s.VelX * s.VelX + s.VelY * s.VelY) * SpeedUp);

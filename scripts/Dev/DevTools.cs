@@ -170,6 +170,8 @@ public sealed class DevTools
 		if (int.TryParse(Value("--players"), out var n)) _players = n;
 		if (int.TryParse(Value("--start-at"), out var first)) _startAt = first - 1;
 		if (Value("--lang") is { } lang) Lang.Use(lang);
+		// --net-lag MS: this copy's LAN connection to the host is as slow as the internet (MS each way, unevenly)
+		if (double.TryParse(Value("--net-lag"), System.Globalization.CultureInfo.InvariantCulture, out var lagMs)) Net.LanClientTransport.Lag = lagMs;
 		// (the fullscreen picture's shape, not saved: e.g. --fullscreen-shape 16:9 with Godot's --fullscreen)
 		if (Value("--fullscreen-shape") is { } shape) Prefs.Shape(_app.GetWindow(), shape, _app.GetWindow().CurrentScreen);
 		// (the fullscreen resolutions each monitor offers, as Settings lists them; nothing is switched)

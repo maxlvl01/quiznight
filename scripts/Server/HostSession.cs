@@ -112,8 +112,11 @@ public sealed class HostSession : IDisposable
 		if (_encrypted.Count == 0)
 			foreach (var v in files) _encrypted[v.Id] = Task.Run(() => Encrypt(v));
 		var from = Playing() ? Room.Game!.Index : 0;
-		foreach (var peer in _peerPlayer.Keys)
+		foreach (var (peer, player) in _peerPlayer)
 		{
+			// (not while they play a mini game: Steam sends everything to a player in one line, so their Pong frames would
+			// wait behind up to half a second of file data; the files carry on after the match)
+			if (Room.Phase == Phase.Lobby && Arcade.Playing(player)) continue;
 			if (!_videoSent.TryGetValue(peer, out var sent)) _videoSent[peer] = sent = new();
 			// (at most 8 MB per frame and connection; usually the connection says "full" much sooner)
 			for (var n = 0; n < 32; n++)

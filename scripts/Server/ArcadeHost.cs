@@ -21,6 +21,8 @@ public sealed class ArcadeHost
 		public PongState? Pong;
 		public BilliardState? Billiard;
 		public double SinceFrame;
+		/// <summary>Pong: where each paddle was lately (host clock, y), for the lag allowance (PongRules.Step).</summary>
+		public readonly List<(double T, double Y)> RecentA = new(), RecentB = new();
 
 		public bool Has(string id) => A == id || B == id;
 	}
@@ -36,7 +38,16 @@ public sealed class ArcadeHost
 	public Func<IEnumerable<string>> Players = () => Array.Empty<string>();
 	public string HostName = "Host";
 
-	const double FrameSec = 1 / 30.0, StepSec = 1 / 240.0;
+	// (60 frames a second: the screens smooth between them, and the more often they come, the smaller each correction)
+	const double FrameSec = 1 / 60.0, StepSec = 1 / 240.0;
+	/// <summary>How far back a Pong paddle still counts (seconds): about a round trip over Steam, so a ball that met your
+	/// paddle on your screen bounces on the host too.</summary>
+	const double LagAllowance = 0.25;
+	static readonly System.Diagnostics.Stopwatch Clock = System.Diagnostics.Stopwatch.StartNew();
+	static double Now => Clock.Elapsed.TotalSeconds;
+
+	/// <summary>True while this player is in a match (the host holds back background files to them meanwhile).</summary>
+	public bool Playing(string id) => Busy(id);
 
 	public ArcadeView View() => new()
 	{
@@ -81,6 +92,9 @@ public sealed class ArcadeHost
 				var y = Math.Clamp(r.Value, 0, 1) * PongState.H;
 				if (from == m.A) m.Pong!.PaddleA = y;
 				else m.Pong!.PaddleB = y;
+				var recent = from == m.A ? m.RecentA : m.RecentB;
+				recent.Add((Now, y));
+				recent.RemoveAll(p => Now - p.T > LagAllowance);
 				return (false, frames);
 			// (the lag for the break: each shoots once, whenever they like, even while the other's ball rolls)
 			case ArcadeRequest.Shot when _matches.FirstOrDefault(m => m.Has(from) && m.Billiard is { Lag: true }) is { } m
@@ -139,12 +153,14 @@ public sealed class ArcadeHost
 		{
 			var urgent = false;
 			string? decided = null;
+			var recentA = m.RecentA.Where(p => Now - p.T <= LagAllowance).Select(p => p.Y).ToList();
+			var recentB = m.RecentB.Where(p => Now - p.T <= LagAllowance).Select(p => p.Y).ToList();
 			for (var t = 0.0; t < dt; t += StepSec)
 			{
 				var step = Math.Min(StepSec, dt - t);
 				if (m.Pong != null)
 				{
-					var point = PongRules.Step(m.Pong, step);
+					var point = PongRules.Step(m.Pong, step, recentA, recentB);
 					if (point == 0) continue;
 					if (point > 0) m.ScoreA++;
 					else m.ScoreB++;
@@ -176,7 +192,7 @@ public sealed class ArcadeHost
 				changed = true;
 				continue;
 			}
-			// (~30 frames a second while something moves; a billiard table at rest needs none until the next shot)
+			// (~60 frames a second while something moves; a billiard table at rest needs none until the next shot)
 			m.SinceFrame += dt;
 			if (urgent || m.SinceFrame >= FrameSec && (m.Pong != null || m.Billiard is { Moving: true }))
 			{
@@ -204,7 +220,7 @@ public sealed class ArcadeHost
 
 	static ArcadeFrame Frame(Match m) => new()
 	{
-		Match = m.Id, Game = m.Game, A = m.A, B = m.B, ScoreA = m.ScoreA, ScoreB = m.ScoreB,
+		Match = m.Id, Game = m.Game, A = m.A, B = m.B, ScoreA = m.ScoreA, ScoreB = m.ScoreB, Time = Now,
 		Pong = m.Pong == null ? null : new PongState
 		{
 			BallX = m.Pong.BallX, BallY = m.Pong.BallY, VelX = m.Pong.VelX, VelY = m.Pong.VelY,

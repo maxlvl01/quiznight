@@ -13,6 +13,21 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+### Fixed
+
+- **Pong and billiard over the internet were laggy and out of sync** (reported by Max). Three causes, three fixes:
+  - **Frames stuck behind downloads.** In the lobby the host sends everyone the quiz's pictures, sounds and videos in the
+    background, and Steam sends everything to a player in one line, so a Pong frame could wait behind half a second of
+    file data. While you play a match, the host now holds your files back; they carry on right after.
+  - **The ball jumped.** Your screen only showed where the host last said the ball was, guessing a little in between, and
+    snapped back with every new frame. Now your screen plays the ball itself with the same rules, walls and paddles
+    included, and each frame from the host is blended in over a few hundredths of a second instead of snapping. The
+    other player's paddle glides instead of hopping, and the host sends twice as many frames (60 a second).
+  - **"It went right through my paddle!"** Your paddle reaches the host a moment late, so the host could see a miss where
+    your screen showed a hit. The host now also counts where your paddle was during the last quarter of a second.
+  - Billiard balls now roll smoothly however unevenly the frames arrive: your screen plays the table back a tenth of a
+    second behind the host, gliding between frames (nobody notices a tenth of a second in a game of turns).
+
 ## [0.13.2d1]
 
 ### Added
