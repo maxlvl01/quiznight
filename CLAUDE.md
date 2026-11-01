@@ -129,7 +129,9 @@ the original design decisions; most still apply.
 - **Quiz page** (`QuizOverviewScreen`): Ctrl/Shift+click pick rows (`_picked`, by question), a picked row's drag moves all
   of them (`QuestionRowButton.Dragged` → `MoveMany`). "By category" groups by `Quiz.CategoryOrder` (format 15), ▲ ▼ per
   category. `--screen quiz [--tour-quiz] [--list category] [--category-order a,b]`.
-- **Team mode** (0.13.1d1, `RoomSettings.Teams`, 0 = off, 2–6): the host draws teams at random in the lobby
+- **Team mode** (0.13.1d1, `RoomSettings.Teams`, 0 = off, 2–6): a "Play in teams" tick box sends `TeamNames.Auto`; until
+  the draw the count follows the players (`Room.FollowPlayers` in `Tick`, `TeamNames.Suggest`: ~3 a team, even preferred)
+  unless the host picked one of `TeamNames.Offered`. The host draws teams at random in the lobby
   (`Room.DrawTeams`, `Player.Team`; `RoomState.TeamDraw` counts draws so every lobby plays `Ui/Screens/TeamDraw.cs`'s show
   once; newcomers join the smallest team). The game only knows `IGameHooks.TeamOf`: `Game.Mates` makes one answer per team
   (any member replaces it; `GameView.MyAnswerBy`), one buzz per team per round and jokers once per team. Scores stay per
