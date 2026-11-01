@@ -50,7 +50,7 @@ public static class NightPack
 	public static SeasonPoster.Pack Pack(FinalResults r)
 	{
 		var date = r.Date.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture);
-		var standings = r.Players.Select(p => new SeasonPoster.Standing(p.Id, p.Name, p.Score, 0, 1, p.Place)).ToList();
+		var standings = r.Ranked.Select(p => new SeasonPoster.Standing(p.Id, p.Name, p.Score, 0, 1, p.Place)).ToList();
 		string Name(string id) => r.Player(id)?.Name ?? "?";
 		var awards = new List<SeasonPoster.Award>();
 		foreach (var a in r.Awards)

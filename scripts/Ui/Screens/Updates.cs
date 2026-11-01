@@ -73,6 +73,8 @@ public static class WhatsNew
 		"removed" => ("Removed", C.Coral),
 		// (a peek at the next big update, at the end of a release's notes)
 		"coming next" => ("Coming next", C.Purple),
+		// (a joke that opens the notes)
+		"before we start" => ("Before we start", C.Pink),
 		_ => (kind, C.Muted),
 	};
 

@@ -506,6 +506,43 @@ public static class SelfTest
 	}
 
 	/// <summary>The podium: nobody drops off it by leaving, its awards, and the kept podium's file.</summary>
+	/// <summary>Team mode: the draw, newcomers, one answer per team that anyone can change, one buzz per team, jokers once per team.</summary>
+	static void TeamMode()
+	{
+		var choice = QuizRules.NewQuestion(QuestionType.Classic, "t1");
+		(choice.Prompt, choice.Mode, choice.Choices, choice.CorrectChoice, choice.Points) = ("Which?", ClassicMode.Choice, new() { "A", "B", "C", "D" }, 1, 1);
+		var buzzer = QuizRules.NewQuestion(QuestionType.Classic, "t2");
+		(buzzer.Prompt, buzzer.AnswerText) = ("Who?", "Me");
+		var (room, _) = NewRoom(new Quiz { Id = "teams", Title = "Teams", Questions = new() { choice, buzzer } }, "ann", "bob", "cat", "dan");
+		room.UpdateSettings(teams: 2);
+		Check(!room.Start().Ok, "team mode: no start before the teams are drawn");
+		Check(room.DrawTeams(new Random(3)).Ok && room.TeamDraw == 1, "the host draws the teams");
+		Check(Enumerable.Range(0, 2).All(t => room.Players.Count(p => p.Team == t) == 2), "four players, two teams of two");
+		room.Join("eve", "eve");
+		Check(room.GetPlayer("eve")!.Team is not null, "a newcomer joins a team without a new draw");
+		Check(room.Start().Ok, "starts once the teams are drawn");
+		var g = room.Game!;
+		string Mate(string id) => room.Players.First(p => p.Id != id && p.Team == room.GetPlayer(id)!.Team).Id;
+		var right = g.Question.CorrectChoice;
+		var wrong = (right + 1) % 4;
+		var mate = Mate("ann");
+		Check(g.Answer("ann", 0, AnswerValue.Number(wrong)).Ok, "a team member answers");
+		Check(g.View(mate).MyAnswer?.Num == wrong && g.View(mate).MyAnswerBy == "ann", "the teammate sees the team's answer and who gave it");
+		Check(g.Answer(mate, 0, AnswerValue.Number(right)).Ok && g.View("ann").MyAnswer?.Num == right, "any member can change the team's answer");
+		Check(!g.AnswersClosed, "answers stay open until every team has answered");
+		var other = room.Players.First(p => p.Team != room.GetPlayer("ann")!.Team).Id;
+		Check(g.Answer(other, 0, AnswerValue.Number(wrong)).Ok && g.AnswersClosed, "one answer per team closes the answers");
+		room.Next();
+		var teams = room.Teams()!;
+		Check(teams[0].Members.Contains("ann") && teams[0].Score == choice.Points && teams[0].Place == 1 && room.Score(mate) == choice.Points && room.Score("ann") == 0,
+			"the team's answer scores once, for whoever gave it; the team's points are its members' together");
+		Check(g.PlayJoker("ann", Joker.Double, true).Ok && !g.PlayJoker(mate, Joker.Double, true).Ok, "a joker once per team");
+		room.Next();
+		Check(g.BuzzIn("ann") && !g.BuzzIn(mate) && g.BuzzIn(other), "one buzz per team");
+		var final = FinalResults.From(room.ToState("host"));
+		Check(final.Teams is { Count: 2 } ft && ft[0].Members!.Count >= 2 && final.Entry("ann") == ft[0], "the podium ranks the teams, with their members");
+	}
+
 	static void PodiumAndAwards()
 	{
 		var room = new Room("TEST", SampleQuiz.Build()) { HostName = "Max" };
@@ -763,6 +800,7 @@ public static class SelfTest
 		FairBuzzers();
 		SaveAndResume();
 		PodiumAndAwards();
+		TeamMode();
 		Safety();
 		Undo();
 		Files();

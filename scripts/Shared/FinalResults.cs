@@ -39,6 +39,9 @@ public sealed class FinalPlayer
 	public int? JoinedAt;
 	public int? LeftAt;
 	public NightStats Stats = new();
+	/// <summary>A team on a team night's podium (FinalResults.Teams): its members' ids and names.</summary>
+	public List<string>? MemberIds;
+	public List<string>? Members;
 
 	public PublicPlayer ToPublic() => new() { Id = Id, Name = Name, Color = Color, Connected = true, JoinedAt = JoinedAt, LeftAt = LeftAt };
 }
@@ -58,6 +61,14 @@ public sealed class FinalResults
 	/// <summary>In ranked order.</summary>
 	public List<FinalPlayer> Players = new();
 	public List<NightAward> Awards = new();
+	/// <summary>Team mode: the teams by place (the podium shows them; Players stay for the awards). Null on a solo night.</summary>
+	public List<FinalPlayer>? Teams;
+
+	/// <summary>Who stands on the podium: the teams on a team night, else the players.</summary>
+	public List<FinalPlayer> Ranked => Teams ?? Players;
+
+	/// <summary>The podium entry of this player: their team on a team night.</summary>
+	public FinalPlayer? Entry(string id) => Teams?.Find(t => t.MemberIds?.Contains(id) == true) ?? Player(id);
 
 	/// <summary>The room as it ended. Players who left before the end are in it (with when they left).</summary>
 	public static FinalResults From(RoomState room) => new()
@@ -73,6 +84,11 @@ public sealed class FinalResults
 			JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Stats = room.Stats.GetValueOrDefault(p.Id) ?? new NightStats(),
 		}).ToList(),
 		Awards = room.Awards?.Where(a => NightAwards.Known(a.Kind) && a.Players.Count > 0).ToList() ?? new(),
+		Teams = room.Teams?.Select(t => new FinalPlayer
+		{
+			Id = "team:" + t.Index, Name = t.Name, Color = t.Color, Score = t.Score, Place = t.Place,
+			MemberIds = t.Members.ToList(), Members = t.Members.Select(id => room.Player(id).Name).ToList(),
+		}).ToList(),
 	};
 
 	public FinalPlayer? Player(string id) => Players.Find(p => p.Id == id);

@@ -68,6 +68,8 @@ public sealed class SavedPlayer
 	public int? JoinedAt;
 	public int? LeftAt;
 	public PlayerStats Stats = new();
+	/// <summary>Team mode: their team.</summary>
+	public int? Team;
 }
 
 public sealed class SavedQuestionStat

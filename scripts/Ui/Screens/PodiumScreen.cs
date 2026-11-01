@@ -90,8 +90,9 @@ public partial class PodiumScreen : Control, IRoomScreen
 	{
 		_results = r;
 		Sfx.PlayRoomPodium(r.PodiumSound, _isHost);
-		var top = r.Players.Where(p => p.Place <= 3).ToList();
-		var me = _myId != null ? r.Player(_myId) : null;
+		var top = r.Ranked.Where(p => p.Place <= 3).ToList();
+		// (team night: your team's place)
+		var me = _myId != null ? r.Entry(_myId) : null;
 
 		// ---- the right side: header, podium, score list ----
 		var side = U.V(12);
@@ -206,6 +207,7 @@ public partial class PodiumScreen : Control, IRoomScreen
 		// (a wide name is cut off with "…" instead of widening its step)
 		var name = U.PlayerName(p.Name, 18, HorizontalAlignment.Center, tags);
 		var step = U.V(6, new Avatar(p.ToPublic(), 60).Center(), name, U.Mono(Lang.F("{0} pts", p.Score), 15, C.Muted).Center());
+		if (p.Members is { } members) step.AddChild(U.Muted(string.Join(", ", members), 13, true, HorizontalAlignment.Center).Raw().MinSize(170, 0));
 		if (SeatNote(p, r) is { } note) step.AddChild(note.Center());
 		step.AddChild(block);
 		step.Alignment = BoxContainer.AlignmentMode.End;
@@ -222,9 +224,9 @@ public partial class PodiumScreen : Control, IRoomScreen
 	Control Standings(FinalResults r)
 	{
 		var rows = U.V(4);
-		foreach (var p in r.Players)
+		foreach (var p in r.Ranked)
 		{
-			var mine = p.Id == _myId;
+			var mine = p.Id == _myId || p.MemberIds?.Contains(_myId ?? "") == true;
 			var place = U.Mono(Lang.Ordinal(p.Place), 15, C.Medal(p.Place) ?? C.Muted).Raw().MinSize(44);
 			var name = U.Text(p.Name, 17, mine ? C.Teal : C.Text, p.Place <= 3 || mine ? Fonts.Bold : null).Raw().Clipped(80);
 			var row = GameParts.Row(10, place, new Avatar(p.ToPublic(), 28), name);
@@ -432,9 +434,14 @@ public partial class CreditsRoll : Control
 		_roll.AddChild(Centered(U.Text(r.Host != "" ? r.Host : Lang.T("The host"), 30, C.Text, Fonts.Black).With(l => { if (r.Host != "") l.Raw(); })));
 
 		Section("Starring");
-		foreach (var p in r.Players)
-			_roll.AddChild(GameParts.Row(10, new Avatar(p.ToPublic(), 30), U.Text(p.Name, 24, p.Id == me ? C.Teal : C.Text, Fonts.Bold).Raw(),
+		foreach (var p in r.Ranked)
+		{
+			var mine = p.Id == me || p.MemberIds?.Contains(me ?? "") == true;
+			_roll.AddChild(GameParts.Row(10, new Avatar(p.ToPublic(), 30), U.Text(p.Name, 24, mine ? C.Teal : C.Text, Fonts.Bold).Raw(),
 				U.Mono(Lang.Ordinal(p.Place), 15, C.Medal(p.Place) ?? C.Muted).Raw()).Center());
+			// (a team: its members under it)
+			if (p.Members is { } members) _roll.AddChild(Centered(U.Muted(string.Join(", ", members), 16, true).Raw()));
+		}
 
 		if (r.Awards.Count > 0)
 		{

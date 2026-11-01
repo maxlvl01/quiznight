@@ -111,6 +111,7 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		{
 			var id = p.Id;
 			var seat = U.V(4, new Avatar(p, 44).Center(), U.PlayerName(p.Name, 15, HorizontalAlignment.Center, tags));
+			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(team).Center());
 			if (room.ResumeFrom != null) seat.AddChild(U.Muted(room.Score(id) == 1 ? Lang.T("1 point") : Lang.F("{0} points", room.Score(id)), 12, false, HorizontalAlignment.Center));
 			seat.AddChild(
 				U.H(4, GameParts.SeatStatus(p, room, false).With(s => s.SizeFlagsVertical = SizeFlags.ShrinkCenter),
@@ -149,7 +150,9 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 			Rule("×2 Double points", "Whatever the next question gives counts twice. Anyone can play it.", room.Settings.Jokers.Contains(Joker.Double),
 				on => _host.UpdateSettings(joker: (Joker.Double, on))),
 			Rule("Fast Pass", "On the next buzzer question, you answer first, even if someone is already answering. One player per question.", room.Settings.Jokers.Contains(Joker.FastPass),
-				on => _host.UpdateSettings(joker: (Joker.FastPass, on))).With(b => b.Icon = Bolt.Icon(15)));
+				on => _host.UpdateSettings(joker: (Joker.FastPass, on))).With(b => b.Icon = Bolt.Icon(15)),
+			U.Muted("Team mode", 13).With(l => l.TooltipText = Lang.T("Teams are drawn at random. A team answers together: anyone in it can change the team's answer until time is up. Jokers once per team. Team nights don't count for the Ewige Tabelle.")),
+			TeamRow(room));
 		var right = U.V(8,
 			Stepper.Make("Answer time per buzz", room.Settings.AnswerTimeSec, Limits.AnswerTimeMin, Limits.AnswerTimeMax,
 				v => _host.UpdateSettings(answerTimeSec: v), " s"),
@@ -176,17 +179,35 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 			_error = result.Ok ? null : result.Error;
 			if (!result.Ok) Refresh(_host.State);
 		}
+		var undrawn = room.Settings.TeamMode && room.Players.Any(p => p.Connected && p.Team == null);
 		var start = U.Btn(room.ResumeFrom != null ? "Continue quiz" : "Start quiz", "AccentButton", StartQuiz);
 		// Everyone gets the quiz's pictures, sounds and videos first, so nothing has to load mid-question.
 		var loading = room.Players.Where(p => p.Connected && room.Downloads.GetValueOrDefault(p.Id, 100) < 100).ToList();
-		start.Disabled = connected < Limits.MinPlayersToStart || loading.Count > 0;
+		start.Disabled = connected < Limits.MinPlayersToStart || loading.Count > 0 || undrawn;
 		Control needs = connected < Limits.MinPlayersToStart ? U.Muted(Lang.F("Needs at least {0} players.", Limits.MinPlayersToStart), 13, false)
+			: undrawn ? U.Muted("Draw the teams first.", 13, false)
 			: loading.Count > 0 ? U.H(10,
 				U.Muted(loading.Count == 1 ? Lang.F("{0} is still downloading the quiz…", loading[0].Name) : Lang.F("{0} players are still downloading the quiz…", loading.Count), 13, false),
 				U.Link("Start anyway", StartQuiz, 13).Tip("Whoever isn't done gets each question's pictures when it comes up"))
 			: U.Fill();
 		_content.AddChild(U.H(12, U.Link("Close room", () => Dialogs.Confirm(this, "Close the room? Everyone in it is sent back to the home screen.", "Close room", App.I.CloseRoom)),
 			U.Fill(), needs, start));
+		TeamDrawShow.MaybeShow(this, room);
+	}
+
+	/// <summary>Team mode: off or 2–6 teams, and the draw (again as often as you like until the start).</summary>
+	Control TeamRow(RoomState room)
+	{
+		var counts = new[] { ("0", Lang.T("Off")) }.Concat(Enumerable.Range(TeamNames.Min, TeamNames.Max - TeamNames.Min + 1).Select(n => (n.ToString(), n.ToString()))).ToArray();
+		var row = U.H(8, U.Segmented(counts, room.Settings.TeamMode ? room.Settings.Teams.ToString() : "0", id => _host.UpdateSettings(teams: int.Parse(id))));
+		if (room.Settings.TeamMode)
+			row.AddChild(U.Small(room.Teams != null ? "🎲 Draw again" : "🎲 Draw teams", () =>
+			{
+				var result = _host.DrawTeams();
+				_error = result.Ok ? null : result.Error;
+				if (!result.Ok) Refresh(_host.State);
+			}).Tip("Everyone is put in a team at random, with a show on every screen."));
+		return row;
 	}
 
 	static CheckBox Rule(string text, string tip, bool on, Action<bool> changed)
@@ -264,6 +285,7 @@ public partial class WaitingRoomScreen : Control, IRoomScreen
 				me && room.Downloads.GetValueOrDefault(p.Id, 100) >= 100 ? U.Muted("You · double-click your name to change it", 13, true, HorizontalAlignment.Center)
 					: GameParts.SeatStatus(p, room, true).Center());
 			if (me && _renameError != null) seat.AddChild(U.Text(_renameError, 12, C.Coral, null, true, HorizontalAlignment.Center));
+			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(team).Center());
 			grid.AddChild(U.Panel(seat, me ? "Scored" : "Card2").Grow());
 		}
 		// Everyone who's in, plus one open seat (while the room isn't full): the grid grows as people join.
@@ -282,6 +304,7 @@ public partial class WaitingRoomScreen : Control, IRoomScreen
 		_content.AddChild(U.H(16,
 			U.Muted("Waiting for the host to start the quiz.", 14, false).Grow(),
 			U.Link("Leave", App.I.LeaveRoom)));
+		TeamDrawShow.MaybeShow(this, room);
 	}
 
 	/// <summary>Tonight's rules as the host set them (read only): how the host runs it, and the jokers you can play.</summary>
@@ -292,6 +315,7 @@ public partial class WaitingRoomScreen : Control, IRoomScreen
 			Line(settings.HostShowsQuestions ? "• The host shows each question when ready" : "• Questions show right away"),
 			Line(settings.HostUnlocksBuzzers ? "• The host unlocks the buzzers after reading out" : "• Buzzers open as soon as a question shows"),
 			Line(settings.ShowCategories ? "• You see each question's category" : "• Categories stay hidden"),
+			Line(settings.TeamMode ? Lang.F("• Team mode: {0} teams, drawn at random. Your team answers together.", settings.Teams) : Lang.T("• Everyone plays for themselves")),
 			Line(Lang.F("• Answer time per buzz: {0} s", settings.AnswerTimeSec)));
 		var jokers = U.V(6, U.Muted("Jokers (once each per match)", 13));
 		// (every joker stays listed, greyed out when the host turns it off, so the panel doesn't jump in height)

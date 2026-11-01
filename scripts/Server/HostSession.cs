@@ -363,11 +363,19 @@ public sealed class HostSession : IDisposable
 	}
 
 	public void UpdateSettings(int? answerTimeSec = null, bool? hostShows = null, bool? hostUnlocks = null, (string Kind, bool On)? joker = null,
-		bool? categories = null, bool? friendsOnly = null)
+		bool? categories = null, bool? friendsOnly = null, int? teams = null)
 	{
 		if (Room.Phase != Phase.Lobby) return;
-		Room.UpdateSettings(answerTimeSec, hostShows, hostUnlocks, joker, categories, friendsOnly);
+		Room.UpdateSettings(answerTimeSec, hostShows, hostUnlocks, joker, categories, friendsOnly, teams);
 		Broadcast();
+	}
+
+	/// <summary>Team mode: the host draws the teams (every lobby screen plays the draw).</summary>
+	public Result DrawTeams()
+	{
+		var result = Room.DrawTeams();
+		if (result.Ok) Broadcast();
+		return result;
 	}
 
 	public Result Start()
@@ -538,6 +546,8 @@ public sealed class HostSession : IDisposable
 		if (Room.Phase != Phase.Finished || _resultsSent) return;
 		_resultsSent = true;
 		if (Mode != NetMode.Steam || !Storage.ResultsUpload.Enabled) return;
+		// (team nights don't count for the Ewige Tabelle: a team's points aren't one player's, so solo standings stay fair)
+		if (Room.Settings.TeamMode) return;
 		// (the lobby's mini game bests go with the night: the all-time lists are added up from them; the host plays as
 		// "host", in the results as their Steam id)
 		var hostId = "steam:" + SteamService.MySteamId;

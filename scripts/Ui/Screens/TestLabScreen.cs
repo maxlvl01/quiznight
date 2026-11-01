@@ -25,7 +25,7 @@ public partial class TestLabScreen : Control
 		SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(_player);
 		var left = U.V(14, Buzzers(), Microphone(), Questions(), DropDownTests());
-		var right = U.V(14, Sounds(), Maps(), Podiums(), OneOffs());
+		var right = U.V(14, Sounds(), Maps(), Podiums(), TeamDraws(), OneOffs());
 		var page = U.V(14,
 			U.H(16, U.Link("← Home", () => App.I.GoHome()).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter), U.Heading("Test lab", 34)),
 			U.Muted("Developer mode only. Nothing here changes your quizzes or settings, except where it says so.", 13),
@@ -281,6 +281,31 @@ public partial class TestLabScreen : Control
 			U.Small("16 players", () => App.I.GoPodium(Dev.SampleQuiz.Podium(16), true)),
 			U.Small("Tie at the top", () => App.I.GoPodium(Dev.SampleQuiz.Podium(6, true), true))),
 		U.Muted("A made-up night of the sample quiz, with its awards (one player left at question 5). Nothing is kept; \"Make award pack\" saves a real one in Documents/Quiznight/Pictures.", 12));
+
+	// ---------- team mode ----------
+
+	/// <summary>The team draw's show with made-up players: 3 teams of 8, 2 teams of 5, or 6 teams of 16 (a team gets one more).</summary>
+	Control TeamDraws()
+	{
+		var names = new[] { "Anna", "maxlvl01", "[OTB] Klaus", "Mondkind", "Bernd", "Lea", "Autobahn Andi", "Sophie", "Jonas", "Mia", "Pinke Paula", "Theo", "Greta", "Finn", "Emil", "Ida" };
+		void Draw(int players, int teams)
+		{
+			var picked = names.Take(players).OrderBy(_ => Random.Shared.Next()).ToList();
+			var dealt = Enumerable.Range(0, teams).Select(t => picked.Where((_, i) => i % teams == t).ToList()).ToList();
+			AddChild(new TeamDrawShow(dealt, Random.Shared.Next(1, 10_000)));
+		}
+		// (--team-draw PLAYERS,TEAMS with --screen testlab: the show at once, for screenshots)
+		var args = OS.GetCmdlineUserArgs();
+		var at = Array.IndexOf(args, "--team-draw");
+		if (at >= 0 && at + 1 < args.Length && args[at + 1].Split(',') is [var p, var t] && int.TryParse(p, out var players) && int.TryParse(t, out var teams))
+			Callable.From(() => Draw(Math.Clamp(players, 2, names.Length), Math.Clamp(teams, 2, TeamNames.Max))).CallDeferred();
+		return U.Card(10, U.Eyebrow("Team draw"),
+			U.H(8,
+				U.Small("8 players, 3 teams", () => Draw(8, 3)),
+				U.Small("5 players, 2 teams", () => Draw(5, 2)),
+				U.Small("16 players, 6 teams", () => Draw(16, 6))),
+			U.Muted("The show every lobby plays when the host draws the teams. A click skips it, Esc closes it.", 12));
+	}
 
 	// ---------- screens that only show once ----------
 

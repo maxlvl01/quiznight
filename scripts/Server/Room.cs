@@ -23,6 +23,8 @@ public sealed class Player
 	public string Version = "";
 	/// <summary>A seat from a saved night (Room.Restore): it keeps its points in the lobby until they're back.</summary>
 	public bool Saved;
+	/// <summary>Team mode: their team (TeamNames index), once drawn.</summary>
+	public int? Team;
 }
 
 /// <summary>What breaks ties between players with the same score (see Room.Ranking).</summary>
@@ -137,6 +139,7 @@ public sealed class Room : IGameHooks
 	/// <summary>Fair buzzers' wait after the first buzz (HostSession sets Limits.BuzzWindowMs; rule checks keep 0: at once).</summary>
 	public int BuzzWait;
 	public int BuzzWindowMs() => BuzzWait;
+	public int? TeamOf(string playerId) => Settings.TeamMode ? GetPlayer(playerId)?.Team : null;
 	public IReadOnlyList<string> ActivePlayerIds() => Players.Where(p => p.Connected).Select(p => p.Id).ToList();
 	public int AnswerTimeSec() => Settings.AnswerTimeSec;
 	public bool HostShowsQuestions() => Settings.HostShowsQuestions;
@@ -252,6 +255,53 @@ public sealed class Room : IGameHooks
 		return (order.Select(x => x.P.Id).ToList(), places);
 	}
 
+	// ---------- team mode ----------
+
+	/// <summary>Counts up with every draw (RoomState.TeamDraw): each screen plays the draw once.</summary>
+	public int TeamDraw { get; private set; }
+
+	/// <summary>
+	/// The host draws the teams: everyone here, shuffled, dealt out one by one, so teams differ by one player at most.
+	/// Again as often as the host likes, until the quiz starts.
+	/// </summary>
+	public Result DrawTeams(Random? rng = null)
+	{
+		if (Phase != Shared.Phase.Lobby) return Result.Fail("Teams are drawn in the waiting room.");
+		if (!Settings.TeamMode) return Result.Fail("Team mode is off.");
+		var here = Players.Where(p => p.Connected || p.Saved).ToList();
+		if (here.Count < Settings.Teams) return Result.Fail(Lang.F("You need at least {0} players for {0} teams.", Settings.Teams));
+		rng ??= Random.Shared;
+		var order = here.OrderBy(_ => rng.Next()).ToList();
+		// (which team gets the first, and so the possible extra, player is drawn too)
+		var start = rng.Next(Settings.Teams);
+		for (var i = 0; i < order.Count; i++) order[i].Team = (start + i) % Settings.Teams;
+		foreach (var p in Players.Except(here)) p.Team = null;
+		TeamDraw++;
+		Trace.Log("room", $"teams drawn: {string.Join(" | ", Enumerable.Range(0, Settings.Teams).Select(t => string.Join(", ", order.Where(p => p.Team == t).Select(p => p.Name))))}");
+		return Result.Success();
+	}
+
+	/// <summary>A newcomer once the teams are drawn: the smallest team gets them (no draw for one player).</summary>
+	void JoinSmallestTeam(Player player)
+	{
+		if (!Settings.TeamMode || !Players.Any(p => p.Team != null)) return;
+		player.Team = Enumerable.Range(0, Settings.Teams).OrderBy(t => Players.Count(p => p.Team == t && p.Connected)).First();
+	}
+
+	/// <summary>The teams by place: members' points together; equal points share a place.</summary>
+	public List<PublicTeam>? Teams()
+	{
+		if (!Settings.TeamMode || !Players.Any(p => p.Team != null)) return null;
+		var teams = Enumerable.Range(0, Settings.Teams).Select(t => new PublicTeam
+		{
+			Index = t, Name = TeamNames.Name(t), Color = TeamNames.Color(t),
+			Members = Players.Where(p => p.Team == t).Select(p => p.Id).ToList(),
+			Score = Players.Where(p => p.Team == t).Sum(p => Score(p.Id)),
+		}).OrderByDescending(t => t.Score).ThenBy(t => t.Index).ToList();
+		for (var i = 0; i < teams.Count; i++) teams[i].Place = i > 0 && teams[i].Score == teams[i - 1].Score ? teams[i - 1].Place : i + 1;
+		return teams;
+	}
+
 	/// <summary>The room as one viewer may see it: "host", or a player id.</summary>
 	public RoomState ToState(string viewer)
 	{
@@ -276,7 +326,9 @@ public sealed class Room : IGameHooks
 			ResumeFrom = Phase == Shared.Phase.Lobby && Resume is { } save ? Math.Min(save.Next, Quiz.Questions.Count - 1) + 1 : null,
 			HostName = HostName,
 			Awards = Phase == Shared.Phase.Finished ? _awards ??= Server.Awards.Make(this) : null,
-			Players = Players.Select(p => new PublicPlayer { Id = p.Id, Name = p.Name, Color = p.Color, Connected = p.Connected, JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Version = p.Version }).ToList(),
+			Teams = Teams(),
+			TeamDraw = TeamDraw,
+			Players = Players.Select(p => new PublicPlayer { Id = p.Id, Name = p.Name, Color = p.Color, Connected = p.Connected, JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Version = p.Version, Team = Settings.TeamMode ? p.Team : null }).ToList(),
 		};
 	}
 
@@ -322,6 +374,7 @@ public sealed class Room : IGameHooks
 			Connected = true,
 		};
 		Players.Add(player);
+		JoinSmallestTeam(player);
 		if (Playing)
 		{
 			player.JoinedAt = Game!.Index + 1;
@@ -399,8 +452,18 @@ public sealed class Room : IGameHooks
 	}
 
 	public void UpdateSettings(int? answerTimeSec = null, bool? hostShows = null, bool? hostUnlocks = null, (string Kind, bool On)? joker = null,
-		bool? categories = null, bool? friendsOnly = null)
+		bool? categories = null, bool? friendsOnly = null, int? teams = null)
 	{
+		// (another number of teams: the old draw is gone, the host draws again)
+		if (teams is { } t && Phase == Shared.Phase.Lobby)
+		{
+			var count = t < TeamNames.Min ? 0 : Math.Min(t, TeamNames.Max);
+			if (count != Settings.Teams)
+			{
+				Settings.Teams = count;
+				foreach (var p in Players) p.Team = null;
+			}
+		}
 		if (categories is { } cats) Settings.ShowCategories = cats;
 		if (friendsOnly is { } friends) Settings.FriendsOnly = friends;
 		if (joker is { } j && Joker.All.Contains(j.Kind))
@@ -422,6 +485,7 @@ public sealed class Room : IGameHooks
 		if (Phase != Shared.Phase.Lobby) return Result.Fail("The quiz is already running.");
 		var connected = Players.Count(p => p.Connected);
 		if (connected < (Preview ? 1 : Limits.MinPlayersToStart)) return Result.Fail(Lang.F("You need at least {0} connected players.", Limits.MinPlayersToStart));
+		if (Settings.TeamMode && Players.Any(p => p.Connected && p.Team == null)) return Result.Fail("Draw the teams first.");
 		Phase = Shared.Phase.Playing;
 		if (Resume is { } save) return GoOn(save);
 		StartedAt = DateTime.Now;
@@ -469,7 +533,7 @@ public sealed class Room : IGameHooks
 		Settings = Settings.Clone(),
 		Players = Players.Select(p => new SavedPlayer
 		{
-			Id = p.Id, Name = p.Name, Color = p.Color, Score = Score(p.Id), JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Stats = StatsOf(p.Id),
+			Id = p.Id, Name = p.Name, Color = p.Color, Score = Score(p.Id), JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Stats = StatsOf(p.Id), Team = p.Team,
 		}).ToList(),
 		QuestionStats = QuestionStats.Where(q => q.Key.Question < next)
 			.Select(q => new SavedQuestionStat { Question = q.Key.Question, Player = q.Key.Player, Stat = q.Value }).ToList(),
@@ -488,13 +552,14 @@ public sealed class Room : IGameHooks
 		(Settings.AnswerTimeSec, Settings.BuzzerSound, Settings.PodiumSound) = (s.AnswerTimeSec, s.BuzzerSound, s.PodiumSound);
 		(Settings.HostShowsQuestions, Settings.HostUnlocksBuzzers, Settings.ShowCategories, Settings.FriendsOnly) = (s.HostShowsQuestions, s.HostUnlocksBuzzers, s.ShowCategories, s.FriendsOnly);
 		Settings.Jokers = s.Jokers.Where(Joker.All.Contains).ToList();
+		Settings.Teams = s.Teams;
 		Players.Clear();
 		Scores.Clear();
 		Stats.Clear();
 		QuestionStats.Clear();
 		foreach (var p in save.Players.Where(p => p.Id != "").DistinctBy(p => p.Id).Take(Limits.MaxPlayers))
 		{
-			Players.Add(new Player { Id = p.Id, Name = p.Name, Color = p.Color, JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Saved = true });
+			Players.Add(new Player { Id = p.Id, Name = p.Name, Color = p.Color, JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Saved = true, Team = p.Team });
 			Scores[p.Id] = p.Score;
 			Stats[p.Id] = p.Stats ?? new PlayerStats();
 		}

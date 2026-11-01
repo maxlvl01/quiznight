@@ -10,7 +10,8 @@ next; newest version's entries first), and removes those test sections.
 import re
 import sys
 
-KINDS = ["Added", "Changed", "Fixed", "Removed", "Coming next"]
+# ("Before we start": a joke line that opens the notes, so it stays on top)
+KINDS = ["Before we start", "Added", "Changed", "Fixed", "Removed", "Coming next"]
 HEAD = re.compile(r"^## \[([^\]]+)\](.*)$")
 
 

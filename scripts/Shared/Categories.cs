@@ -16,6 +16,8 @@ public static class Categories
 		"Human body & medicine", "Maths", "Nature & animals", "Music", "Video game music", "Film music", "Film & TV", "Games",
 		"Sport", "Football", "Formula 1", "Race tracks", "Food & drink", "Art & literature", "Books", "Language", "Technology",
 		"Pop culture", "Politics", "Günther Grass",
+		// (the friends' own: insiders and in-jokes; a name, the same in every language)
+		"Pinke Geilheit",
 	};
 
 	/// <summary>Trimmed, single spaces, at most MaxLength characters.</summary>

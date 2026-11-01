@@ -126,7 +126,10 @@ public sealed class RoomSettings
 	public bool ShowCategories;
 	/// <summary>Over Steam, only the host's Steam friends get in.</summary>
 	public bool FriendsOnly;
-	public RoomSettings Clone() => new() { AnswerTimeSec = AnswerTimeSec, BuzzerSound = BuzzerSound, PodiumSound = PodiumSound, HostShowsQuestions = HostShowsQuestions, HostUnlocksBuzzers = HostUnlocksBuzzers, Jokers = Jokers.ToList(), ShowCategories = ShowCategories, FriendsOnly = FriendsOnly };
+	/// <summary>Team mode: how many teams (0 = everyone plays for themselves). Teams are drawn at random in the lobby.</summary>
+	public int Teams;
+	public bool TeamMode => Teams >= TeamNames.Min;
+	public RoomSettings Clone() => new() { AnswerTimeSec = AnswerTimeSec, BuzzerSound = BuzzerSound, PodiumSound = PodiumSound, HostShowsQuestions = HostShowsQuestions, HostUnlocksBuzzers = HostUnlocksBuzzers, Jokers = Jokers.ToList(), ShowCategories = ShowCategories, FriendsOnly = FriendsOnly, Teams = Teams };
 }
 
 public sealed class PublicPlayer
@@ -141,6 +144,33 @@ public sealed class PublicPlayer
 	public int? LeftAt;
 	/// <summary>Their game's version ("" = before 0.12, which didn't say).</summary>
 	public string Version = "";
+	/// <summary>Team mode: their team (index into TeamNames), once the teams are drawn.</summary>
+	public int? Team;
+}
+
+/// <summary>Team mode: one team with its members and their points together.</summary>
+public sealed class PublicTeam
+{
+	public int Index;
+	public string Name = "";
+	public string Color = "";
+	public List<string> Members = new();
+	public int Score;
+	public int Place;
+}
+
+/// <summary>Team mode's teams: their names and colours (the n-th drawn team), and how many there can be.</summary>
+public static class TeamNames
+{
+	public const int Min = 2;
+	public const int Max = 6;
+	public static readonly (string Name, string Color)[] All =
+	{
+		("The Quizzly Bears", "#f5a524"), ("Smarty Pints", "#2ec4b6"), ("Know-It-Owls", "#e05d8c"),
+		("Trivia Newton-John", "#8b7cf6"), ("Les Quizérables", "#4cc06a"), ("The Brainy Bunch", "#e8634a"),
+	};
+	public static string Name(int team) => All[Math.Clamp(team, 0, All.Length - 1)].Name;
+	public static string Color(int team) => All[Math.Clamp(team, 0, All.Length - 1)].Color;
 }
 
 public sealed class QuizInfo
@@ -179,6 +209,10 @@ public sealed class RoomState
 	public string HostName = "";
 	/// <summary>The night's awards, once it's finished (the podium's credits).</summary>
 	public List<NightAward>? Awards;
+	/// <summary>Team mode, once drawn: the teams by place (points together; equal ones share a place).</summary>
+	public List<PublicTeam>? Teams;
+	/// <summary>Team mode: counts up with every draw, so every screen plays the draw's show once (0 = not drawn).</summary>
+	public int TeamDraw;
 
 	public int Score(string playerId) => Scores.TryGetValue(playerId, out var s) ? s : 0;
 
@@ -495,8 +529,10 @@ public sealed class GameView
 	public TimelineView? Timeline;
 	/// <summary>Interactive questions, once shown.</summary>
 	public InteractiveView? Interactive;
-	/// <summary>Only in the state sent to that player.</summary>
+	/// <summary>Only in the state sent to that player (team mode: their team's answer).</summary>
 	public AnswerValue? MyAnswer;
+	/// <summary>Team mode: the teammate who gave the team's answer (null if it was this player, or none yet).</summary>
+	public string? MyAnswerBy;
 	/// <summary>Only in the host's state: the correct answer, before the reveal.</summary>
 	public string? HostAnswer;
 	/// <summary>Only in the host's state: the bonus's answer, if the quiz maker wrote one down.</summary>

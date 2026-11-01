@@ -46,6 +46,8 @@ public interface IGameHooks
 	long Now();
 	/// <summary>How long the first buzz of a round waits for others on their way (0: it answers at once).</summary>
 	int BuzzWindowMs();
+	/// <summary>Team mode: the player's team (null: no teams, everyone plays for themselves).</summary>
+	int? TeamOf(string playerId);
 }
 
 public sealed class Game
@@ -61,6 +63,16 @@ public sealed class Game
 	}
 
 	public int Index { get; private set; }
+
+	/// <summary>
+	/// The same player, or (team mode) on the same team: a team answers once per question (any member can change it until
+	/// answers close), buzzes once per round and plays each joker once.
+	/// </summary>
+	bool Mates(string a, string b) => a == b || _hooks.TeamOf(a) is { } t && _hooks.TeamOf(b) == t;
+	bool Teams(string playerId) => _hooks.TeamOf(playerId) != null;
+	/// <summary>The answer this player's team (or they) gave on the current question.</summary>
+	(string PlayerId, AnswerValue Value) AnswerOf(string playerId) => _answers.FirstOrDefault(a => Mates(a.PlayerId, playerId));
+
 	public string Stage { get; private set; } = Shared.Stage.Open;
 	/// <summary>The host has shown the current question (until then players get nothing of it).</summary>
 	public bool Shown { get; private set; }
@@ -399,7 +411,7 @@ public sealed class Game
 	{
 		var q = Question;
 		Trace.Log("game", $"buzz from {playerId} on question {Index + 1}: open={BuzzersOpen} shown={Shown} paused={Paused} fastPass={Played(playerId, Joker.FastPass, Index)} reaction={(timing != null ? $"{timing.ReactionMs} ms (round {timing.Round}, now {_buzzRound})" : "-")} queue={string.Join(",", _buzzes.Select(b => $"{b.PlayerId}:{b.Status}"))}");
-		if (Stage != Shared.Stage.Open || !q.IsBuzzer || !Shown || !BuzzersOpen || Paused || _late.Contains(playerId) || _buzzes.Any(b => b.PlayerId == playerId)) return false;
+		if (Stage != Shared.Stage.Open || !q.IsBuzzer || !Shown || !BuzzersOpen || Paused || _late.Contains(playerId) || _buzzes.Any(b => Mates(b.PlayerId, playerId))) return false;
 		var now = _hooks.Now();
 		var seen = Math.Max(0, now - _buzzOpenAt);
 		var reaction = timing is { } t && t.Round == _buzzRound && t.ReactionMs >= 0
@@ -502,7 +514,7 @@ public sealed class Game
 			return Place(playerId, (int)gap);
 		}
 		if (q.IsList) return ListAnswer(playerId, raw);
-		if (_answers.Any(a => a.PlayerId == playerId)) return Result.Fail("You already locked in your answer.");
+		if (!Teams(playerId) && _answers.Any(a => a.PlayerId == playerId)) return Result.Fail("You already locked in your answer.");
 
 		AnswerValue value;
 		if (q.Type == QuestionType.Estimation)
@@ -542,9 +554,11 @@ public sealed class Game
 		}
 		else return Result.Fail("This question takes no answers.");
 
+		// (team mode: the team's answer so far goes, whoever gave it; the new one stands)
+		_answers.RemoveAll(a => Mates(a.PlayerId, playerId));
 		_answers.Add((playerId, value));
 		_hooks.NoteAnswerTime(playerId, _hooks.Now() - _openedAt);
-		if (Active().All(id => _answers.Any(a => a.PlayerId == id))) CloseAnswers();
+		if (Active().All(id => _answers.Any(a => Mates(a.PlayerId, id)))) CloseAnswers();
 		return Result.Success();
 	}
 
@@ -554,16 +568,16 @@ public sealed class Game
 	/// </summary>
 	Result ListAnswer(string playerId, AnswerValue? raw)
 	{
-		if (_answers.FirstOrDefault(a => a.PlayerId == playerId).Value is { Done: true }) return Result.Fail("You already locked in your answer.");
+		if (AnswerOf(playerId).Value is { Done: true }) return Result.Fail("You already locked in your answer.");
 		var texts = (raw?.Texts ?? new List<string>())
 			.Select(t => (t ?? "").Trim()).Where(t => t != "")
 			.Select(t => t.Length > QuestionLimits.ListAnswerMaxLength ? t[..QuestionLimits.ListAnswerMaxLength] : t)
 			.Distinct(StringComparer.OrdinalIgnoreCase).Take(QuestionLimits.ListAnswersMax).ToList();
 		var done = raw?.Done == true;
-		_answers.RemoveAll(a => a.PlayerId == playerId);
+		_answers.RemoveAll(a => Mates(a.PlayerId, playerId));
 		_answers.Add((playerId, AnswerValue.Listed(texts, done)));
 		if (done) _hooks.NoteAnswerTime(playerId, _hooks.Now() - _openedAt);
-		if (Active().All(id => _answers.Any(a => a.PlayerId == id && a.Value.Done))) CloseAnswers();
+		if (Active().All(id => _answers.Any(a => Mates(a.PlayerId, id) && a.Value.Done))) CloseAnswers();
 		return Result.Success();
 	}
 
@@ -580,7 +594,7 @@ public sealed class Game
 		}
 		if (Stage == Shared.Stage.Open && Question.IsInteractive && Shown) return CheckInteractiveDone();
 		if (Stage != Shared.Stage.Open || Question.IsBuzzer || AnswersClosed || _answers.Count == 0) return false;
-		if (!Active().All(id => _answers.Any(a => a.PlayerId == id && (!Question.IsList || a.Value.Done)))) return false;
+		if (!Active().All(id => _answers.Any(a => Mates(a.PlayerId, id) && (!Question.IsList || a.Value.Done)))) return false;
 		CloseAnswers();
 		return true;
 	}
@@ -1513,14 +1527,19 @@ public sealed class Game
 			// (that someone has it, not who: still a secret)
 			FastPassTaken = JokerIndex is { } fi && FastPassTaken(fi, viewer),
 			// (a joker for a question not shown yet is a secret: only its player sees it, and can take it back)
-			Jokers = _jokers.Where(j => j.PlayerId == viewer || Locked(j)).Select(j => new JokerPlay { PlayerId = j.PlayerId, Kind = j.Kind, Index = j.Index }).ToList(),
+			Jokers = _jokers.Where(j => (viewer != "host" && Mates(j.PlayerId, viewer)) || Locked(j)).Select(j => new JokerPlay { PlayerId = j.PlayerId, Kind = j.Kind, Index = j.Index }).ToList(),
 		};
 		if (viewer == "host")
 		{
 			view.HostAnswer = HostAnswer();
 			if (Question.HasBonus && Question.BonusAnswer.Trim() != "") view.HostBonusAnswer = Question.BonusAnswer.Trim();
 		}
-		else view.MyAnswer = _answers.FirstOrDefault(a => a.PlayerId == viewer).Value;
+		else
+		{
+			var (by, mine) = AnswerOf(viewer);
+			view.MyAnswer = mine;
+			if (mine != null && by != viewer) view.MyAnswerBy = by;
+		}
 		return view;
 	}
 
@@ -1541,7 +1560,7 @@ public sealed class Game
 	/// <summary>A saved night goes on: the jokers its players had already used stay used.</summary>
 	public void RestoreJokers(IEnumerable<JokerPlay> used) => _jokers.AddRange(used);
 
-	bool Played(string playerId, string kind, int index) => _jokers.Any(j => j.PlayerId == playerId && j.Kind == kind && j.Index == index);
+	bool Played(string playerId, string kind, int index) => _jokers.Any(j => Mates(j.PlayerId, playerId) && j.Kind == kind && j.Index == index);
 
 	/// <summary>A joker counts (and everyone sees it) once its question is shown.</summary>
 	bool Locked(JokerPlay j) => j.Index < Index || j.Index == Index && (Shown || Stage == Shared.Stage.Reveal);
@@ -1550,13 +1569,14 @@ public sealed class Game
 	int Multiplier(string playerId) => Played(playerId, Joker.Double, Index) ? 2 : 1;
 
 	/// <summary>A player plays a joker for the next question (on), or takes it back before that question is shown.</summary>
-	bool FastPassTaken(int index, string viewer) => _jokers.Any(j => j.Kind == Joker.FastPass && j.Index == index && j.PlayerId != viewer);
+	bool FastPassTaken(int index, string viewer) => _jokers.Any(j => j.Kind == Joker.FastPass && j.Index == index && !Mates(j.PlayerId, viewer));
 
 	public Result PlayJoker(string playerId, string kind, bool on)
 	{
 		Trace.Log("game", $"joker {kind} {(on ? "played" : "taken back")} by {playerId} (for question {(JokerIndex is { } j ? j + 1 : 0)})");
 		if (!Joker.All.Contains(kind) || !_hooks.JokerAllowed(kind)) return Result.Fail("The host didn't allow that joker tonight.");
-		var mine = _jokers.FirstOrDefault(j => j.PlayerId == playerId && j.Kind == kind);
+		// (team mode: the team's, whoever of them played it)
+		var mine = _jokers.FirstOrDefault(j => Mates(j.PlayerId, playerId) && j.Kind == kind);
 		if (!on)
 		{
 			if (mine == null || Locked(mine)) return Result.Fail("That joker is already in play.");

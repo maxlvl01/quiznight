@@ -248,6 +248,13 @@ public static class GameParts
 		}
 		if (side.GetChildCount() > 0) side.AddChild(U.Gap(4));
 		// ("Stats": tonight's numbers for everyone, in a window)
+		// (team mode: the teams first, then everyone's own points)
+		if (room.Teams != null)
+		{
+			side.AddChild(U.Eyebrow("Teams"));
+			side.AddChild(TeamParts.Board(room, me));
+			side.AddChild(U.Gap(4));
+		}
 		var stats = U.Link("Stats", null, 13).Tip("Tonight so far: points, questions scored, answer times, how far off");
 		stats.Pressed += () => NightStatsView.Popup(stats, room, me);
 		side.AddChild(Row(8, U.Eyebrow("Scores").Grow(), stats));

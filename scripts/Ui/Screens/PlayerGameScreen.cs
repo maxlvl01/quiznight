@@ -185,6 +185,9 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		// The answers (or votes) are in or the time is up, and the host reveals next. Without an answer of their own this
 		// player missed it; with one they still see it, now with "the host reveals it" instead of "waiting for the others".
 		var closed = game.AnswersClosed ? "|closed" : "";
+		// (team mode: "Change our answer" shows the answer form again, over the team's answer, until it's sent or answers close)
+		if (_changing != game.Index || game.AnswersClosed || game.Stage != Stage.Open) _changing = -1;
+		else game.MyAnswer = null;
 		if (game.AnswersClosed && game.MyAnswer == null && game.Interactive?.MyVote == null)
 		{
 			_panel.Set($"{key}|missed", () => Status(U.Bold(game.Interactive != null ? "Voting is over" : "Time's up!", 28), U.Muted("The host reveals the answer in a moment…", 16)));
@@ -195,6 +198,13 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 			_panel.Set($"{key}{closed}|ia|{ia.Phase}|{(ia.Phase == InteractivePhase.Recording ? "" : ia.Clip.ToString())}|{ia.MyVote}", () => Interactive(room, ia));
 			return;
 		}
+		if (q.Buzzer && room.Settings.TeamMode && game.Buzzes.FirstOrDefault(b => b.PlayerId != MyId && Mate(room, b.PlayerId)) is { } mate)
+		{
+			// (one buzz per team and round: a teammate has it)
+			_panel.Set($"{key}|mate|{mate.PlayerId}|{mate.Status}", () => Status(U.Bold(Lang.F("{0} buzzed for your team", room.Player(mate.PlayerId).Name), 26).Raw(),
+				U.Muted(mate.Status == BuzzStatus.Answering ? "They're answering now: help them on Discord!" : mate.Status == BuzzStatus.Wrong ? "Not right: your team is out of this round." : "Waiting for their turn…", 16)));
+			return;
+		}
 		if (q.Buzzer)
 		{
 			var mine = game.Buzzes.FirstOrDefault(b => b.PlayerId == MyId);
@@ -202,14 +212,14 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 			var place = game.Buzzes.Where(b => b.Status == BuzzStatus.Waiting).ToList().FindIndex(b => b.PlayerId == MyId);
 			_panel.Set($"{key}|{mine?.Status}|{place}|{answering?.PlayerId}|{game.BuzzersOpen}|{game.Paused}", () => Buzzer(room));
 		}
-		else if (q.Choices != null) _panel.Set($"{key}{closed}|{game.MyAnswer?.Num}|{string.Join(",", game.MyAnswer?.Picks ?? new List<int>())}", () => Choices(room));
+		else if (q.Choices != null) _panel.Set($"{key}{closed}|{game.MyAnswer?.Num}|{string.Join(",", game.MyAnswer?.Picks ?? new List<int>())}{TeamKey(game)}", () => TeamWrap(room, Choices(room)));
 		else if (game.Timeline is { } tl)
 			_panel.Set($"{key}|tl|{tl.Phase}|{tl.PendingGap}|{tl.Placed.Count}|{tl.TurnPlayerId}|{string.Join(",", tl.WrongGaps)}|{tl.Last?.Kind}{tl.Last?.PlayerId}{tl.Last?.Item}", () => Timeline(room));
-		else if (q.Type == QuestionType.Order) _panel.Set($"{key}{closed}|{game.MyAnswer?.Picks != null}", () => Order(room));
-		else if (q.Type == QuestionType.Interactive && q.Judging == Judging.List) _panel.Set($"{key}{closed}|list|{game.MyAnswer?.Done}", () => ListAnswers(room));
-		else if (q.Written) _panel.Set($"{key}{closed}|{game.MyAnswer?.Text}", () => Write(room));
-		else if (q.Type == QuestionType.Estimation) _panel.Set($"{key}{closed}|{game.MyAnswer?.Num}", () => Estimate(room));
-		else _panel.Set($"{key}{closed}|{game.MyAnswer?.Point != null}|{q.Map == null || _client.Assets.MapReady(q.Map)}", () => MapPin(room));
+		else if (q.Type == QuestionType.Order) _panel.Set($"{key}{closed}|{game.MyAnswer?.Picks != null}{TeamKey(game)}", () => TeamWrap(room, Order(room)));
+		else if (q.Type == QuestionType.Interactive && q.Judging == Judging.List) _panel.Set($"{key}{closed}|list|{game.MyAnswer?.Done}{TeamKey(game)}", () => TeamWrap(room, ListAnswers(room)));
+		else if (q.Written) _panel.Set($"{key}{closed}|{game.MyAnswer?.Text}{TeamKey(game)}", () => TeamWrap(room, Write(room)));
+		else if (q.Type == QuestionType.Estimation) _panel.Set($"{key}{closed}|{game.MyAnswer?.Num}{TeamKey(game)}", () => TeamWrap(room, Estimate(room)));
+		else _panel.Set($"{key}{closed}|{game.MyAnswer?.Point != null}|{q.Map == null || _client.Assets.MapReady(q.Map)}{TeamKey(game)}", () => TeamWrap(room, MapPin(room)));
 	}
 
 	/// <summary>
@@ -228,7 +238,8 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		foreach (var kind in allowed)
 		{
 			var k = kind;
-			var mine = game.Jokers.FirstOrDefault(j => j.PlayerId == MyId && j.Kind == k);
+			// (team mode: the team's, whoever of them played it)
+			var mine = game.Jokers.FirstOrDefault(j => (j.PlayerId == MyId || Mate(room, j.PlayerId)) && j.Kind == k);
 			string hint;
 			Button button;
 			var used = false;
@@ -310,8 +321,34 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		return U.Panel(box.MinSize(0, 180), "Card2");
 	}
 
+	/// <summary>Team mode: the question whose answer this player is changing (-1: none).</summary>
+	int _changing = -1;
+
+	/// <summary>Team mode: on this player's team.</summary>
+	bool Mate(RoomState room, string playerId) =>
+		room.Settings.TeamMode && room.Player(playerId).Team is { } t && room.Player(MyId).Team == t;
+
+	string TeamKey(GameView game) => $"|{game.MyAnswerBy}|{_changing}";
+
+	/// <summary>Team mode, the team has answered: who did, and "✎ Change our answer" (any of them can, until answers close).</summary>
+	Control TeamWrap(RoomState room, Control panel)
+	{
+		var game = room.Game!;
+		if (!room.Settings.TeamMode || game.MyAnswer == null || game.Stage != Stage.Open) return panel;
+		var by = game.MyAnswerBy is { } who ? Lang.F("{0} answered for your team.", room.Player(who).Name) : Lang.T("You answered for your team.");
+		var line = GameParts.Row(10, U.Text(by, 14, C.Teal, Fonts.Bold, true).Raw().Grow());
+		if (!game.AnswersClosed)
+			line.AddChild(U.Small("✎ Change our answer", () =>
+			{
+				_changing = game.Index;
+				Refresh(_room);
+			}).Tip("Your teammates see the new answer as soon as you lock it in."));
+		return U.V(8, panel, line);
+	}
+
 	void Submit(int index, AnswerValue value, Label error)
 	{
+		_changing = -1;
 		error.Visible = false;
 		_client.Answer(index, value, result =>
 		{
