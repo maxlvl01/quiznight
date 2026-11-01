@@ -103,21 +103,32 @@ public partial class DatePicker : Control
 		grid.AddThemeConstantOverride("v_separation", 4);
 		// Weeks start on Monday (both languages), names from the language ("Mon" / "Mo").
 		for (var i = 0; i < 7; i++)
-			grid.AddChild(U.Text(Culture.DateTimeFormat.AbbreviatedDayNames[(i + 1) % 7], 12, C.Muted, null, false, HorizontalAlignment.Center).Raw().MinSize(36));
+			grid.AddChild(U.Text(Culture.DateTimeFormat.AbbreviatedDayNames[(i + 1) % 7], 12, C.Muted, null, false, HorizontalAlignment.Center).Raw().MinSize(40));
 		var blanks = ((int)_month.DayOfWeek + 6) % 7;
 		for (var i = 0; i < blanks; i++) grid.AddChild(new Control());
 		var today = DateTime.Today;
 		for (var d = 1; d <= DateTime.DaysInMonth(_month.Year, _month.Month); d++)
 		{
 			var day = new DateTime(_month.Year, _month.Month, d);
-			var button = U.Btn($"{d}", day == _picked ? "AccentButton" : day == today ? "TealButton" : "SmallButton", () =>
+			var button = U.Btn($"{d}", "SmallButton", () =>
 			{
 				_pick(day);
 				QueueFree();
-			}, 14).Raw().MinSize(36, 32);
+			}, 14).Raw().MinSize(40, 32);
+			// The picked day orange, today teal. (Not the Accent/Teal button styles: their wider padding made today's
+			// column wider than the others, since a grid column is as wide as its widest button.)
+			if ((day == _picked ? C.Accent : day == today ? C.Teal : (Color?)null) is { } mark)
+			{
+				button.AddThemeStyleboxOverride("normal", UiTheme.Box(mark, 9, null, 0, 0, 0));
+				button.AddThemeStyleboxOverride("hover", UiTheme.Box(mark.Lightened(0.15f), 9, null, 0, 0, 0));
+				button.AddThemeStyleboxOverride("pressed", UiTheme.Box(mark.Darkened(0.1f), 9, null, 0, 0, 0));
+				foreach (var state in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_focus_color" })
+					button.AddThemeColorOverride(state, C.AccentInk);
+			}
 			grid.AddChild(button);
 		}
-		_body.AddChild(grid);
+		// (on a dark base, like a calendar page)
+		_body.AddChild(U.Panel(U.Pad(grid, 8, 8, 8, 8), "Inset"));
 		_body.AddChild(U.Small("Today", () =>
 		{
 			_pick(today);

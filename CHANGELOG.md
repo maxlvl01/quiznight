@@ -20,6 +20,12 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
   is marked, and if the field already holds a date the calendar opens on it. You can still type anything yourself, like
   "2024" or "March 2025". Thanks to Max for the idea (sent twice, so it clearly mattered 🙂).
 
+### Fixed
+
+- **The host's lobby scrolled again** (reported by Max). 0.13.1b put the new Team mode row under the jokers, which made
+  the "Game rules for tonight" card taller than the window, so Start quiz ended up at the very bottom and the lobby had a
+  scroll bar. Team mode now sits on the right, under the buzzer and podium sounds, where there was empty space anyway.
+
 ## [0.13.1b]
 
 ### Before we start

@@ -273,6 +273,8 @@ public sealed class DevTools
 			var sample = WithTestMedia(SampleQuiz.Build());
 			var quiz = Value("--host") is { } file ? QuizStore.Import(file) : QuizStore.Save(sample);
 			_app.HostQuiz(quiz, NetMode.Lan, Has("--continue") ? NightSaves.Load(quiz.Id) : null);
+			// --teams N: the lobby with team mode on (N teams), for screenshots
+			if (int.TryParse(Value("--teams"), out var teams)) _app.Host?.UpdateSettings(teams: teams);
 			// --settings-window: Settings open over the lobby (or the game), for screenshots
 			if (Has("--settings-window")) _app.GetTree().CreateTimer(1.5).Timeout += Ui.Screens.SettingsWindow.Open;
 		}

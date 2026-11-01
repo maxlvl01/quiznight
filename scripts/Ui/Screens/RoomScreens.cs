@@ -150,14 +150,16 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 			Rule("×2 Double points", "Whatever the next question gives counts twice. Anyone can play it.", room.Settings.Jokers.Contains(Joker.Double),
 				on => _host.UpdateSettings(joker: (Joker.Double, on))),
 			Rule("Fast Pass", "On the next buzzer question, you answer first, even if someone is already answering. One player per question.", room.Settings.Jokers.Contains(Joker.FastPass),
-				on => _host.UpdateSettings(joker: (Joker.FastPass, on))).With(b => b.Icon = Bolt.Icon(15)),
-			U.Muted("Team mode", 13).With(l => l.TooltipText = Lang.T("Teams are drawn at random. A team answers together: anyone in it can change the team's answer until time is up. Jokers once per team. Team nights don't count for the Ewige Tabelle.")),
-			TeamRow(room));
+				on => _host.UpdateSettings(joker: (Joker.FastPass, on))).With(b => b.Icon = Bolt.Icon(15)));
+		// (Team mode under the sounds, not under the jokers: there the rules card grew taller than the window and the lobby
+		// scrolled, while this column had room to spare)
 		var right = U.V(8,
 			Stepper.Make("Answer time per buzz", room.Settings.AnswerTimeSec, Limits.AnswerTimeMin, Limits.AnswerTimeMax,
 				v => _host.UpdateSettings(answerTimeSec: v), " s"),
 			BuzzerPicker.Make(_host.BuzzerSound, id => _host.BuzzerSound = id, false),
-			PodiumPicker.Make(_host.PodiumSound, id => _host.PodiumSound = id, true));
+			PodiumPicker.Make(_host.PodiumSound, id => _host.PodiumSound = id, true),
+			U.Muted("Team mode", 13).With(l => l.TooltipText = Lang.T("Teams are drawn at random. A team answers together: anyone in it can change the team's answer until time is up. Jokers once per team. Team nights don't count for the Ewige Tabelle.")),
+			TeamRow(room));
 		_content.AddChild(U.Panel(U.V(8, U.Eyebrow("Game rules for tonight"), U.H(24, left.Grow(), right.Grow())), "Inset"));
 
 		// What players on older games can't play in this quiz.
