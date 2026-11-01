@@ -164,6 +164,10 @@ public sealed class DevTools
 		if (Value("--lang") is { } lang) Lang.Use(lang);
 		// (the fullscreen picture's shape, not saved: e.g. --fullscreen-shape 16:9 with Godot's --fullscreen)
 		if (Value("--fullscreen-shape") is { } shape) Prefs.Shape(_app.GetWindow(), shape, _app.GetWindow().CurrentScreen);
+		// (the fullscreen resolutions each monitor offers, as Settings lists them; nothing is switched)
+		if (Has("--display-modes"))
+			for (var i = 0; i < Prefs.ScreenCount; i++)
+				GD.Print($"Screen {i} (desktop {Prefs.ScreenSize(i)}): {string.Join(", ", DisplayModes.For(i).Select(s => $"{s.X}x{s.Y}"))}");
 		// (this run's background picture, not saved: e.g. pinke-geilheit-animated)
 		if (Value("--background") is { } background) Settings.BackgroundThisRun = background;
 		// (the home screen as if that version were out: the update note and the green button)

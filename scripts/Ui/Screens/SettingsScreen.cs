@@ -27,6 +27,8 @@ public partial class SettingsScreen : Control
 	/// <summary>Only sizes that fit on the chosen monitor (a 1440p screen can't pick 4K): else the biggest one that does.</summary>
 	static Settings.Values Fitted(Settings.Values d)
 	{
+		// (a fullscreen resolution this monitor doesn't have, e.g. after moving to another one: its own)
+		if (d.FullscreenResolution != Vector2I.Zero && !DisplayModes.For(d.Screen).Contains(d.FullscreenResolution)) d = d with { FullscreenResolution = Vector2I.Zero };
 		var fitting = Prefs.SizesFor(d.Screen);
 		if (fitting.Contains(d.WindowSize)) return d;
 		return d with { WindowSize = fitting.Where(s => s.X <= d.WindowSize.X && s.Y <= d.WindowSize.Y).DefaultIfEmpty(fitting[0]).MaxBy(s => s.X * s.Y) };
@@ -68,14 +70,27 @@ public partial class SettingsScreen : Control
 		var own = Prefs.AspectName(native);
 		var shapes = Prefs.Shapes.Where(s => s.Name != own).Select(s => (s.Name, Lang.F("{0} with black bars", s.Name)))
 			.Prepend(("", Lang.F("Whole screen ({0})", own))).ToArray();
+		// (fullscreen: the monitor's real resolutions, which it switches to like in other games; Windows only)
+		var resolution = d.WindowMode == "fullscreen" && DisplayModes.Supported;
+		var resolutions = DisplayModes.For(d.Screen).Where(s => s != native)
+			.Select(s => ($"{s.X}x{s.Y}", $"{s.X} × {s.Y}  ·  {Prefs.AspectName(s)}")).Reverse()
+			.Prepend(("", $"{native.X} × {native.Y}  ·  {own}  " + Lang.T("(this screen)"))).ToArray();
 		var size = windowed
 			? U.Select(sizes, $"{d.WindowSize.X}x{d.WindowSize.Y}", id =>
 			{
 				var p = id.Split('x');
 				Change(Draft with { WindowSize = new Vector2I(int.Parse(p[0]), int.Parse(p[1])) });
 			})
+			: resolution
+			? U.Select(resolutions, d.FullscreenResolution == Vector2I.Zero ? "" : $"{d.FullscreenResolution.X}x{d.FullscreenResolution.Y}", id =>
+			{
+				var p = id.Split('x');
+				Change(Draft with { FullscreenResolution = id == "" ? Vector2I.Zero : new Vector2I(int.Parse(p[0]), int.Parse(p[1])) });
+			})
 			: U.Select(shapes, d.FullscreenShape == own ? "" : d.FullscreenShape, id => Change(Draft with { FullscreenShape = id }));
-		var sizeHint = U.Muted("Another shape than your monitor's, e.g. to see the game as friends on a 16:9 screen do. Always as sharp as your monitor.", 12);
+		var sizeHint = U.Muted(resolution
+			? "Your monitor switches to it while the game is in fullscreen, and back when you leave it. A lower one is lighter on your PC but less sharp. Another shape than your monitor's gets black bars or is stretched, as your graphics driver is set."
+			: "Another shape than your monitor's, e.g. to see the game as friends on a 16:9 screen do. Always as sharp as your monitor.", 12);
 		sizeHint.Visible = !windowed;
 		var screens = Enumerable.Range(0, Prefs.ScreenCount).Select(i =>
 		{
@@ -99,7 +114,7 @@ public partial class SettingsScreen : Control
 			U.Eyebrow("Video"),
 			U.Field("Screen", screen),
 			U.Field("Window mode", mode),
-			U.Field(windowed ? "Window size" : "Picture shape", size),
+			U.Field(windowed ? "Window size" : resolution ? "Resolution" : "Picture shape", size),
 			sizeHint,
 			// (the skin and the font build every screen again: from the home screen only, not in the middle of a game)
 			U.Field("Skin", U.Select(Skins.Available, Settings.Skin, id => Callable.From(() => App.I.UseSkin(id)).CallDeferred()).With(o => o.Disabled = inWindow),
@@ -243,7 +258,8 @@ public partial class SettingsScreen : Control
 
 	void Apply()
 	{
-		var windowChanged = Draft.WindowMode != Settings.WindowMode || Draft.WindowSize != Settings.WindowSize || Draft.FullscreenShape != Settings.FullscreenShape || Draft.Screen != Settings.Screen;
+		var windowChanged = Draft.WindowMode != Settings.WindowMode || Draft.WindowSize != Settings.WindowSize || Draft.FullscreenShape != Settings.FullscreenShape
+			|| Draft.FullscreenResolution != Settings.FullscreenResolution || Draft.Screen != Settings.Screen;
 		Settings.Save(Draft);
 		Prefs.ApplyAudio();
 		Lang.Use(Settings.Language);

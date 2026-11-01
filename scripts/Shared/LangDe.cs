@@ -47,6 +47,9 @@ public static class LangDe
 		["Borderless"] = "Rahmenlos",
 		["Window size"] = "Fenstergröße",
 		["Picture shape"] = "Bildformat",
+		["Resolution"] = "Auflösung",
+		["Your monitor switches to it while the game is in fullscreen, and back when you leave it. A lower one is lighter on your PC but less sharp. Another shape than your monitor's gets black bars or is stretched, as your graphics driver is set."] =
+			"Dein Monitor stellt sie ein, solange das Spiel im Vollbild läuft, und wechselt zurück, wenn du es verlässt. Eine niedrigere schont deinen PC, ist aber weniger scharf. Ein anderes Format als das deines Monitors bekommt schwarze Balken oder wird gestreckt, je nach Einstellung deines Grafiktreibers.",
 		["{0} with black bars"] = "{0} mit schwarzen Balken",
 		["Whole screen ({0})"] = "Ganzer Bildschirm ({0})",
 		["Another shape than your monitor's, e.g. to see the game as friends on a 16:9 screen do. Always as sharp as your monitor."] = "Ein anderes Format als das deines Monitors, z. B. um das Spiel so zu sehen wie Freunde mit einem 16:9-Bildschirm. Immer so scharf wie dein Monitor.",

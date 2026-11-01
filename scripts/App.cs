@@ -196,6 +196,8 @@ public partial class App : Control
 	public override void _ExitTree()
 	{
 		foreach (var shape in Enum.GetValues<Input.CursorShape>()) Input.SetCustomMouseCursor(null, shape);
+		// (a monitor switched for fullscreen gets the desktop's resolution back)
+		DisplayModes.Restore();
 	}
 
 	Action? _afterWelcome;
@@ -251,7 +253,23 @@ public partial class App : Control
 	public override void _Notification(int what)
 	{
 		if (what == NotificationWMCloseRequest) Quit();
+		// Fullscreen at another resolution: Alt+Tab gives the desktop its own back (the game goes to the taskbar), and
+		// coming back switches the monitor again.
+		else if (what == NotificationApplicationFocusOut && DisplayModes.Changed)
+		{
+			DisplayModes.Restore();
+			GetWindow().Mode = Window.ModeEnum.Minimized;
+			_resolutionAway = true;
+		}
+		else if (what == NotificationApplicationFocusIn && _resolutionAway)
+		{
+			_resolutionAway = false;
+			Callable.From(Prefs.ApplyWindow).CallDeferred();
+		}
 	}
+
+	/// <summary>The game went to the taskbar from fullscreen at another resolution (Alt+Tab): back in front, it switches again.</summary>
+	bool _resolutionAway;
 
 	/// <summary>
 	/// Closes the room and quits on the next frame: this may be called from inside a Steam callback

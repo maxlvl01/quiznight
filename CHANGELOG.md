@@ -13,6 +13,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d3]
+
+### Added
+- **A real resolution setting for fullscreen.** In Settings → Video → Fullscreen, "Picture shape" is now "Resolution": every resolution your monitor supports (e.g. 1920 × 1080 or 2560 × 1080 on a 3440 × 1440 screen), like in other games. Until now fullscreen always ran at the monitor's own resolution and only let you pick a shape with black bars, because the game can't draw itself at fewer pixels on its own. Now the monitor itself switches to the picked resolution while the game is in fullscreen, and back to your desktop's when you leave fullscreen, Alt+Tab out (the game goes to the taskbar and switches again when you come back) or close the game. Borderless keeps "Picture shape", as a borderless window always covers the desktop as it is. (Thanks for the idea, maxlvl01!)
+
 ## [0.13.0d2]
 
 ### Changed

@@ -40,7 +40,8 @@ public static class Prefs
 
 	/// <summary>The monitors, numbered from 0, with their resolution.</summary>
 	public static int ScreenCount => DisplayServer.GetScreenCount();
-	public static Vector2I ScreenSize(int screen) => DisplayServer.ScreenGetSize(Math.Clamp(screen, 0, ScreenCount - 1));
+	// (the desktop's resolution, also while fullscreen has switched the monitor to another one)
+	public static Vector2I ScreenSize(int screen) => DisplayModes.Desktop(Math.Clamp(screen, 0, ScreenCount - 1));
 
 	/// <summary>A saved screen that still exists (a monitor may have been unplugged), else the main one.</summary>
 	public static int ValidScreen(int screen) => screen >= 0 && screen < ScreenCount ? screen : DisplayServer.GetPrimaryScreen();
@@ -97,17 +98,33 @@ public static class Prefs
 	{
 		var window = ((SceneTree)Engine.GetMainLoop()).Root;
 		var target = ValidScreen(Settings.Screen);
+		// Fullscreen at another resolution switches the monitor itself (Windows); anything else gives it its own back first.
+		var res = Settings.WindowMode == "fullscreen" ? Settings.FullscreenResolution : Vector2I.Zero;
+		var switching = res != Vector2I.Zero && res != DisplayModes.Desktop(target) && DisplayModes.For(target).Contains(res);
+		if (!switching && DisplayModes.Changed)
+		{
+			window.Mode = Window.ModeEnum.Windowed;
+			DisplayModes.Restore();
+		}
 		// Moving to another monitor only works for a normal window: leave fullscreen first.
 		if (window.CurrentScreen != target)
 		{
 			window.Mode = Window.ModeEnum.Windowed;
 			window.CurrentScreen = target;
 		}
-		// (a window has its own shape anyway; fullscreen and borderless can have another one than the monitor's)
-		Shape(window, Settings.WindowMode == "windowed" ? "" : Settings.FullscreenShape, target);
+		// (a window has its own shape anyway; borderless can have another one than the monitor's, and fullscreen too where
+		// the monitor's resolution can't be switched)
+		var shaped = Settings.WindowMode == "borderless" || Settings.WindowMode == "fullscreen" && !DisplayModes.Supported;
+		Shape(window, shaped ? Settings.FullscreenShape : "", target);
 		switch (Settings.WindowMode)
 		{
 			case "fullscreen":
+				// (out of fullscreen while the monitor switches, so the window takes the new size)
+				if (switching)
+				{
+					window.Mode = Window.ModeEnum.Windowed;
+					DisplayModes.Use(target, res);
+				}
 				window.Mode = Window.ModeEnum.ExclusiveFullscreen;
 				break;
 			case "borderless":
