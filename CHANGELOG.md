@@ -13,6 +13,8 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.2b]
+
 ### Changed
 
 - **Unticked tick boxes are easy to see now** (Max found them ugly). An unticked box was a dark hollow that all but
