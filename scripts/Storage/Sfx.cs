@@ -31,6 +31,8 @@ public static class Sfx
 	{
 		new("f1-podium", "F1 Podium", "res://assets/soundeffects/Podium2.ogg"),
 		new("so-back", "#SoBack", PodiumJingle),
+		// (a whole piece, so it lives with the songs in music.pck: an update that doesn't change it doesn't send it again)
+		new("throne-room", "Throne Room (Star Wars)", "res://assets/music/podium/Throne Room.ogg"),
 	};
 
 	public const string DefaultPodium = "f1-podium";

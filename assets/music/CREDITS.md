@@ -23,6 +23,7 @@ credits later, so keep the columns as they are (leave a cell empty if you don't 
 | `ES_Sunny San Francisco - Oakwood Station.ogg` | Sunny San Francisco | Oakwood Station | https://www.epidemicsound.com/music/tracks/d1b2d0ec-ee42-3927-81a6-91851fe0ba1f/ | menus, lobby and quizzes (shuffled) |
 | `halloween/ES_The Sleepy Sneaky Sway - Luella Gren.ogg` | The Sleepy Sneaky Sway | Luella Gren | https://www.epidemicsound.com/music/tracks/40774b7c-6290-4670-9025-49fef59ad2c7/ | only in October: first song when the game opens, then with the others |
 | `christmas/ES_Merriest Christmas of All - Martin Landstrom.ogg` | Merriest Christmas of All | Martin Landstrom | https://www.epidemicsound.com/music/tracks/db52c039-f9b0-42e5-abbf-5e28e0cf9f32/ | only 1 to 26 December, with the others |
+| `podium/Throne Room.ogg` | The Throne Room / Finale (Star Wars: A New Hope) | John Williams | | podium sound "Throne Room (Star Wars)", picked in the lobby (not in the jukebox) |
 | | | | | |
 
 ## Sound effects (assets/soundeffects/ui, voice)

@@ -2,7 +2,7 @@
 #   music (assets/music, also christmas/ and halloween/)   -17 LUFS (the loudest every song reaches without its peaks
 #                                                                     going over -1 dBTP: Seth's are already high)
 #   the voice line (assets/soundeffects/voice)              -15 LUFS (a little above the music it leads into)
-#   sound effects (buzzers, correct/wrong, podium jingles)  -18 LUFS
+#   sound effects (buzzers, correct/wrong, podium jingles)  -18 LUFS (also the podium songs in assets/music/podium)
 #   button sounds (assets/soundeffects/ui)                  -24 LUFS (quiet: they play all the time)
 # Long files are measured by their integrated loudness, short ones (under 3 s: a buzzer, a click) by their loudest
 # moment (max momentary loudness), as integrated loudness needs a few seconds; one too short even for that (a click) by
@@ -21,6 +21,9 @@ PEAK = -1.0
 
 def target(path):
     rel = os.path.relpath(path, ROOT).replace("\\", "/")
+    # (podium songs live with the music, in music.pck, but play as a podium sound: as loud as the other podium sounds)
+    if rel.startswith("assets/music/podium/"):
+        return -18.0
     if rel.startswith("assets/music/"):
         return -17.0
     if rel.startswith("assets/soundeffects/voice/"):
