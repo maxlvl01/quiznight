@@ -114,6 +114,9 @@ public sealed class Room : IGameHooks
 		_clock = clock ?? (() => DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
 	}
 
+	/// <summary>The editor's question preview (Ui/Screens/QuestionPreview): one player is enough to start.</summary>
+	public bool Preview;
+
 	public static string NewCode(Random? rng = null)
 	{
 		rng ??= Random.Shared;
@@ -407,7 +410,7 @@ public sealed class Room : IGameHooks
 		Trace.Log("room", $"start: {string.Join(", ", Players.Select(p => $"{p.Name}{(p.Connected ? "" : " (away)")}"))}");
 		if (Phase != Shared.Phase.Lobby) return Result.Fail("The quiz is already running.");
 		var connected = Players.Count(p => p.Connected);
-		if (connected < Limits.MinPlayersToStart) return Result.Fail(Lang.F("You need at least {0} connected players.", Limits.MinPlayersToStart));
+		if (connected < (Preview ? 1 : Limits.MinPlayersToStart)) return Result.Fail(Lang.F("You need at least {0} connected players.", Limits.MinPlayersToStart));
 		Phase = Shared.Phase.Playing;
 		if (Resume is { } save) return GoOn(save);
 		StartedAt = DateTime.Now;

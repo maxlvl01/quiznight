@@ -13,6 +13,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d5]
+
+### Added
+- **Preview a question while you make it.** The question editor has a "👁 Preview" button next to "Save question". It opens the question exactly as players see it in a match: the real player screen, with its timer, pictures, map, buzzer or answer buttons, and you can play it yourself. The top bar has what you'd do as host: reveal the answer, play or pause the sound or video, show the next hint or picture, mark your own buzz right or wrong, and start again. It shows the question as it is in the editor right now, saved or not. Behind it a tiny game runs on your PC with you as the only player, connected inside the game (no network, no lobby), so nothing is saved, sent or counted in the stats. Escape or Close goes back to the editor. (Thanks for the idea, maxlvl01!)
+
 ## [0.13.0d4]
 
 ### Changed

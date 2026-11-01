@@ -111,6 +111,10 @@ the original design decisions; most still apply.
   "Issues: read and write"; without it (or on any error) the bug goes as a `.md` file to `bugs/Reported/` as before.
   Ideas stay files in `features/Requested/` (moved on by hand: WIP, Pending, Resolved). Offline reports wait in
   `user://bug-reports`. Each sent report pushes to ntfy.sh, opening the issue/file. `--bug-check` sends a real test report.
+- **Question preview** (`Ui/Screens/QuestionPreview`, the editor's 👁 Preview): a real game over the editor, a `Room`
+  (`Preview = true`: one player starts it) with only the draft question, its `HostSession` and a `ClientSession` joined
+  through `Net/LoopbackTransport` (in memory), showing the player's own `PlayerGameScreen` plus host buttons on top.
+  Not `App.Host`/`App.Client`; `--open TYPE --preview` opens it.
 - **Game state is per viewer** (`Room.ToState(viewer)`): players never get answers before the
   reveal. Question images/custom maps are fetched by asset key (`q3/image`, `q3/map`) only for
   questions already shown, split into ≤300 KB parts (Steam's message limit is 512 KB).

@@ -42,6 +42,8 @@ public partial class QuestionEditorScreen : Control
 			U.Heading(title, 22, false).Grow().With(l => l.HorizontalAlignment = HorizontalAlignment.Center),
 			new UpdateBadge(),
 			_saved.With(l => l.Modulate = Colors.Transparent),
+			// (the draft as it is, saved or not: how it looks to players in a match)
+			U.Btn("👁 Preview", "", () => QuestionPreview.Open(_quiz, _draft, _maps), 15).With(b => b.TooltipText = "See this question as players see it in a match, and play it yourself."),
 			Tutorial.Mark(U.Btn("Save question", "AccentButton", Save, 15).With(b => b.TooltipText = "Saves and goes back to the quiz. Ctrl+S saves and stays here."), "editor.save")), "Bar");
 		var body = U.V(12, Tutorial.Mark(_issues, "editor.issues"), _form);
 		var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.GrowV();

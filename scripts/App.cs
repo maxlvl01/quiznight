@@ -359,6 +359,16 @@ public partial class App : Control
 			if (used) GetViewport().SetInputAsHandled();
 			return;
 		}
+		// (the editor's question preview: Escape closes it; the editor's keys wait until it's closed)
+		if (QuestionPreview.Current != null)
+		{
+			if (key.Keycode == Key.Escape)
+			{
+				QuestionPreview.Close();
+				GetViewport().SetInputAsHandled();
+			}
+			return;
+		}
 		var handled = key.Keycode switch
 		{
 			Key.Escape => _screen is HomeScreen ? AskQuit() : Back(),
@@ -407,6 +417,13 @@ public partial class App : Control
 		if (SettingsWindow.Current is { } window)
 		{
 			if (back) window.Leave();
+			GetViewport().SetInputAsHandled();
+			return;
+		}
+		// (back closes the question preview, not the editor under it)
+		if (QuestionPreview.Current != null && SettingsWindow.Current == null)
+		{
+			if (back) QuestionPreview.Close();
 			GetViewport().SetInputAsHandled();
 			return;
 		}

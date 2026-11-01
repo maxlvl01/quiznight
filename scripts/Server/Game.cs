@@ -93,6 +93,8 @@ public sealed class Game
 	/// <summary>Sound/video play clock: only counts while the host's player is actually playing.</summary>
 	long _playedMs;
 	long? _playingSince;
+	/// <summary>The sound or video is playing now (the editor's preview shows Play or Pause by it).</summary>
+	public bool MediaPlaying => _playingSince != null;
 	RevealView? _reveal;
 
 	// Timeline (put in order, taking turns). Items are indexes into the shown (shuffled) Items.
