@@ -15,16 +15,25 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [0.13.2b]
 
-### Changed
+### Added
+- **A calendar for "Data as of"** in estimation questions. Typing the date was fiddly: the 📅 button next to the field now
+  opens a month calendar, and picking a day writes it in for you ("1 November 2026", in German "1. November 2026"); today
+  is marked, and if the field already holds a date the calendar opens on it. You can still type anything yourself, like
+  "2024" or "March 2025". Thanks to Max for the idea (sent twice, so it clearly mattered 🙂).
 
+### Changed
 - **Unticked tick boxes are easy to see now** (Max found them ugly). An unticked box was a dark hollow that all but
   vanished on dark panels like the lobby's game rules, so "Play in teams" looked like plain text. It now has a light rim,
   the same rounded shape as a ticked one, in every skin.
-
-## [0.13.2d2]
+- **Team mode is now one tick box: "Play in teams"** (off to start with). Picking a number of teams from Off/2/3/4/5/6
+  meant working out yourself what fits your group. Now the game does it: about three players a team, even teams when it
+  can, and it keeps adjusting while people join or leave (8 players → 2 teams of 4, 9 → 3 teams of 3, 10 → 3 teams of
+  4/3/3). If you'd rather split differently, the lobby offers the other good options before the draw, e.g. "4 teams of 2"
+  for 8 players; your pick stays until you untick it or it no longer works. Splits that would be unfair aren't offered at
+  all: no team may have fewer than three quarters of another team's players. So 7 players play 4 against 3 but never
+  3/2/2, and with 3 or 5 players there are no teams (the draw button says why). Thanks to Max for the idea.
 
 ### Fixed
-
 - **Pong and billiard over the internet were laggy and out of sync** (reported by Max). Three causes, three fixes:
   - **Frames stuck behind downloads.** In the lobby the host sends everyone the quiz's pictures, sounds and videos in the
     background, and Steam sends everything to a player in one line, so a Pong frame could wait behind half a second of
@@ -38,28 +47,6 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
     your screen showed a hit. The host now also counts where your paddle was during the last quarter of a second.
   - Billiard balls now roll smoothly however unevenly the frames arrive: your screen plays the table back a tenth of a
     second behind the host, gliding between frames (nobody notices a tenth of a second in a game of turns).
-
-## [0.13.2d1]
-
-### Added
-
-- **A calendar for "Data as of"** in estimation questions. Typing the date was fiddly: the 📅 button next to the field now
-  opens a month calendar, and picking a day writes it in for you ("1 November 2026", in German "1. November 2026"); today
-  is marked, and if the field already holds a date the calendar opens on it. You can still type anything yourself, like
-  "2024" or "March 2025". Thanks to Max for the idea (sent twice, so it clearly mattered 🙂).
-
-### Changed
-
-- **Team mode is now one tick box: "Play in teams"** (off to start with). Picking a number of teams from Off/2/3/4/5/6
-  meant working out yourself what fits your group. Now the game does it: about three players a team, even teams when it
-  can, and it keeps adjusting while people join or leave (8 players → 2 teams of 4, 9 → 3 teams of 3, 10 → 3 teams of
-  4/3/3). If you'd rather split differently, the lobby offers the other good options before the draw, e.g. "4 teams of 2"
-  for 8 players; your pick stays until you untick it or it no longer works. Splits that would be unfair aren't offered at
-  all: no team may have fewer than three quarters of another team's players. So 7 players play 4 against 3 but never
-  3/2/2, and with 3 or 5 players there are no teams (the draw button says why). Thanks to Max for the idea.
-
-### Fixed
-
 - **The host's lobby scrolled again** (reported by Max). 0.13.1b put the new Team mode row under the jokers, which made
   the "Game rules for tonight" card taller than the window, so Start quiz ended up at the very bottom and the lobby had a
   scroll bar. Team mode now sits on the right, under the buzzer and podium sounds, where there was empty space anyway.
