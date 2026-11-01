@@ -41,6 +41,9 @@ public static class QuizJson
 			UpdatedAt = (long)Num(o, "updatedAt", 0),
 			Maps = maps.OfType<JsonObject>().Select(ReadMap).ToList(),
 			Questions = qs.OfType<JsonObject>().Select(ReadQuestion).ToList(),
+			CategoryOrder = o["categoryOrder"] is JsonArray order
+				? order.Select(n => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null).OfType<string>().Where(s => s != "").Distinct().Take(200).ToList()
+				: new(),
 		};
 		SkyrimCrop.Migrate(quiz);
 		return quiz;
@@ -58,6 +61,7 @@ public static class QuizJson
 			["maps"] = new JsonArray(quiz.Maps.Select(m => (JsonNode)WriteMap(m)).ToArray()),
 			["questions"] = new JsonArray(quiz.Questions.Select(q => (JsonNode)WriteQuestion(q)).ToArray()),
 		};
+		if (quiz.CategoryOrder.Count > 0) o["categoryOrder"] = new JsonArray(quiz.CategoryOrder.Select(c => (JsonNode)JsonValue.Create(c)!).ToArray());
 		return o.ToJsonString(new JsonSerializerOptions { WriteIndented = indented });
 	}
 

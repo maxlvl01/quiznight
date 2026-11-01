@@ -449,6 +449,11 @@ public sealed class Quiz
 	public long UpdatedAt;
 	public List<MapAsset> Maps = new();
 	public List<Question> Questions = new();
+	/// <summary>
+	/// The quizmaker's order of the categories (category ids, as questions store them), for the overview's "By category"
+	/// and its "Play in this order". Categories not in it come after, A–Z.
+	/// </summary>
+	public List<string> CategoryOrder = new();
 
 	public MapAsset? MapById(string? id) => id == null ? null : Maps.FirstOrDefault(m => m.Id == id);
 
@@ -523,9 +528,10 @@ public static class QuizRules
 	/// 12: multiple choice can score per right answer (perCorrect).
 	/// 13: every question can have something for after the answer (afterText, source, afterImage) and the bonus's
 	///     answer for the host (bonusAnswer); interactive questions can be a typed list (judging "list").
-	/// </summary>
 	/// 14: every question can have its answer as a picture (answerImage), shown at the reveal.
-	public const int FormatVersion = 14;
+	/// 15: quizzes remember the order of their categories (categoryOrder), for the overview's "By category".
+	/// </summary>
+	public const int FormatVersion = 15;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 

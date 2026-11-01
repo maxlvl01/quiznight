@@ -119,11 +119,16 @@ the original design decisions; most still apply.
   only. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
   --tutorial-step N` for screenshots.
 - **Podium** (`Ui/Screens/PodiumScreen`): built once from the first finished state (`Shared.FinalResults`), never
-  again, so leaving can't change it (and `Room.Leave` keeps the seat in `Finished` too). Big → small (`ScaledBox`) →
-  standings and awards → `CreditsRoll`. Awards are made on the host (`Server/Awards.cs`, sent as `RoomState.Awards`,
-  kinds/texts in `Shared.NightAwards`; each screen words them in its own language). Every podium is kept in
-  `user://podiums` (`Storage/Podiums`; not in dev runs with arguments), shown under the match history's "Your podiums".
-  `--screen podium [--skip-show]` shows `SampleQuiz.Podium()`; `--screen history --pretend-podium`.
+  again, so leaving can't change it (and `Room.Leave` keeps the seat in `Finished` too). Podium + score list big in the
+  middle (one `ScaledBox`), then they move into the right third (`_t`, `Layout()`) and `CreditsRoll` plays in the left
+  two thirds, ending on the awards. Awards are made on the host (`Server/Awards.cs`, with the next two as `Runners`, sent as
+  `RoomState.Awards`, kinds/texts in `Shared.NightAwards`; each screen words them in its own language). Every podium is
+  kept in `user://podiums` (`Storage/Podiums`) and its award pack drawn in the background (`NightPack`, the season pack's
+  `SeasonPoster` with `Night: true`; neither in dev runs with arguments). Test lab → Podium; `--screen podium
+  [--players N] [--tie] [--skip-show] [--night-pack FOLDER]`; `--screen history --pretend-podium`.
+- **Quiz page** (`QuizOverviewScreen`): Ctrl/Shift+click pick rows (`_picked`, by question), a picked row's drag moves all
+  of them (`QuestionRowButton.Dragged` → `MoveMany`). "By category" groups by `Quiz.CategoryOrder` (format 15), ▲ ▼ per
+  category. `--screen quiz [--tour-quiz] [--list category] [--category-order a,b]`.
 - **Question preview** (`Ui/Screens/QuestionPreview`, the editor's 👁 Preview): a real game over the editor, a `Room`
   (`Preview = true`: one player starts it) with only the draft question, its `HostSession` and a `ClientSession` joined
   through `Net/LoopbackTransport` (in memory), showing the player's own `PlayerGameScreen` plus host buttons on top.

@@ -13,6 +13,18 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d8]
+
+### Added
+- **Pick several questions on the quiz page.** Ctrl+click picks a question (or drops it again), Shift+click picks everything between the last one and this one; a plain click still opens it. Dragging a picked question takes all the picked ones along, in their order, and the bar above the list moves them to the top or the end, or deletes them together. (Thanks for the idea, maxlvl01!)
+- **Your own order for the categories.** "By category" on the quiz page now shows each category as its own group with ▲ ▼: put them in the order you want to play them (say General knowledge, then Games, then Video Game Music, an interactive part, and Formula 1 to end), then "Play in this order" sorts the questions that way, each category's questions staying in their order. The quiz remembers the order (quiz files are now format 15; older quizzes open as before). Categories you haven't moved come after, A–Z, and questions without one last. (Thanks for the idea, maxlvl01!)
+- **An award pack for every night.** While the podium plays, the game draws the night's pictures in the background, like the Ewige Tabelle's award pack: the standings as a 1920 × 1080 poster with the winner, and a square card for every award with 2nd and 3rd. "🗂 Award pack" on the podium and in the match history's "Your podiums" opens the ZIP (in Documents/Quiznight/Pictures). A podium watched again that has none gets "Make award pack". (Thanks for the idea, maxlvl01!)
+- **Podiums in the Test lab**, for trying the podium without a quiz night: a made-up night with 6, 2 or 16 players, or a tie at the top.
+
+### Changed
+- **The podium plays the way it was meant to.** The podium comes in big in the middle with everyone's score list under it. Then both move into the right third of the screen, and the credits roll on the left two thirds. When they end, tonight's awards stay there, with the buttons under them. The sponsor now comes at the end of the credits ("Sponsored by", just before "Thanks for playing!"), like after a film. A click skips to the credits, Esc or Skip skips the credits. (Thanks, maxlvl01!)
+- **The question editor's "At the reveal" is one short line now.** It says what's filled in (the answer as a picture, a fun fact, the source, a picture), and "+ Add" / "✎ Edit" opens the fields in a pop-up. The whole part used to sit in the form, with two big picture previews, so the form scrolled and the guided tour's steps 14–16 showed the wrong part of the screen. The tour also scrolls a part taller than the window to its top now (Round settings showed its empty bottom), and waits for a screen it just opened. (Thanks for the report, maxlvl01!)
+
 ## [0.13.0d7]
 
 ### Added

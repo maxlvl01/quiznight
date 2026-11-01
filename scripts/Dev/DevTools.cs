@@ -347,8 +347,15 @@ public sealed class DevTools
 					_app.GoQuizzes();
 					break;
 				case "quiz":
-					_app.GoQuiz(QuizStore.Save(SampleQuiz.Build()).Id);
+				{
+					// (--list play|type|category|created: the list shown that way; --category-order a,b,c: the quiz's categories' order)
+					if (Value("--list") is { } listed) QuizOverviewScreen.ListedBy = listed;
+					// (--tour-quiz: the guided tour's sample, which has categories)
+					var sample = Has("--tour-quiz") ? Ui.Tutorial.TourQuiz() : SampleQuiz.Build();
+					if (Value("--category-order") is { } order) sample.CategoryOrder = order.Split(',').ToList();
+					_app.GoQuiz(QuizStore.Save(sample).Id);
 					break;
+				}
 				case "settings":
 					// (--window-mode fullscreen: the screen as if that mode were picked, not applied or saved)
 					if (Value("--window-mode") is { } wm) SettingsScreen.PretendMode(wm);

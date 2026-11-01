@@ -16,11 +16,20 @@ public partial class QuizOverviewScreen : Control
 	/// <summary>How the list is shown: "play" (the order they're played in), "type" or "created". Only the view: the play order
 	/// changes only with "Play them in this order". Kept while the game runs, for every quiz.</summary>
 	static string _sort = "play";
+
+	/// <summary>Dev runs (--screen quiz --list category): how the list opens.</summary>
+	public static string ListedBy { set => _sort = value; }
 	readonly VBoxContainer _foot = U.V(8);
 	readonly Label _error = U.Error();
 	readonly LineEdit _title;
 	/// <summary>Ctrl+Z / Ctrl+Y: moving, deleting and renaming, back and forth (the questions themselves aren't copied).</summary>
-	readonly EditHistory<(string Title, List<Question> Questions)> _history;
+	readonly EditHistory<(string Title, List<Question> Questions, List<string> Categories)> _history;
+	/// <summary>The questions picked with Ctrl+click or Shift+click: they move (drag, to top/bottom) and delete together.</summary>
+	readonly HashSet<Question> _picked = new();
+	/// <summary>Where a Shift+click's range starts: the last question clicked with Ctrl or Shift.</summary>
+	Question? _anchor;
+	readonly HBoxContainer _pickBar = U.H(8);
+	readonly Dictionary<Question, PanelContainer> _rows = new();
 
 	public QuizOverviewScreen() : this(new Quiz()) { }
 
@@ -46,6 +55,7 @@ public partial class QuizOverviewScreen : Control
 			U.Eyebrow("Quiz"),
 			Tutorial.Mark(title, "overview.title"),
 			_sortBar,
+			_pickBar,
 			Tutorial.Mark(new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.With(s => s.AddChild(_questions.Grow())).GrowV(), "overview.list"),
 			_error,
 			Tutorial.Mark(_foot, "overview.foot"));
@@ -97,10 +107,11 @@ public partial class QuizOverviewScreen : Control
 		spot.Size = spot.CustomMinimumSize;
 		spot.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, (int)ButtonDock.Margin);
 		RefreshList();
-		_history = new(() => (_quiz.Title, _quiz.Questions.ToList()), state =>
+		_history = new(() => (_quiz.Title, _quiz.Questions.ToList(), _quiz.CategoryOrder.ToList()), state =>
 		{
 			_quiz.Title = state.Title;
 			_quiz.Questions = state.Questions.ToList();
+			_quiz.CategoryOrder = state.Categories.ToList();
 			_title.Text = state.Title;
 			_titleDirty = false;
 			Save();
@@ -141,10 +152,63 @@ public partial class QuizOverviewScreen : Control
 	void RefreshList()
 	{
 		_questions.Clear();
+		_rows.Clear();
+		_picked.IntersectWith(_quiz.Questions);
 		if (_quiz.Questions.Count == 0) _questions.AddChild(U.Muted("No questions yet — pick a type on the right.", 13));
-		foreach (var i in Shown()) _questions.AddChild(Row(i));
+		string? group = null;
+		foreach (var i in Shown())
+		{
+			// (by category: a heading for each, with arrows that change the categories' order)
+			if (_sort == "category" && _quiz.Questions[i].Category is var cat && cat != group)
+			{
+				group = cat;
+				_questions.AddChild(CategoryHead(cat));
+			}
+			_questions.AddChild(Row(i));
+		}
 		RefreshSortBar();
+		RefreshPicked();
 		RefreshFoot();
+	}
+
+	/// <summary>The categories in the quiz's order (CategoryOrder first, the others A–Z), without "no category".</summary>
+	List<string> CategoryList() =>
+		_quiz.Questions.Select(q => q.Category).Where(c => c != "").Distinct()
+			.OrderBy(CategoryRank).ThenBy(Categories.Label, System.StringComparer.CurrentCultureIgnoreCase).ToList();
+
+	/// <summary>Where a category goes: its place in the quiz's order, then the rest (A–Z), questions without one last.</summary>
+	int CategoryRank(string category) => category == "" ? int.MaxValue : _quiz.CategoryOrder.IndexOf(category) is var k and >= 0 ? k : 100_000;
+
+	/// <summary>A category's heading in "By category": its name, how many, and ▲ ▼ to move it before or after the next one.</summary>
+	Control CategoryHead(string category)
+	{
+		var count = _quiz.Questions.Count(q => q.Category == category);
+		var name = category == "" ? U.Text(Lang.T("No category yet"), 15, new Color(C.Gold, 0.85f), Fonts.Bold) : U.Bold(Categories.Label(category), 15).Raw();
+		var row = GameParts.Row(6, name, U.Muted(Lang.F("· {0}", count), 13, false), U.Fill());
+		if (category != "")
+		{
+			var list = CategoryList();
+			var at = list.IndexOf(category);
+			var up = U.Small("▲", () => MoveCategory(category, -1)).Tip("Play this category earlier");
+			var down = U.Small("▼", () => MoveCategory(category, 1)).Tip("Play this category later");
+			up.Disabled = at <= 0;
+			down.Disabled = at >= list.Count - 1;
+			row.AddChild(up);
+			row.AddChild(down);
+		}
+		return U.Pad(row, 2, 8, 2, 0);
+	}
+
+	void MoveCategory(string category, int by)
+	{
+		var list = CategoryList();
+		var at = list.IndexOf(category);
+		if (at < 0 || at + by < 0 || at + by >= list.Count) return;
+		(list[at], list[at + by]) = (list[at + by], list[at]);
+		_quiz.CategoryOrder = list;
+		Save();
+		_history.Record();
+		Callable.From(RefreshList).CallDeferred();
 	}
 
 	/// <summary>The questions' play indexes in the order the list shows them (ties keep the play order).</summary>
@@ -154,8 +218,8 @@ public partial class QuizOverviewScreen : Control
 		return (_sort switch
 		{
 			"type" => all.OrderBy(i => System.Array.IndexOf(QuestionType.All, KindOf(_quiz.Questions[i]))),
-			// (A–Z by the category as it's shown; questions without one last, where they stand out)
-			"category" => all.OrderBy(i => _quiz.Questions[i].Category == "")
+			// (in the quiz's category order, then A–Z by the category as it's shown; questions without one last, where they stand out)
+			"category" => all.OrderBy(i => CategoryRank(_quiz.Questions[i].Category))
 				.ThenBy(i => Categories.Label(_quiz.Questions[i].Category), System.StringComparer.CurrentCultureIgnoreCase),
 			// (questions made before 0.12.0d5 don't know when: they come first, in play order)
 			"created" => all.OrderBy(i => _quiz.Questions[i].CreatedAt),
@@ -234,11 +298,24 @@ public partial class QuizOverviewScreen : Control
 		var text = U.V(0, prompt, sub).Grow();
 		var grip = new GripIcon { CustomMinimumSize = new Vector2(12, 20), SizeFlagsVertical = SizeFlags.ShrinkCenter };
 		// (click opens the question; drag it onto another row to move it there)
-		var open = new QuestionRowButton(i, Move) { Draggable = _sort == "play", Flat = true, MouseDefaultCursorShape = CursorShape.PointingHand, TooltipText = Lang.T("Click to edit, drag to move") }.Grow();
-		open.Pressed += () => App.I.GoQuestion(_quiz.Id, q.Id, null);
-		if (_sort != "play") open.TooltipText = Lang.T("Click to edit (drag to move in play order)");
-		open.Preview = () => U.Panel(U.Text(q.Prompt == "" ? Lang.T("No question text") : q.Prompt, 14, C.Text, Fonts.Bold).Raw(), "Card2")
-			.With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(C.Panel2, 10, C.Accent, 2, 12, 8)));
+		var open = new QuestionRowButton(i, MoveMany) { Draggable = _sort == "play", Flat = true, MouseDefaultCursorShape = CursorShape.PointingHand,
+			TooltipText = Lang.T("Click to edit, drag to move. Ctrl+click or Shift+click picks several.") }.Grow();
+		// (Ctrl+click picks or drops one, Shift+click everything from the last one picked to here; a plain click opens it)
+		open.Pressed += () =>
+		{
+			if (Input.IsKeyPressed(Key.Ctrl) || Input.IsKeyPressed(Key.Meta)) Pick(q, false);
+			else if (Input.IsKeyPressed(Key.Shift)) Pick(q, true);
+			else App.I.GoQuestion(_quiz.Id, q.Id, null);
+		};
+		if (_sort != "play") open.TooltipText = Lang.T("Click to edit (drag to move in play order). Ctrl+click or Shift+click picks several.");
+		// (dragging a picked row takes all the picked ones with it, in their play order)
+		open.Dragged = () => _picked.Contains(q) ? _picked.Select(p => _quiz.Questions.IndexOf(p)).Where(x => x >= 0).OrderBy(x => x).ToList() : new List<int> { i };
+		open.Preview = () =>
+		{
+			var many = _picked.Contains(q) && _picked.Count > 1;
+			return U.Panel(U.Text(many ? Lang.F("{0} questions", _picked.Count) : q.Prompt == "" ? Lang.T("No question text") : q.Prompt, 14, C.Text, Fonts.Bold).Raw(), "Card2")
+				.With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(C.Panel2, 10, C.Accent, 2, 12, 8)));
+		};
 		var content = U.H(10, text, grip);
 		content.MouseFilter = MouseFilterEnum.Ignore;
 		foreach (var c in content.GetChildren().OfType<Control>()) c.MouseFilter = MouseFilterEnum.Ignore;
@@ -266,15 +343,90 @@ public partial class QuizOverviewScreen : Control
 			}, option: onlyHere ? Lang.F("Also delete its map from this PC ({0}, {1} MB)", preset!.Name, System.Math.Max(1, MapPacks.SizeOnDisk(preset) / 1_000_000)) : null,
 				optionChosen: on => dropFile = on);
 		}).Tip("Delete");
-		return U.Panel(U.H(10, num, open, del), "Card2").With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(C.Panel2, 10, C.Border, 1, 8, 4)));
+		var panel = U.Panel(U.H(10, num, open, del), "Card2");
+		_rows[q] = panel;
+		Style(q);
+		return panel;
 	}
 
+	/// <summary>A row's frame: the accent colour and thicker while it's picked.</summary>
+	void Style(Question q)
+	{
+		if (!_rows.TryGetValue(q, out var panel)) return;
+		var on = _picked.Contains(q);
+		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(on ? C.Panel2.Lightened(0.06f) : C.Panel2, 10, on ? C.Accent : C.Border, on ? 2 : 1, 8, 4));
+	}
+
+	/// <summary>Ctrl+click (range: false) picks or drops one; Shift+click picks everything shown between the last one and this.</summary>
+	void Pick(Question q, bool range)
+	{
+		if (range && _anchor != null && _quiz.Questions.Contains(_anchor))
+		{
+			var shown = Shown().Select(i => _quiz.Questions[i]).ToList();
+			var (a, b) = (shown.IndexOf(_anchor), shown.IndexOf(q));
+			foreach (var x in shown.Skip(System.Math.Min(a, b)).Take(System.Math.Abs(a - b) + 1)) _picked.Add(x);
+		}
+		else if (!_picked.Remove(q)) _picked.Add(q);
+		_anchor = q;
+		foreach (var row in _rows.Keys) Style(row);
+		RefreshPicked();
+	}
+
+	/// <summary>"3 picked" with what you can do with them (move to the top or bottom, delete), when any are picked.</summary>
+	void RefreshPicked()
+	{
+		_pickBar.Clear();
+		_pickBar.Visible = _picked.Count > 0;
+		if (_picked.Count == 0) return;
+		var indexes = _picked.Select(p => _quiz.Questions.IndexOf(p)).OrderBy(x => x).ToList();
+		_pickBar.AddChild(U.Text(Lang.F("{0} picked", _picked.Count), 13, C.Accent, Fonts.Bold).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter));
+		_pickBar.AddChild(U.Gap(0).Grow());
+		_pickBar.AddChild(U.Small("To the top", () => MoveMany(indexes, 0)).Tip("Plays them first, in their order"));
+		_pickBar.AddChild(U.Small("To the end", () => MoveMany(indexes, _quiz.Questions.Count)).Tip("Plays them last, in their order"));
+		_pickBar.AddChild(U.Small("Delete", () => Dialogs.Confirm(this, Lang.F("Delete these {0} questions?", _picked.Count), "Delete", () =>
+		{
+			_quiz.Questions.RemoveAll(_picked.Contains);
+			_picked.Clear();
+			_quiz.DropUnusedMaps();
+			Save();
+			_history.Record();
+			RefreshList();
+		})));
+		_pickBar.AddChild(U.Link("Clear", () =>
+		{
+			_picked.Clear();
+			foreach (var row in _rows.Keys) Style(row);
+			RefreshPicked();
+		}, 13).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter));
+	}
+
+	/// <summary>One question to a new place (its number field).</summary>
 	void Move(int from, int to)
 	{
 		if (from == to || from < 0 || to < 0 || from >= _quiz.Questions.Count || to >= _quiz.Questions.Count) return;
 		var item = _quiz.Questions[from];
 		_quiz.Questions.RemoveAt(from);
 		_quiz.Questions.Insert(to, item);
+		Save();
+		_history.Record();
+		RefreshList();
+	}
+
+	/// <summary>
+	/// Questions (play indexes) to the slot before question <paramref name="slot"/> (Count = the end), together and in
+	/// their order: a drag, or the picked ones to the top or end.
+	/// </summary>
+	void MoveMany(List<int> from, int slot)
+	{
+		var moving = from.Where(x => x >= 0 && x < _quiz.Questions.Count).Distinct().OrderBy(x => x).ToList();
+		if (moving.Count == 0) return;
+		var items = moving.Select(x => _quiz.Questions[x]).ToList();
+		// (taking them out first shifts the slot up by those before it)
+		var at = System.Math.Clamp(slot - moving.Count(x => x < slot), 0, _quiz.Questions.Count - items.Count);
+		var rest = _quiz.Questions.Where(q => !items.Contains(q)).ToList();
+		rest.InsertRange(at, items);
+		if (rest.SequenceEqual(_quiz.Questions)) return;
+		_quiz.Questions = rest;
 		Save();
 		_history.Record();
 		RefreshList();
@@ -330,13 +482,16 @@ public partial class QuizOverviewScreen : Control
 
 /// <summary>
 /// A question row in the quiz overview: clicking opens it, dragging it onto another row moves it there (a line shows
-/// where it lands: above the row's middle before it, below after it).
+/// where it lands: above the row's middle before it, below after it). A picked row takes the other picked ones along.
 /// </summary>
 public partial class QuestionRowButton : Button
 {
 	readonly int _index;
-	readonly System.Action<int, int> _move;
+	/// <summary>Moves these questions (play indexes) to the slot before that question (Count: the end).</summary>
+	readonly System.Action<List<int>, int> _move;
 	public System.Func<Control>? Preview;
+	/// <summary>The questions a drag of this row moves (just this one, or every picked one).</summary>
+	public System.Func<List<int>>? Dragged;
 	/// <summary>Off while the list is sorted another way than the play order (where a row lands would be unclear).</summary>
 	public bool Draggable = true;
 	/// <summary>Where a dragged row would land while one is over this row: -1 above, 1 below, 0 none.</summary>
@@ -344,7 +499,7 @@ public partial class QuestionRowButton : Button
 
 	public QuestionRowButton() : this(0, (_, _) => { }) { }
 
-	public QuestionRowButton(int index, System.Action<int, int> move)
+	public QuestionRowButton(int index, System.Action<List<int>, int> move)
 	{
 		_index = index;
 		_move = move;
@@ -362,7 +517,8 @@ public partial class QuestionRowButton : Button
 			preview.CustomMinimumSize = new Vector2(Mathf.Min(Size.X, 420), 0);
 			SetDragPreview(preview);
 		}
-		return new Godot.Collections.Dictionary { ["kind"] = DragKind, ["index"] = _index };
+		var moving = Dragged?.Invoke() ?? new List<int> { _index };
+		return new Godot.Collections.Dictionary { ["kind"] = DragKind, ["indexes"] = new Godot.Collections.Array<int>(moving) };
 	}
 
 	public override bool _CanDropData(Vector2 atPosition, Variant data)
@@ -374,13 +530,11 @@ public partial class QuestionRowButton : Button
 
 	public override void _DropData(Vector2 atPosition, Variant data)
 	{
-		var from = data.AsGodotDictionary()["index"].AsInt32();
+		var from = data.AsGodotDictionary()["indexes"].AsGodotArray().Select(v => v.AsInt32()).ToList();
 		var below = atPosition.Y >= Size.Y / 2;
 		SetDropSide(0);
-		// (the slot between rows: dropping below row 3 lands after it; taking the row out first shifts the later ones up)
-		var to = _index + (below ? 1 : 0);
-		if (from < to) to--;
-		_move(from, to);
+		// (the slot between rows: dropping below row 3 lands after it)
+		_move(from, _index + (below ? 1 : 0));
 	}
 
 	public override void _Notification(int what)

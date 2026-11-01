@@ -529,6 +529,12 @@ public static class SelfTest
 		Check(SampleQuiz.Podium(6, true).Players.Count(p => p.Place == 1) == 2 && SampleQuiz.Podium(2).Players.Count == 2 && SampleQuiz.Podium(16).Players.Count == 16,
 			"the Test lab's podiums: a tie at the top shares 1st, fewer and more players");
 
+		var ordered = SampleQuiz.Build();
+		ordered.CategoryOrder = new() { "music", "geography", "custom:Formula 1" };
+		var reread = QuizJson.Parse(QuizJson.Write(ordered), out _);
+		Check(reread != null && reread.CategoryOrder.SequenceEqual(ordered.CategoryOrder) && QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.CategoryOrder.Count == 0,
+			"a quiz keeps its categories' order (and one without stays without)");
+
 		var tie = new Room("TEST", SampleQuiz.Build());
 		tie.Join("a", "Ann");
 		tie.Join("b", "Bob");
