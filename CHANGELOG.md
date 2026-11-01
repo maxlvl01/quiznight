@@ -15,79 +15,20 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [0.13.0b] — "Sauce Please": the podium as a show with credits and awards, a preview for every question, answer pictures and fun facts, a guided tour and Discord status
 
-## [0.13.0d9]
-
-### Changed
-- **The last old-looking parts got the new look.** Everything you click now looks like the buttons: an ink outline and a darker side under the face, like a real key. (Thanks, maxlvl01!)
-  - **Scroll bars:** a small key you take hold of, in an inked groove, instead of a thin grey line.
-  - **The update arrow** next to the version on the home screen sits on a small key, which turns teal when an update is out.
-  - **Slider knobs** (volumes, the music player's song bar) are round keys instead of a plain white dot.
-  - **Tick boxes** are keys too; Settings' microphone test is a switch in the same style.
-  - **Progress bars** have the ink outline: the update download, the microphone's level, a picture reveal.
-
-## [0.13.0d8]
-
 ### Added
 - **Pick several questions on the quiz page.** Ctrl+click picks a question (or drops it again), Shift+click picks everything between the last one and this one; a plain click still opens it. Dragging a picked question takes all the picked ones along, in their order, and the bar above the list moves them to the top or the end, or deletes them together. (Thanks for the idea, maxlvl01!)
 - **Your own order for the categories.** "By category" on the quiz page now shows each category as its own group with ▲ ▼: put them in the order you want to play them (say General knowledge, then Games, then Video Game Music, an interactive part, and Formula 1 to end), then "Play in this order" sorts the questions that way, each category's questions staying in their order. The quiz remembers the order (quiz files are now format 15; older quizzes open as before). Categories you haven't moved come after, A–Z, and questions without one last. (Thanks for the idea, maxlvl01!)
 - **An award pack for every night.** While the podium plays, the game draws the night's pictures in the background, like the Ewige Tabelle's award pack: the standings as a 1920 × 1080 poster with the winner, and a square card for every award with 2nd and 3rd. "🗂 Award pack" on the podium and in the match history's "Your podiums" opens the ZIP (in Documents/Quiznight/Pictures). A podium watched again that has none gets "Make award pack". (Thanks for the idea, maxlvl01!)
 - **Podiums in the Test lab**, for trying the podium without a quiz night: a made-up night with 6, 2 or 16 players, or a tie at the top.
-
-### Changed
-- **The podium plays the way it was meant to.** The podium comes in big in the middle with everyone's score list under it. Then both move into the right third of the screen, and the credits roll on the left two thirds. When they end, tonight's awards stay there, with the buttons under them. The sponsor now comes at the end of the credits ("Sponsored by", just before "Thanks for playing!"), like after a film. A click skips to the credits, Esc or Skip skips the credits. (Thanks, maxlvl01!)
-- **The question editor's "At the reveal" is one short line now.** It says what's filled in (the answer as a picture, a fun fact, the source, a picture), and "+ Add" / "✎ Edit" opens the fields in a pop-up. The whole part used to sit in the form, with two big picture previews, so the form scrolled and the guided tour's steps 14–16 showed the wrong part of the screen. The tour also scrolls a part taller than the window to its top now (Round settings showed its empty bottom), and waits for a screen it just opened. (Thanks for the report, maxlvl01!)
-
-## [0.13.0d7]
-
-### Added
 - **The podium is a show now, with credits.** When the quiz ends, the podium comes in big: 3rd place rises out of the floor, then 2nd, then the winner with confetti. After a moment it shrinks, and everyone else's places and tonight's awards come in below it. Then the credits roll, like at the end of a party game: the quiz, the quizmaster, everyone who played with their place, and the awards, ending on "Thanks for playing!". A click skips the podium's show, and Skip or Esc ends the credits. "▶ Credits" plays them again. (Thanks for the idea, maxlvl01!)
 - **Tonight's awards.** The podium names the best of the night at each thing the stats count: most right answers, fastest buzzer, quickest answers, biggest haul on one question, map master, the closest pin (Bullseye), best guesser on estimations, best speller, mind reader (right at the first hint), time traveller (timeline items), the host's favourite (points from the host), and the most wrong buzzes (Trigger-happy). An award needs enough tries to mean something (an average needs at least two), only shows when someone won it, and players who are equal share it.
 - **Watch a podium again.** Every podium you see is kept on your PC, as host or player. The match history has them under "Your podiums" with "▶ Watch again": the podium with its show and credits, as it was that night.
 - **Save the podium as a picture.** "📷 Save picture" on the podium saves the screen without its buttons in Documents/Quiznight/Pictures and opens the folder.
-
-### Fixed
-- **Players who left disappeared from the podium.** If someone closed the game or left on the podium, they vanished from it for everyone, which ruined screenshots. Leaving the room took their seat away (that's how the lobby works), and the podium was drawn again from the room as it was then. Now leaving on the podium keeps the seat, like during the game, and every screen takes the final standings once, when the quiz ends, so nobody drops off it any more. (Thanks for the report, maxlvl01!)
-
-## [0.13.0d6]
-
-### Added
 - **Discord shows what you're doing.** While Discord is open on your PC, your friends see "Playing Quiznight?" with the game's logo and what you're up to: in the menus, making a quiz, looking at the stats, or at a quiz night (hosting or playing: in the lobby with how many players, "Question 3 of 20", at the podium), with how long you've been at it. The room code is never shown. If Discord isn't running nothing happens, and Settings → "Show what I'm doing on Discord" turns it off. (Thanks for the idea, maxlvl01!)
 - **The answer as a picture.** Every question can now have its answer as a big picture, e.g. for "Which game is this Steam review about?" the game's store page. In the editor it's the first field of the "At the reveal" part under the question (which also has the fun fact, source and picture from 0.13.0d1). At the reveal everyone sees it big under the answer, host and players. Like the other pictures it comes to players with the quiz's files from the lobby on, locked until that reveal, so nobody can peek. Quiz files are now format 14; older quizzes open as before. (Thanks for the idea, maxlvl01!)
 - **A guided tour through the game.** The first time the game starts, a tour walks you through it in one go: joining a quiz night, the bug button, your quizzes, a sample quiz (only for the tour, never saved) with its question types, list, sorting and why categories matter, then one of its questions in the editor (blanks, round settings, category, the reveal part with answer picture, fun fact and source, Preview, saving, shortcuts), and back home: "Have fun creating and quizzing!". The screen goes dark except for the thing each step is about, and the tour opens each screen by itself. Esc or Skip ends it any time. It replaces the two short tours of the quiz page and the editor; Settings → "▶ Take the tour" starts it again. (Thanks for the idea, maxlvl01!)
-
-## [0.13.0d5]
-
-### Added
 - **Preview a question while you make it.** The question editor has a "👁 Preview" button next to "Save question". It opens the question exactly as players see it in a match: the real player screen, with its timer, pictures, map, buzzer or answer buttons, and you can play it yourself. The top bar has what you'd do as host: reveal the answer, play or pause the sound or video, show the next hint or picture, mark your own buzz right or wrong, and start again. It shows the question as it is in the editor right now, saved or not. Behind it a tiny game runs on your PC with you as the only player, connected inside the game (no network, no lobby), so nothing is saved, sent or counted in the stats. Escape or Close goes back to the editor. (Thanks for the idea, maxlvl01!)
-
-## [0.13.0d4]
-
-### Changed
-- **Sorting the quiz's questions is one drop-down, with a new "By category".** Above the question list, "Show" had three buttons side by side (Play order, By type, Order made) that took the whole row. It's now one drop-down, and "By category" sorts the questions A–Z by their category, with the ones that still have none at the end. As before, "Play in this order" makes the shown order the play order. (Thanks for the idea, maxlvl01!)
-
-## [0.13.0d3]
-
-### Added
 - **A real resolution setting for fullscreen.** In Settings → Video → Fullscreen, "Picture shape" is now "Resolution": every resolution your monitor supports (e.g. 1920 × 1080 or 2560 × 1080 on a 3440 × 1440 screen), like in other games. Until now fullscreen always ran at the monitor's own resolution and only let you pick a shape with black bars, because the game can't draw itself at fewer pixels on its own. Now the monitor itself switches to the picked resolution while the game is in fullscreen, and back to your desktop's when you leave fullscreen, Alt+Tab out (the game goes to the taskbar and switches again when you come back) or close the game. Borderless keeps "Picture shape", as a borderless window always covers the desktop as it is. (Thanks for the idea, maxlvl01!)
-
-## [0.13.0d2]
-
-### Changed
-- **In the Ewige Tabelle only the numbers scroll.** Since 0.13.0d1 the table scrolls sideways when it has more columns than fit, but the place and the names scrolled away with them, so further right you no longer knew whose row you were reading. Now the place and name stay where they are and only the numbers beside them scroll. (Thanks for the idea, maxlvl01!)
-
-### Fixed
-- **Interactive and step-by-step questions had no category field.** In the other types the category comes with the bonus field in the round settings, and these two have no bonus, so the field was missing too. As every question needs a category for the stats, they all showed up as "no category yet" in the quiz overview, with no way to fix it. Both now have the category in their round settings. (Thanks for the report, maxlvl01!)
-- **"+ Fun fact, source or picture for after the answer" sat at the very bottom of the editor.** It came under both columns, below the round settings, so on most screens you had to scroll to find it while the space under the question's own fields stayed empty. It now sits right under the question's fields, and opens there too. (Thanks for the report, maxlvl01!)
-
-## [0.13.0d1]
-
-Your mom is so fat that when she sat on the buzzer, it stayed locked for everyone.
-
-Removed Herobrine.
-
-From this version on, every idea and report in these notes says who sent it, not just "thanks for the idea". (Thanks for the report, maxlvl01!)
-
-### Added
 - **Fun facts, sources and a picture after the answer.** Every question in the editor now has "+ Fun fact, source or picture for after the answer" under the form. Open it to write a fun fact or a short story, add where it's from (a link, which players can click to open in their browser, or a few words), and a picture: say the game's whole Steam store page for a "which game do these related games point to?" question, or the album cover after a song. Nothing of it shows while the question runs. At the reveal, everyone (host and players) gets a "Good to know" card with it under the answer. The picture comes to players with the quiz's other files from the lobby on, locked until that reveal, so nobody can peek. (Thanks for the ideas, maxlvl01!)
 - **The bonus question has an answer field.** Under "What for?" there's now "Its answer (only you see it)". Until now you could set a bonus like "Also name the developer" but had nowhere to write down the answer, so playing a quiz weeks later meant guessing your own bonus. The host's screen shows it next to the bonus line, also at the reveal where you hand out the bonus; players never get it. (Thanks for the idea, maxlvl01!)
 - **New Interactive kind: "Type as many as you can".** In the Interactive question's "How it's played" pick the new third option. You give a task ("Name all F1 drivers with at least one world title") and a time (30 seconds to start with). Players type one answer at a time (Enter adds it, × takes one out) until the time is up or they press "I'm done". At the reveal, the host sees every player's answers one by one and clicks each to tick or untick it: every ticked answer is worth the question's points ("Points per right answer"), and Double points doubles them. If you write the right answers into the editor (one per line, optional), matching answers are ticked by themselves, small typos included, so you only fix the odd one. No microphone needed. Players on an older version are told in the lobby that they can't play it. (Thanks for the idea, maxlvl01!)
@@ -98,6 +39,16 @@ From this version on, every idea and report in these notes says who sent it, not
 - **Hosted nights in the profile's form.** The "Form" strip with the last five nights now also shows the nights someone hosted, as a gold box with the host's microphone, instead of leaving them out. (Thanks for the idea, maxlvl01!)
 
 ### Changed
+- **The last old-looking parts got the new look.** Everything you click now looks like the buttons: an ink outline and a darker side under the face, like a real key. (Thanks, maxlvl01!)
+  - **Scroll bars:** a small key you take hold of, in an inked groove, instead of a thin grey line.
+  - **The update arrow** next to the version on the home screen sits on a small key, which turns teal when an update is out.
+  - **Slider knobs** (volumes, the music player's song bar) are round keys instead of a plain white dot.
+  - **Tick boxes** are keys too; Settings' microphone test is a switch in the same style.
+  - **Progress bars** have the ink outline: the update download, the microphone's level, a picture reveal.
+- **The podium plays the way it was meant to.** The podium comes in big in the middle with everyone's score list under it. Then both move into the right third of the screen, and the credits roll on the left two thirds. When they end, tonight's awards stay there, with the buttons under them. The sponsor now comes at the end of the credits ("Sponsored by", just before "Thanks for playing!"), like after a film. A click skips to the credits, Esc or Skip skips the credits. (Thanks, maxlvl01!)
+- **The question editor's "At the reveal" is one short line now.** It says what's filled in (the answer as a picture, a fun fact, the source, a picture), and "+ Add" / "✎ Edit" opens the fields in a pop-up. The whole part used to sit in the form, with two big picture previews, so the form scrolled and the guided tour's steps 14–16 showed the wrong part of the screen. The tour also scrolls a part taller than the window to its top now (Round settings showed its empty bottom), and waits for a screen it just opened. (Thanks for the report, maxlvl01!)
+- **Sorting the quiz's questions is one drop-down, with a new "By category".** Above the question list, "Show" had three buttons side by side (Play order, By type, Order made) that took the whole row. It's now one drop-down, and "By category" sorts the questions A–Z by their category, with the ones that still have none at the end. As before, "Play in this order" makes the shown order the play order. (Thanks for the idea, maxlvl01!)
+- **In the Ewige Tabelle only the numbers scroll.** Since 0.13.0d1 the table scrolls sideways when it has more columns than fit, but the place and the names scrolled away with them, so further right you no longer knew whose row you were reading. Now the place and name stay where they are and only the numbers beside them scroll. (Thanks for the idea, maxlvl01!)
 - **+ and − next to every points field.** Every question type's points (and the order questions' "points per item") now has the − and + buttons the bonus points already had, instead of a big field you had to click into and type. (Thanks for the idea, maxlvl01!)
 - **Buzz times count from when the buzzers open, every time.** When the host locked the buzzers and unlocked them again, or let everyone buzz again after wrong answers, a buzz was still timed from when the question first appeared: buzzing 0.5 s after the second unlock counted as 20 s. That ruined the "Ø buzz time" in the stats, which also decides between players with the same points. Now the clock starts again with every unlock, both in the buzz order and in the stats. (Thanks for the idea, maxlvl01!)
 - **The Ewige Tabelle opens sorted by quiz points.** "Ranked by" starts at Quiz points instead of F1 championship points; the championship tables are still one pick away. (Thanks for the idea, maxlvl01!)
@@ -112,6 +63,9 @@ From this version on, every idea and report in these notes says who sent it, not
   goes in the old way, and if you're offline it still waits and goes on the next start. Ideas (💡) go in as before.
 
 ### Fixed
+- **Players who left disappeared from the podium.** If someone closed the game or left on the podium, they vanished from it for everyone, which ruined screenshots. Leaving the room took their seat away (that's how the lobby works), and the podium was drawn again from the room as it was then. Now leaving on the podium keeps the seat, like during the game, and every screen takes the final standings once, when the quiz ends, so nobody drops off it any more. (Thanks for the report, maxlvl01!)
+- **Interactive and step-by-step questions had no category field.** In the other types the category comes with the bonus field in the round settings, and these two have no bonus, so the field was missing too. As every question needs a category for the stats, they all showed up as "no category yet" in the quiz overview, with no way to fix it. Both now have the category in their round settings. (Thanks for the report, maxlvl01!)
+- **"+ Fun fact, source or picture for after the answer" sat at the very bottom of the editor.** It came under both columns, below the round settings, so on most screens you had to scroll to find it while the space under the question's own fields stayed empty. It now sits right under the question's fields, and opens there too. (Thanks for the report, maxlvl01!)
 - **Long names pushed the whole game screen off to the side.** On the host's screen, "Somebody-with-a-long-name is answering" at the bottom left, and on players' screens the "Tonight so far" table on the Get ready screen, could be wider than the window. The screen then grew past the window's right edge: everything shifted right and the boxes on the right were cut off (especially in German, where the table's headings are longer). The cause: a wide part made the whole column it sits in wider, and the window couldn't fit it. Now names that would push the layout end in "…" (the full name is in the tooltip), and the table scrolls sideways when it doesn't fit. (Thanks for the reports, maxlvl01 and Grownz!)
 - **Names were cut off in the host's score list.** The host's scores have − and + keys beside each name, so in the same narrow column as the players' list, names like "Sxy_Grownz" became "Sxy_Gr…". The host's side column is now wider. (Thanks for the report, maxlvl01!)
 - **The Ewige Tabelle ran off the right side of the window.** With many columns (e.g. a question kind's stats) the table was wider than the page, so the page grew past the window: the last columns and the "Match history" tab at the top right were cut off. The table now scrolls sideways instead. (Thanks for the report, maxlvl01!)
