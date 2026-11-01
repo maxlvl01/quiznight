@@ -13,6 +13,16 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d9]
+
+### Changed
+- **The last old-looking parts got the new look.** Everything you click now looks like the buttons: an ink outline and a darker side under the face, like a real key. (Thanks, maxlvl01!)
+  - **Scroll bars:** a small key you take hold of, in an inked groove, instead of a thin grey line.
+  - **The update arrow** next to the version on the home screen sits on a small key, which turns teal when an update is out.
+  - **Slider knobs** (volumes, the music player's song bar) are round keys instead of a plain white dot.
+  - **Tick boxes** are keys too; Settings' microphone test is a switch in the same style.
+  - **Progress bars** have the ink outline: the update download, the microphone's level, a picture reveal.
+
 ## [0.13.0d8]
 
 ### Added

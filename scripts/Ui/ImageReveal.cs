@@ -176,7 +176,7 @@ public partial class HostImageReveal : VBoxContainer
 	readonly ImageRevealView _view = new();
 	readonly Button _toggle;
 	readonly Label _time;
-	readonly ProgressBar _bar = new() { MinValue = 0, MaxValue = 1, Step = 0, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 8) };
+	readonly ProgressBar _bar = new() { MinValue = 0, MaxValue = 1, Step = 0, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 12) };
 	readonly double _duration;
 	double _played;
 	bool _paused;
@@ -213,8 +213,6 @@ public partial class HostImageReveal : VBoxContainer
 			else _paused = !_paused;
 		});
 		_time = U.Mono("0 s", 15, C.Muted);
-		_bar.AddThemeStyleboxOverride("background", UiTheme.Box(C.Panel2, 4, null, 0, 0, 0));
-		_bar.AddThemeStyleboxOverride("fill", UiTheme.Box(C.Accent, 4, null, 0, 0, 0));
 		AddChild(Screens.GameParts.Row(10, _toggle, _bar.Grow().With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter), _time));
 	}
 

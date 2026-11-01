@@ -293,10 +293,16 @@ public partial class TrashIcon : Control
 	}
 }
 
-/// <summary>The update button's arrow: grey (no update known; click checks), green when a newer version is out.</summary>
+/// <summary>
+/// The update key's arrow: on a plain small key (no update known; click checks), dark on a teal key when a newer version
+/// is out. It sinks with the key when it's pressed.
+/// </summary>
 public partial class UpdateArrow : Control
 {
 	bool _available, _hovered;
+
+	/// <summary>The key it sits on: it turns teal with an update, and the arrow follows it down when pressed.</summary>
+	public Button? Key;
 
 	public UpdateArrow() => MouseFilter = MouseFilterEnum.Ignore;
 
@@ -305,6 +311,18 @@ public partial class UpdateArrow : Control
 		set
 		{
 			_available = value;
+			if (Key != null) Key.ThemeTypeVariation = value ? "SmallTealButton" : "SmallButton";
+			QueueRedraw();
+		}
+	}
+
+	public override void _Process(double delta)
+	{
+		// (a pressed key's face sits lower: so does the arrow)
+		var down = Key is { } k && k.IsPressed() ? 2f : 0f;
+		if (Position.Y != down - 1.5f)
+		{
+			Position = new Vector2(Position.X, down - 1.5f);
 			QueueRedraw();
 		}
 	}
@@ -320,16 +338,15 @@ public partial class UpdateArrow : Control
 
 	public override void _Draw()
 	{
-		var color = _available ? (_hovered ? C.Teal.Lightened(0.25f) : C.Teal) : (_hovered ? C.Text : C.Muted);
-		var s = Mathf.Min(Size.X, Size.Y) / 24f;
+		var color = _available ? C.TealInk : (_hovered ? C.Text : C.Text.Lerp(C.Muted, 0.35f));
+		var s = Mathf.Min(Size.X, Size.Y) / 24f * 0.72f;
 		var o = (Size - new Vector2(24, 24) * s) / 2;
 		Vector2 P(float x, float y) => o + new Vector2(x, y) * s;
-		var w = Mathf.Max(1.5f, 2.4f * s);
+		var w = Mathf.Max(1.8f, 2.8f * s);
 		// An arrow up out of a tray (the "download" sign, pointing up: a newer version)
 		DrawLine(P(12, 16), P(12, 4), color, w, true);
 		DrawPolyline(new[] { P(6.5f, 9.5f), P(12, 4), P(17.5f, 9.5f) }, color, w, true);
 		DrawPolyline(new[] { P(4, 15), P(4, 20), P(20, 20), P(20, 15) }, color, w, true);
-		if (_available) DrawCircle(P(20.5f, 3.5f), 2.6f * s, color, true, -1, true);
 	}
 }
 

@@ -232,12 +232,17 @@ public partial class SongProgress : Control
 
 	public SongProgress()
 	{
-		CustomMinimumSize = new Vector2(0, 30);
+		CustomMinimumSize = new Vector2(0, 38);
 		MouseDefaultCursorShape = CursorShape.PointingHand;
 		TooltipText = Lang.T("Click to jump");
+		MouseEntered += () => _hovered = true;
+		MouseExited += () => _hovered = false;
 	}
 
-	Rect2 Bar => new(0, 4, Size.X, 6);
+	bool _hovered;
+
+	/// <summary>The groove: room on both ends for half the knob, so it never hangs over the edge.</summary>
+	Rect2 Bar => new(11, 6, Mathf.Max(0, Size.X - 22), 10);
 
 	public override void _Process(double delta) => QueueRedraw();
 
@@ -245,7 +250,7 @@ public partial class SongProgress : Control
 	{
 		if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } button) _dragging = button.Pressed;
 		if (!_dragging || Audio.Length <= 0 || e is not InputEventMouse mouse) return;
-		Audio.Seek(Mathf.Clamp(mouse.Position.X / Size.X, 0, 1) * Audio.Length);
+		Audio.Seek(Mathf.Clamp((mouse.Position.X - Bar.Position.X) / Mathf.Max(1, Bar.Size.X), 0, 1) * Audio.Length);
 		AcceptEvent();
 	}
 
@@ -257,13 +262,17 @@ public partial class SongProgress : Control
 		var at = Settings.MusicOn ? Audio.Position : 0;
 		var share = length > 0 ? (float)Math.Clamp(at / length, 0, 1) : 0;
 		var bar = Bar;
-		DrawStyleBox(UiTheme.Box(C.Well, 3, null, 0, 0, 0), bar);
-		if (share > 0) DrawStyleBox(UiTheme.Box(C.Accent, 3, null, 0, 0, 0), new Rect2(bar.Position, new Vector2(Mathf.Max(6, bar.Size.X * share), bar.Size.Y)));
-		DrawCircle(new Vector2(bar.Size.X * share, bar.GetCenter().Y), 6, C.Text);
+		// (like the volume sliders: an inked groove, the part played in the accent, and their round key as the knob)
+		DrawStyleBox(UiTheme.Box(C.Light ? C.Border : C.Well, 5, C.Ink, 2, 0, 0), bar);
+		if (share > 0) DrawStyleBox(UiTheme.Box(C.Accent, 5, C.Ink, 2, 0, 0), new Rect2(bar.Position, new Vector2(Mathf.Max(10, bar.Size.X * share), bar.Size.Y)));
+		var knob = GetThemeIcon(_hovered || _dragging ? "grabber_highlight" : "grabber", "HSlider");
+		var center = new Vector2(bar.Position.X + bar.Size.X * share, bar.GetCenter().Y);
+		if (knob.GetWidth() > 1) DrawTexture(knob, center - knob.GetSize() / 2);
+		else DrawCircle(center, 7, C.Text);
 		if (length <= 0) return;
 		var font = Fonts.Bold;
-		DrawString(font, new Vector2(0, 28), Time(at), HorizontalAlignment.Left, -1, 12, C.Muted);
-		DrawString(font, new Vector2(0, 28), "-" + Time(Math.Max(0, length - at)), HorizontalAlignment.Right, Size.X, 12, C.Muted);
+		DrawString(font, new Vector2(0, 36), Time(at), HorizontalAlignment.Left, -1, 12, C.Muted);
+		DrawString(font, new Vector2(0, 36), "-" + Time(Math.Max(0, length - at)), HorizontalAlignment.Right, Size.X, 12, C.Muted);
 	}
 }
 

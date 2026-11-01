@@ -86,14 +86,13 @@ public partial class HomeScreen : Control
 
 		var grid = U.H(16, U.V(16, host, music).Grow(), join);
 		page.AddChild(grid);
-		// Just an arrow: grey (click to check), green when a newer version is out (click to update).
+		// A small key with an arrow: a plain one (click to check), teal when a newer version is out (click to update).
 		var updateButton = U.Small("", () =>
 		{
 			if (UpdatePrompt.Available is { } release) UpdatePrompt.Install(this, release);
 			else UpdatePrompt.CheckNow(this);
-		}).MinSize(22, 22);
-		foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) updateButton.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
-		var arrow = new UpdateArrow();
+		}).MinSize(30, 26);
+		var arrow = new UpdateArrow { Key = updateButton };
 		arrow.SetAnchorsPreset(LayoutPreset.FullRect);
 		updateButton.AddChild(arrow);
 		updateButton.SizeFlagsVertical = SizeFlags.ShrinkCenter;

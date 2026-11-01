@@ -191,9 +191,7 @@ public static class UpdatePrompt
 		if (!Updater.Enabled || IsPretend(release)) return;
 		var overlay = new VideoGuide.GuideOverlay { Closable = false };
 		var status = U.Muted(Lang.F("Downloading version {0}…", release.Version), 15);
-		var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Step = 0, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 10) };
-		bar.AddThemeStyleboxOverride("background", UiTheme.Box(C.Panel2, 5, null, 0, 0, 0));
-		bar.AddThemeStyleboxOverride("fill", UiTheme.Box(C.Accent, 5, null, 0, 0, 0));
+		var bar = new ProgressBar { MinValue = 0, MaxValue = 1, Step = 0, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 14) };
 		var error = U.Error();
 		var later = U.Small("Not now", overlay.QueueFree);
 		var box = U.V(14,

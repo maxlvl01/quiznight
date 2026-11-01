@@ -106,7 +106,7 @@ public partial class RecorderPanel : VBoxContainer
 		_record = U.Btn("● Record", "AccentButton", ToggleRecord, 22).MinSize(220, 0);
 		_play = U.Btn("▶ Listen", "", Listen, 18);
 		_send = U.Btn("Send it", "TealButton", Send, 20);
-		_level = new ProgressBar { MaxValue = 1, ShowPercentage = false, CustomMinimumSize = new Vector2(260, 10) };
+		_level = new ProgressBar { MaxValue = 1, ShowPercentage = false, CustomMinimumSize = new Vector2(260, 14) };
 		_level.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 		_time = U.Mono("0.0 s", 15, C.Muted);
 		_status = U.Muted("", 14, true, HorizontalAlignment.Center);

@@ -459,6 +459,9 @@ public static class UiTheme
 		ButtonType(t, "LinkButton2", Colors.Transparent, C.Muted, null, 8, 4, 6, false);
 		t.SetTypeVariation("SmallButton", "Button");
 		ButtonType(t, "SmallButton", C.Panel2, C.Text, null, 10, 10, 4, outline: 2, depth: 3);
+		// (a small key in teal: the home screen's update key when a newer version is out)
+		t.SetTypeVariation("SmallTealButton", "Button");
+		ButtonType(t, "SmallTealButton", C.Teal, C.TealInk, null, 10, 10, 4, outline: 2, depth: 3);
 		t.SetTypeVariation("ToggleOn", "Button");
 		ButtonType(t, "ToggleOn", C.Blue, C.Ink, null, 14, 14, 7, outline: 2, depth: 3);
 		t.SetTypeVariation("ToggleOff", "Button");
@@ -518,17 +521,46 @@ public static class UiTheme
 		if (DisplayServer.GetName() != "headless")
 		{
 			static string Hex(Color c) => "#" + c.ToHtml(false);
+			static string N(float v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
+			// (like the buttons: the ink outline, a darker side under the face; ticked, a blue key with a dark tick, else an
+			// inked hollow)
 			string Box(bool on, float alpha) =>
-				$"<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' opacity='{alpha.ToString(System.Globalization.CultureInfo.InvariantCulture)}'>" +
+				$"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' opacity='{N(alpha)}'>" +
+				$"<rect x='0' y='0' width='20' height='20' rx='6' fill='{Hex(C.Ink)}'/>" +
 				(on
-					? $"<rect x='0.5' y='0.5' width='17' height='17' rx='4' fill='{Hex(C.Blue)}'/><path d='M4.5 9.2 7.7 12.4 13.5 5.8' fill='none' stroke='{Hex(C.Bg)}' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/>"
-					: $"<rect x='1' y='1' width='16' height='16' rx='4' fill='{Hex(C.Bg)}' stroke='{Hex(C.Blue.Lerp(C.Bg, 0.35f))}' stroke-width='1.6'/>") +
+					? $"<rect x='2' y='2' width='16' height='16' rx='4.5' fill='{Hex(C.Blue.Darkened(0.42f))}'/>" +
+					  $"<rect x='2' y='2' width='16' height='13.5' rx='4.5' fill='{Hex(C.Blue)}'/>" +
+					  $"<path d='M5.6 9.4 8.5 12.2 14.4 5.8' fill='none' stroke='{Hex(C.Ink)}' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/>"
+					: $"<rect x='2' y='2' width='16' height='16' rx='4.5' fill='{Hex(C.Light ? C.Border : C.Well)}'/>" +
+					  $"<rect x='2' y='2' width='16' height='3' rx='1.5' fill='#000000' opacity='0.25'/>") +
 				"</svg>";
 			t.SetIcon("checked", "CheckBox", DpiTexture.CreateFromString(Box(true, 1)));
 			t.SetIcon("unchecked", "CheckBox", DpiTexture.CreateFromString(Box(false, 1)));
 			t.SetIcon("checked_disabled", "CheckBox", DpiTexture.CreateFromString(Box(true, 0.45f)));
 			t.SetIcon("unchecked_disabled", "CheckBox", DpiTexture.CreateFromString(Box(false, 0.45f)));
+
+			// The switch (CheckButton): an inked groove with a key that slides over, the groove teal when it's on
+			string Switch(bool on, float alpha)
+			{
+				var x = on ? 25f : 11f;
+				var knob = C.Light ? C.Panel2 : new Color("#f1edf8");
+				return $"<svg xmlns='http://www.w3.org/2000/svg' width='38' height='22' opacity='{N(alpha)}'>" +
+					$"<rect x='0' y='0' width='38' height='22' rx='11' fill='{Hex(C.Ink)}'/>" +
+					$"<rect x='2' y='2' width='34' height='18' rx='9' fill='{Hex(on ? C.Teal : C.Light ? C.Border : C.Well)}'/>" +
+					$"<circle cx='{N(x)}' cy='11' r='9' fill='{Hex(C.Ink)}'/>" +
+					$"<circle cx='{N(x)}' cy='11.5' r='7' fill='{Hex(knob.Darkened(0.42f))}'/>" +
+					$"<circle cx='{N(x)}' cy='10' r='6.6' fill='{Hex(knob)}'/>" +
+					"</svg>";
+			}
+			t.SetIcon("checked", "CheckButton", DpiTexture.CreateFromString(Switch(true, 1)));
+			t.SetIcon("unchecked", "CheckButton", DpiTexture.CreateFromString(Switch(false, 1)));
+			t.SetIcon("checked_disabled", "CheckButton", DpiTexture.CreateFromString(Switch(true, 0.45f)));
+			t.SetIcon("unchecked_disabled", "CheckButton", DpiTexture.CreateFromString(Switch(false, 0.45f)));
 		}
+		foreach (var state in new[] { "normal", "hover", "pressed", "hover_pressed", "disabled", "focus" })
+			t.SetStylebox(state, "CheckButton", new StyleBoxEmpty { ContentMarginLeft = 2, ContentMarginRight = 2, ContentMarginTop = 4, ContentMarginBottom = 4 });
+		foreach (var color in new[] { "font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color" })
+			t.SetColor(color, "CheckButton", C.Text);
 
 		// Popups and dialogs
 		var popup = Box(C.Panel2, 14, C.Ink, 3, 6, 6);
@@ -580,20 +612,46 @@ public static class UiTheme
 		t.SetStylebox("panel", "TooltipPanel", Box(C.Panel2, 12, C.Ink, 3, 10, 6));
 		t.SetColor("font_color", "TooltipLabel", C.Text);
 
-		// Thin scroll bars
+		// Scroll bars like the rest: an inked groove, and a small key in it you take hold of (lighter under the mouse, the
+		// accent while dragged)
 		foreach (var type in new[] { "VScrollBar", "HScrollBar" })
 		{
-			t.SetStylebox("scroll", type, Box(Colors.Transparent, 6, null, 0, 4, 4));
-			t.SetStylebox("grabber", type, Box(C.Border, 6, null, 0, 4, 4));
-			t.SetStylebox("grabber_highlight", type, Box(C.Muted, 6, null, 0, 4, 4));
-			t.SetStylebox("grabber_pressed", type, Box(C.Muted, 6, null, 0, 4, 4));
+			// (the groove's side margins make the bar's width, 12: the key fills it, the groove's ends leave it room)
+			var groove = Box(C.Light ? C.Border : C.Well, 8, C.Ink, 2, 6, 2);
+			t.SetStylebox("scroll", type, groove);
+			t.SetStylebox("scroll_focus", type, groove);
+			var thumb = C.Light ? C.Panel2.Darkened(0.12f) : C.Panel2.Lightened(0.22f);
+			t.SetStylebox("grabber", type, new KeyBox(thumb, 6, 6, 6, 2, 3, false));
+			t.SetStylebox("grabber_highlight", type, new KeyBox(thumb.Lightened(0.15f), 6, 6, 6, 2, 3, false));
+			t.SetStylebox("grabber_pressed", type, new KeyBox(C.Accent, 6, 6, 6, 2, 3, true));
 		}
 		t.SetStylebox("panel", "ScrollContainer", new StyleBoxEmpty());
+
+		// Progress bars (downloads, the mic's level, a picture reveal): an inked groove, filled in the accent
+		t.SetStylebox("background", "ProgressBar", Box(C.Light ? C.Border : C.Well, 6, C.Ink, 2, 0, 0));
+		t.SetStylebox("fill", "ProgressBar", Box(C.Accent, 6, C.Ink, 2, 0, 0));
+		t.SetColor("font_color", "ProgressBar", C.Text);
 
 		// Volume sliders: thin track, teal fill.
 		t.SetStylebox("slider", "HSlider", Box(C.Light ? C.Border : C.Well, 8, C.Ink, 2, 0, 5));
 		t.SetStylebox("grabber_area", "HSlider", Box(C.Accent, 8, C.Ink, 2, 0, 5));
 		t.SetStylebox("grabber_area_highlight", "HSlider", Box(C.Accent.Lightened(0.15f), 8, C.Ink, 2, 0, 5));
+		// (its knob: a round key, not Godot's plain white dot)
+		if (DisplayServer.GetName() != "headless")
+		{
+			static string Hex(Color c) => "#" + c.ToHtml(false);
+			string Knob(Color face, bool down) =>
+				"<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'>" +
+				$"<circle cx='11' cy='11' r='10' fill='{Hex(C.Ink)}'/>" +
+				$"<circle cx='11' cy='11.5' r='8' fill='{Hex(face.Darkened(0.42f))}'/>" +
+				$"<circle cx='11' cy='{(down ? 11.5 : 10).ToString(System.Globalization.CultureInfo.InvariantCulture)}' r='7.5' fill='{Hex(face)}'/>" +
+				$"<ellipse cx='11' cy='{(down ? 9 : 7.5).ToString(System.Globalization.CultureInfo.InvariantCulture)}' rx='4.5' ry='2.4' fill='#ffffff' opacity='0.35'/>" +
+				"</svg>";
+			var knob = C.Light ? C.Panel2 : new Color("#f1edf8");
+			t.SetIcon("grabber", "HSlider", DpiTexture.CreateFromString(Knob(knob, false)));
+			t.SetIcon("grabber_highlight", "HSlider", DpiTexture.CreateFromString(Knob(knob.Lightened(0.1f), true)));
+			t.SetIcon("grabber_disabled", "HSlider", DpiTexture.CreateFromString(Knob(C.Muted, false)));
+		}
 		t.SetConstant("separation", "HSeparator", 12);
 		t.SetStylebox("separator", "HSeparator", new StyleBoxLine { Color = C.Border, Thickness = 1 });
 		return t;

@@ -482,6 +482,8 @@ public partial class MicMeter : Control
 		var r = new Rect2(Vector2.Zero, Size);
 		DrawStyleBox(KeyBox.Fill(C.Ink, 6), r);
 		var inner = r.Grow(-3);
+		// (the groove inside, like the sliders' and progress bars')
+		DrawStyleBox(KeyBox.Fill(C.Light ? C.Border : C.Well, 4), inner);
 		if (_mic == null)
 		{
 			var font = Fonts.Regular;
