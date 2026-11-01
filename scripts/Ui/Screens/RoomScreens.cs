@@ -229,22 +229,27 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		if (!on) return box;
 		var players = room.Players.Count(p => p.Connected);
 		var splits = TeamNames.Offered(players);
-		if (!splits.Contains(room.Settings.Teams)) splits = splits.Append(room.Settings.Teams).OrderBy(t => t).ToList();
+		// (the host's pick, if it's fair but not among the best three)
+		if (!splits.Contains(room.Settings.Teams) && TeamNames.Splits(players).Contains(room.Settings.Teams)) splits = splits.Append(room.Settings.Teams).OrderBy(t => t).ToList();
 		var drawn = room.Teams != null;
+		var fair = drawn || TeamNames.Possible(players);
 		var col = U.V(8, box);
 		// (the split can only change before the draw; afterwards newcomers join the smallest team)
-		if (!drawn)
+		if (!drawn && fair)
 			col.AddChild(U.Segmented(splits.Select(t => (t.ToString(), Split(players, t))).ToArray(), room.Settings.Teams.ToString(),
 				id => _host.UpdateSettings(teams: int.Parse(id))));
-		col.AddChild(U.H(10,
-			U.Small(drawn ? "🎲 Draw again" : "🎲 Draw teams", () =>
-			{
-				var result = _host.DrawTeams();
-				_error = result.Ok ? null : result.Error;
-				if (!result.Ok) Refresh(_host.State);
-			}).Tip("Everyone is put in a team at random, with a show on every screen."),
+		var draw = U.Small(drawn ? "🎲 Draw again" : "🎲 Draw teams", () =>
+		{
+			var result = _host.DrawTeams();
+			_error = result.Ok ? null : result.Error;
+			if (!result.Ok) Refresh(_host.State);
+		}).Tip("Everyone is put in a team at random, with a show on every screen.");
+		// (no team may have fewer than 3/4 of another's players: 3 or 5 players can't be split fairly)
+		draw.Disabled = !fair;
+		col.AddChild(U.H(10, draw,
 			U.Muted(drawn ? Lang.F("{0} teams drawn. Draw again to change the split.", room.Settings.Teams)
-				: "Follows the number of players until you pick a split.", 12, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter)));
+				: !fair ? Lang.F("{0} players can't be split into fair teams. 4, 6 or more work.", players)
+				: "Follows the number of players until you pick a split.", 12, true).With(l => { l.SizeFlagsVertical = SizeFlags.ShrinkCenter; l.Grow(); })));
 		return col;
 	}
 

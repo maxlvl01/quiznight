@@ -175,14 +175,28 @@ public static class TeamNames
 	/// <summary>RoomSettings.Teams sent by "Play in teams": the room picks the number itself (Suggest) and follows the players.</summary>
 	public const int Auto = -1;
 
-	/// <summary>How many teams are possible for this many players: 2 up to 6, at least 2 players a team (2 when there are few).</summary>
-	public static List<int> Splits(int players) => Enumerable.Range(Min, Math.Clamp(players / 2, Min, Max) - Min + 1).ToList();
+	/// <summary>
+	/// The fair ways to split this many players: 2 to 6 teams of at least 2, where the smaller teams have at least 3/4 of
+	/// the bigger ones' players (7: only 4/3, not 3/2/2; 10: 4/3/3 just fits). None for 3 or 5 players: no team mode then.
+	/// </summary>
+	public static List<int> Splits(int players) =>
+		Enumerable.Range(Min, Max - Min + 1).Where(t => players / t >= 2 && Fair(players, t)).ToList();
+
+	static bool Fair(int players, int teams)
+	{
+		var small = players / teams;
+		var big = small + (players % teams > 0 ? 1 : 0);
+		return small * 4 >= big * 3;
+	}
+
+	/// <summary>True if this many players can be split fairly at all (Splits isn't empty).</summary>
+	public static bool Possible(int players) => Splits(players).Count > 0;
 
 	/// <summary>
 	/// The best number of teams: about three players a team, even teams if possible (8 → 2 of 4, 9 → 3 of 3, 10 → 4/3/3,
 	/// 12 → 4 of 3). Uneven teams cost half a player of distance; on a tie, fewer teams.
 	/// </summary>
-	public static int Suggest(int players) => Splits(players).OrderBy(t => Score(players, t)).ThenBy(t => t).First();
+	public static int Suggest(int players) => Splits(players).OrderBy(t => Score(players, t)).ThenBy(t => t).DefaultIfEmpty(Min).First();
 
 	/// <summary>The splits worth offering: the best three, fewest teams first.</summary>
 	public static List<int> Offered(int players) => Splits(players).OrderBy(t => Score(players, t)).ThenBy(t => t).Take(3).OrderBy(t => t).ToList();

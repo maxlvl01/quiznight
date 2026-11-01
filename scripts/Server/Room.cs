@@ -270,6 +270,10 @@ public sealed class Room : IGameHooks
 		if (!Settings.TeamMode) return Result.Fail("Team mode is off.");
 		var here = Players.Where(p => p.Connected || p.Saved).ToList();
 		if (here.Count < Settings.Teams) return Result.Fail(Lang.F("You need at least {0} players for {0} teams.", Settings.Teams));
+		// (no team smaller than 3/4 of another: TeamNames.Splits)
+		if (!TeamNames.Splits(here.Count).Contains(Settings.Teams))
+			return Result.Fail(TeamNames.Possible(here.Count) ? Lang.F("{0} teams wouldn't be fair with {1} players.", Settings.Teams, here.Count)
+				: Lang.F("{0} players can't be split into fair teams.", here.Count));
 		rng ??= Random.Shared;
 		var order = here.OrderBy(_ => rng.Next()).ToList();
 		// (which team gets the first, and so the possible extra, player is drawn too)

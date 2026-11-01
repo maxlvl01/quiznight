@@ -26,7 +26,9 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
   meant working out yourself what fits your group. Now the game does it: about three players a team, even teams when it
   can, and it keeps adjusting while people join or leave (8 players → 2 teams of 4, 9 → 3 teams of 3, 10 → 3 teams of
   4/3/3). If you'd rather split differently, the lobby offers the other good options before the draw, e.g. "4 teams of 2"
-  or "3 teams (3/3/2)" for 8 players; your pick stays until you untick it or it no longer works. Thanks to Max for the idea.
+  for 8 players; your pick stays until you untick it or it no longer works. Splits that would be unfair aren't offered at
+  all: no team may have fewer than three quarters of another team's players. So 7 players play 4 against 3 but never
+  3/2/2, and with 3 or 5 players there are no teams (the draw button says why). Thanks to Max for the idea.
 
 ### Fixed
 

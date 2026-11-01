@@ -131,7 +131,8 @@ the original design decisions; most still apply.
   category. `--screen quiz [--tour-quiz] [--list category] [--category-order a,b]`.
 - **Team mode** (0.13.1d1, `RoomSettings.Teams`, 0 = off, 2–6): a "Play in teams" tick box sends `TeamNames.Auto`; until
   the draw the count follows the players (`Room.FollowPlayers` in `Tick`, `TeamNames.Suggest`: ~3 a team, even preferred)
-  unless the host picked one of `TeamNames.Offered`. The host draws teams at random in the lobby
+  unless the host picked one of `TeamNames.Offered`. Only fair splits exist (`TeamNames.Splits`: smallest team ≥ 3/4 of the
+  biggest, ≥ 2 a team; none for 3 or 5 players, and `Room.DrawTeams` refuses); no handicap for smaller teams (Max's call). The host draws teams at random in the lobby
   (`Room.DrawTeams`, `Player.Team`; `RoomState.TeamDraw` counts draws so every lobby plays `Ui/Screens/TeamDraw.cs`'s show
   once; newcomers join the smallest team). The game only knows `IGameHooks.TeamOf`: `Game.Mates` makes one answer per team
   (any member replaces it; `GameView.MyAnswerBy`), one buzz per team per round and jokers once per team. Scores stay per

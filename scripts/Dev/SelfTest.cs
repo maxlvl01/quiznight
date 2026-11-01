@@ -514,8 +514,13 @@ public static class SelfTest
 		var buzzer = QuizRules.NewQuestion(QuestionType.Classic, "t2");
 		(buzzer.Prompt, buzzer.AnswerText) = ("Who?", "Me");
 		Check(new[] { 2, 3, 4, 6, 8, 9, 10, 12 }.Select(TeamNames.Suggest).SequenceEqual(new[] { 2, 2, 2, 2, 2, 3, 3, 4 })
-			&& TeamNames.Offered(8).SequenceEqual(new[] { 2, 3, 4 }) && TeamNames.Sizes(10, 3) == "4/3/3",
+			&& TeamNames.Offered(8).SequenceEqual(new[] { 2, 4 }) && TeamNames.Sizes(10, 3) == "4/3/3",
 			"Play in teams picks about three a team, even teams if it can (8 players: 2 of 4, 4 of 2 offered)");
+		Check(TeamNames.Splits(7).SequenceEqual(new[] { 2 }) && TeamNames.Splits(10).Contains(3) && !TeamNames.Possible(3) && !TeamNames.Possible(5),
+			"no unfair teams: 7 players only 4/3 (not 3/2/2), 10 may be 4/3/3, 3 or 5 players can't play in teams");
+		var (five, _) = NewRoom(new Quiz { Id = "five", Title = "Five", Questions = new() { choice } }, "f1", "f2", "f3", "f4", "f5");
+		five.UpdateSettings(teams: TeamNames.Auto);
+		Check(!five.DrawTeams().Ok, "five players: the draw refuses (a team of 2 against 3)");
 		var (auto, _) = NewRoom(new Quiz { Id = "auto", Title = "Auto", Questions = new() { choice } }, "a1", "a2", "a3", "a4", "a5", "a6");
 		auto.UpdateSettings(teams: TeamNames.Auto);
 		var followed = auto.Settings.Teams == 2;
