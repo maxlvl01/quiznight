@@ -104,7 +104,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		var late = game.LateIds.Contains(MyId) && game.Stage == Stage.Open;
 		var notice = GameParts.PausedText(room) ?? (late ? Lang.T("You joined during this question: you play from the next one. Watch along until then.") : null);
 		_notice.Set(notice ?? "", () => notice == null ? null
-			: U.Panel(U.Text(notice, 16, C.Accent, Fonts.Bold, true).Raw(), "Clear").With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(C.Accent, 0.1f), 12, C.Accent, 1, 14, 10))));
+			: U.Panel(notice == GameParts.PausedText(room) ? Glyph.Before(Glyph.Kind.Pause, U.Text(notice, 16, C.Accent, Fonts.Bold, true).Raw()) : U.Text(notice, 16, C.Accent, Fonts.Bold, true).Raw(), "Clear").With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(C.Accent, 0.1f), 12, C.Accent, 1, 14, 10))));
 
 		var key = $"{game.Index}|{game.Stage}|{game.Shown}|{q.Slide}";
 		var flipHint = _hints.JustFlipped(game);

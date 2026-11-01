@@ -88,7 +88,7 @@ public partial class EternalTableScreen : Control
 	public static Control TopBar(string tab)
 	{
 		LastTab = tab;
-		var tabs = U.Segmented(new[] { ("table", "🏆 Ewige Tabelle"), ("history", "Match history") }, tab, id =>
+		var tabs = U.Segmented(new[] { ("table", "Ewige Tabelle"), ("history", "Match history") }, tab, id =>
 		{
 			if (id == "history") App.I.GoMatchHistory();
 			else App.I.GoEternalTable();
@@ -364,7 +364,7 @@ public partial class EternalTableScreen : Control
 		systemSelect.Disabled = _kind != "";
 		if (_kind != "") systemSelect.TooltipText = Lang.T("Championship points go by each night's place, so they're for all questions only.");
 
-		var title = beta ? "🏆 Ewige Tabelle · Beta" : season.Id != null ? Lang.F("🏆 Ewige Tabelle · {0}", season.Label) : "🏆 Ewige Tabelle";
+		var title = beta ? "Ewige Tabelle · Beta" : season.Id != null ? Lang.F("Ewige Tabelle · {0}", season.Label) : "Ewige Tabelle";
 		var intro = _kind != ""
 			? Lang.F("Only {0} (recorded from 0.10.0b on): most points from them first. Click a heading to sort, a name for the profile.", KindStats.FilterLabel(_kind))
 			: Ranking is { } sys
@@ -380,7 +380,7 @@ public partial class EternalTableScreen : Control
 			_devAwardPack = true;
 			Callable.From(() => save.EmitSignal(BaseButton.SignalName.Pressed)).CallDeferred();
 		}
-		var page = U.V(14, TopBar("table"), U.H(12, U.Heading(title, 34).Grow(), save), pickers, U.Muted(intro, 15));
+		var page = U.V(14, TopBar("table"), U.H(12, Glyph.Before(Glyph.Kind.Trophy, U.Heading(title, 34), 32), save), pickers, U.Muted(intro, 15));
 
 		var lines = Lines(csvs, from, until);
 		var cols = _kind == "" ? OverallColumns() : KindStats.ColumnsFor(_kind, allRows.Where(r => KindStats.Matches(_kind, r)).ToList());

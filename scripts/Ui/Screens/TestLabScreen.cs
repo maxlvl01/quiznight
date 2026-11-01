@@ -78,7 +78,7 @@ public partial class TestLabScreen : Control
 			sounds.AddChild(U.Small("▶ " + Lang.T(label), () => Sfx.PlayBuzzer(id)));
 		sounds.AddChild(U.Small("▶ Right", () => Sfx.PlayAnswer(true)));
 		sounds.AddChild(U.Small("▶ Wrong", () => Sfx.PlayAnswer(false)));
-		var closeUp = U.Small("🔍 Up close", ShowBuzzerUpClose).Tip("The buzzer big, to look at it in detail");
+		var closeUp = U.Small("Up close", ShowBuzzerUpClose).On(Glyph.Kind.Magnifier, 15).Tip("The buzzer big, to look at it in detail");
 		return U.Card(10, U.Eyebrow("Buzzers"), U.H(14, button, U.V(8, start, result, closeUp).Grow()), sounds);
 	}
 

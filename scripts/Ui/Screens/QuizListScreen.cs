@@ -56,7 +56,7 @@ public partial class QuizListScreen : Control
 		title.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
 		title.ClipText = true;
 		var info = U.H(8, U.Muted(Lang.F("{0} · edited {1}", U.Plural(quiz.Questions.Count, "question", "questions"), edited), 13, false));
-		if (quiz.Questions.Any(q => QuizRules.MapNeedsCheck(q, quiz.Maps))) info.AddChild(U.Pill("⚠ A map changed: check", C.Orange));
+		if (quiz.Questions.Any(q => QuizRules.MapNeedsCheck(q, quiz.Maps))) info.AddChild(U.Pill("A map changed: check", C.Orange));
 		else if (!ready) info.AddChild(U.Pill("Not ready yet", C.Accent));
 		var host = U.Btn("Open lobby", "AccentButton", () => App.I.HostQuiz(quiz), 14);
 		host.Disabled = !ready;

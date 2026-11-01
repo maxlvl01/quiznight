@@ -13,6 +13,18 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.4b]
+
+### Changed
+- **No more emoji anywhere in the game: every one is a drawn icon now.** After the calendar button, the rest of the
+  game still used emoji as pictures: the trophy on "Statistics", the Ewige Tabelle's title and the match history's
+  winners, the gamepad on "Mini games" and on challenges, the folder on "Award pack", the camera on "Save picture",
+  the eye on the editor's "Preview", the dice on "Draw teams" and the team draw show, the sun on "Light mode", the
+  magnifier, hourglass, pause sign and every warning sign. Emoji come from Windows' colour emoji font, so they looked
+  pasted in from another app and ignored the skin's colours. Each one is now a small drawn icon in the game's flat
+  style, taking the colour of the button or text it sits on (so they change with every skin and light mode, and
+  dim with disabled buttons). (Thanks for the idea, Max!)
+
 ## [0.13.3b]
 
 ### Changed

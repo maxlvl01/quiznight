@@ -87,7 +87,7 @@ public partial class TeamDrawShow : Control
 		_picks = teams.SelectMany((members, t) => members.Select(m => (m, t))).OrderBy(p => StableHash(p.m + "|" + seed)).ToList();
 
 		AddChild(new ColorRect { Color = new Color(C.Bg, 0.985f), MouseFilter = MouseFilterEnum.Ignore }.With(r => r.SetAnchorsPreset(LayoutPreset.FullRect)));
-		_title = U.Text(Lang.T("🎲 The team draw"), 40, C.Text, Fonts.Black, false, HorizontalAlignment.Center);
+		_title = U.Text(Lang.T("The team draw"), 40, C.Text, Fonts.Black, false, HorizontalAlignment.Center);
 		_hint = U.Muted("Click to skip", 13, false, HorizontalAlignment.Center);
 		_reel = U.Text("…", 56, C.Accent, Fonts.Black, false, HorizontalAlignment.Center).Raw();
 		_reel.CustomMinimumSize = new Vector2(0, 90);
@@ -106,7 +106,7 @@ public partial class TeamDrawShow : Control
 			row.AddChild(panel);
 		}
 
-		var page = U.V(26, _title, reelPanel.Center(), row, _hint);
+		var page = U.V(26, Glyph.Before(Glyph.Kind.Dice, _title, 38, grow: false).With(r => r.Alignment = BoxContainer.AlignmentMode.Center), reelPanel.Center(), row, _hint);
 		page.Alignment = BoxContainer.AlignmentMode.Center;
 		var center = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
 		center.SetAnchorsPreset(LayoutPreset.FullRect);

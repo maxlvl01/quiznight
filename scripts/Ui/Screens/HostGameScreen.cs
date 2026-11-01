@@ -200,7 +200,7 @@ public partial class HostGameScreen : Control, IRoomScreen
 			// Someone left: everything waits until they're back, or the host goes on without them.
 			if (GameParts.PausedText(room) is { } paused)
 			{
-				row.AddChild(U.Text(paused, 17, C.Accent, Fonts.Bold, true).Raw().Grow());
+				row.AddChild(Glyph.Before(Glyph.Kind.Pause, U.Text(paused, 17, C.Accent, Fonts.Bold, true).Raw()));
 				row.AddChild(U.Btn("Continue without them", "AccentButton", _host.Continue, 18).Tip("Timers, buzzers and answers carry on; they can still come back later"));
 				return row;
 			}

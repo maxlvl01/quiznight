@@ -274,8 +274,8 @@ public partial class PodiumScreen : Control, IRoomScreen
 	Control Buttons()
 	{
 		var credits = U.Btn("▶ Credits", "", RollCredits).Tip("The credits again: who hosted, who played, tonight's awards");
-		var picture = U.Btn("📷 Save picture", "", SavePicture).Tip("Saves the podium as a picture in Documents/Quiznight/Pictures");
-		_packButton = U.Btn("🗂 Award pack", "", PackPressed).Tip("Pictures of tonight to share: the standings and a card for every award, in one ZIP");
+		var picture = U.Btn("Save picture", "", SavePicture).On(Glyph.Kind.Camera, 18).Tip("Saves the podium as a picture in Documents/Quiznight/Pictures");
+		_packButton = U.Btn("Award pack", "", PackPressed).On(Glyph.Kind.Folder, 18).Tip("Pictures of tonight to share: the standings and a card for every award, in one ZIP");
 		_note = U.Muted("", 13, false);
 		Control main = _replayBack is { } back ? U.Btn(back.Label, "AccentButton", back.Go)
 			: _isHost ? U.Btn("Back to lobby — play again", "AccentButton", _backToLobby)
@@ -291,7 +291,7 @@ public partial class PodiumScreen : Control, IRoomScreen
 		if (_packButton == null || _results == null) return;
 		var making = NightPack.Making(_results);
 		_packButton.Disabled = making;
-		_packButton.Text = Lang.T(making ? "🗂 Drawing the award pack…" : NightPack.Exists(_results) ? "🗂 Award pack" : "🗂 Make award pack");
+		_packButton.Text = Lang.T(making ? "Drawing the award pack…" : NightPack.Exists(_results) ? "Award pack" : "Make award pack");
 	}
 
 	double _packCheck;

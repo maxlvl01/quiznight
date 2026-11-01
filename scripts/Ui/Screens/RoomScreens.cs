@@ -131,8 +131,8 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 					U.Link("×", () => _host.Kick(id), 15).Tip(Lang.F("Remove {0}", p.Name)).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter)).Center());
 			// (an older game than the host's: which version, so the host can ask them to update)
 			if (VersionCheck.Older(p.Version, App.Version))
-				seat.AddChild(U.Text(p.Version != "" ? Lang.F("⚠ {0}", p.Version) : Lang.T("⚠ older version"), 12, C.Orange)
-					.With(l => { l.HorizontalAlignment = HorizontalAlignment.Center; l.MouseFilter = MouseFilterEnum.Stop; })
+				seat.AddChild(Glyph.Before(Glyph.Kind.Warning, U.Text(p.Version != "" ? p.Version : Lang.T("older version"), 12, C.Orange).Raw(), 13, grow: false)
+					.With(r => { r.SizeFlagsHorizontal = SizeFlags.ShrinkCenter; r.MouseFilter = MouseFilterEnum.Stop; })
 					.Tip(Lang.F("An older Quiznight than yours ({0}). Ask them to update.", App.Version)));
 			grid.AddChild(U.Panel(seat, "Card2").Grow());
 		}
@@ -185,7 +185,7 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		var cant = room.Players.Where(p => p.Connected)
 			.Select(p => (p.Name, Missing: VersionCheck.Missing(_host.Room.Quiz, p.Version))).Where(c => c.Missing.Count > 0).ToList();
 		foreach (var (name, missing) in cant)
-			_content.AddChild(U.Text(Lang.F("⚠ {0}'s game is too old for {1}. Ask them to update.", name, string.Join(", ", missing)), 13, C.Orange, wrap: true));
+			_content.AddChild(Glyph.Before(Glyph.Kind.Warning, U.Text(Lang.F("{0}'s game is too old for {1}. Ask them to update.", name, string.Join(", ", missing)), 13, C.Orange, wrap: true)));
 
 		if (_error != null) _content.AddChild(U.Error(_error));
 		void StartQuiz()
@@ -238,12 +238,12 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		if (!drawn && fair)
 			col.AddChild(U.Segmented(splits.Select(t => (t.ToString(), Split(players, t))).ToArray(), room.Settings.Teams.ToString(),
 				id => _host.UpdateSettings(teams: int.Parse(id))));
-		var draw = U.Small(drawn ? "🎲 Draw again" : "🎲 Draw teams", () =>
+		var draw = U.Small(drawn ? "Draw again" : "Draw teams", () =>
 		{
 			var result = _host.DrawTeams();
 			_error = result.Ok ? null : result.Error;
 			if (!result.Ok) Refresh(_host.State);
-		}).Tip("Everyone is put in a team at random, with a show on every screen.");
+		}).On(Glyph.Kind.Dice, 15).Tip("Everyone is put in a team at random, with a show on every screen.");
 		// (no team may have fewer than 3/4 of another's players: 3 or 5 players can't be split fairly)
 		draw.Disabled = !fair;
 		col.AddChild(U.H(10, draw,
@@ -270,7 +270,7 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		if (p.Team is { } team) row.AddChild(Centered(U.Text("●", 12, TeamParts.ColorOf(team), null, false).Raw().Tip(TeamNames.Name(team))));
 		row.AddChild(U.PlayerName(p.Name, 14, HorizontalAlignment.Left).With(n => { n.SizeFlagsHorizontal = SizeFlags.ExpandFill; n.SizeFlagsVertical = SizeFlags.ShrinkCenter; n.CustomMinimumSize = new Vector2(40, 0); }));
 		if (VersionCheck.Older(p.Version, App.Version))
-			row.AddChild(Centered(U.Text("⚠", 12, C.Orange).Raw()
+			row.AddChild(Centered(Glyph.Rect(Glyph.Kind.Warning, 13, C.Orange).With(r => r.MouseFilter = MouseFilterEnum.Stop)
 				.Tip(Lang.F("An older Quiznight than yours ({0}). Ask them to update.", App.Version) + (p.Version != "" ? $" ({p.Version})" : ""))));
 		if (room.ResumeFrom != null) row.AddChild(Centered(U.Muted($"{room.Score(id)}", 12, false).Raw().Tip(Lang.F("{0} points", room.Score(id)))));
 		var percent = room.Downloads.GetValueOrDefault(id, 100);

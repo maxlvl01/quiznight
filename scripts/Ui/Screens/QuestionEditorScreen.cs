@@ -43,7 +43,7 @@ public partial class QuestionEditorScreen : Control
 			new UpdateBadge(),
 			_saved.With(l => l.Modulate = Colors.Transparent),
 			// (the draft as it is, saved or not: how it looks to players in a match)
-			Tutorial.Mark(U.Btn("👁 Preview", "", () => QuestionPreview.Open(_quiz, _draft, _maps), 15).With(b => b.TooltipText = "See this question as players see it in a match, and play it yourself."), "editor.preview"),
+			Tutorial.Mark(U.Btn("Preview", "", () => QuestionPreview.Open(_quiz, _draft, _maps), 15).On(Glyph.Kind.Eye, 18).With(b => b.TooltipText = "See this question as players see it in a match, and play it yourself."), "editor.preview"),
 			Tutorial.Mark(U.Btn("Save question", "AccentButton", Save, 15).With(b => b.TooltipText = "Saves and goes back to the quiz. Ctrl+S saves and stays here."), "editor.save")), "Bar");
 		var body = U.V(12, Tutorial.Mark(_issues, "editor.issues"), _form);
 		var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.GrowV();
@@ -99,7 +99,7 @@ public partial class QuestionEditorScreen : Control
 		};
 		var note = changed.ChangeNote is { } what ? Lang.T(what) : "";
 		_mapCol.AddChild(U.Card(6,
-			U.Bold(Lang.F("⚠ This map was changed in {0}.", changed.ChangedIn!), 15, C.Orange, wrap: true),
+			Glyph.Before(Glyph.Kind.Warning, U.Bold(Lang.F("This map was changed in {0}.", changed.ChangedIn!), 15, C.Orange, wrap: true)),
 			U.Muted(Lang.T("Check the correct spot is still in the right place (move it if not), then tick the box. Until then the quiz can't be played.") + (note != "" ? " " + note : ""), 13),
 			box));
 	}

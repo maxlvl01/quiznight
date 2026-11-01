@@ -99,7 +99,7 @@ public partial class HomeScreen : Control
 		updateButton.MouseEntered += () => arrow.Hovered = true;
 		updateButton.MouseExited += () => arrow.Hovered = false;
 		page.AddChild(U.H(6, U.Muted($"v{App.Version}", 12, false), updateButton, U.Muted("·", 12, false), U.Link("What's new", () => WhatsNew.ShowCurrent(this), 12),
-			U.Muted("·", 12, false), U.Link("🏆 Statistics", App.I.GoStatistics, 12)).Center());
+			U.Muted("·", 12, false), U.Link("Statistics", App.I.GoStatistics, 12).On(Glyph.Kind.Trophy, 13)).Center());
 		void ShowUpdate()
 		{
 			if (!IsInstanceValid(updateButton)) return;
@@ -120,7 +120,7 @@ public partial class HomeScreen : Control
 		// (two spotlights from the top corners on the logo, over the page so their pool shows on it; real lights if
 		// switched on in Settings)
 		AddChild(Spotlights.For(Logo));
-		var corner = U.H(8, U.Small("☀ Light mode", LightMode), New.Mark(U.Small("Settings", App.I.GoSettings), "settings."), U.Small("Quit", () => App.I.AskQuit()));
+		var corner = U.H(8, U.Small("Light mode", LightMode).On(Glyph.Kind.Sun, 15), New.Mark(U.Small("Settings", App.I.GoSettings), "settings."), U.Small("Quit", () => App.I.AskQuit()));
 		// (developer mode: a small badge in the corner, so the page doesn't get longer; double-clicking it leaves developer
 		// mode until the game restarts or the code is typed again)
 		if (App.LanUnlocked)

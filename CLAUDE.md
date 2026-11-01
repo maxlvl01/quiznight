@@ -229,8 +229,9 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
 - **Never use emoji for graphics (Max's rule, 0.13.3b).** No emoji as icons on buttons, labels, pills or anywhere players
   see a picture: they look pasted in from another app. Draw a fitting icon in the game's style instead: a
   `MediaIcon.Kind` shape (`Ui/MusicPlayer.cs`: flat, in the skin's text colour, details cut out in `C.Panel2`; the bug,
-  jukebox, gear and calendar buttons) or a coloured SVG like `Bolt` (`Ui/Widgets.cs`: filled, ink outline). Older
-  screens still have some (🏆 🎮 🗂 📷 👁 🎲 🔍 ⏳ ☀): replace them when you touch those screens.
+  jukebox, gear and calendar buttons), a `Glyph` (`Ui/Widgets.cs`, 0.13.4b: one-colour SVG symbols, `button.On(Glyph.Kind.X)`
+  tints with the button's font colours, `Glyph.Before(kind, label)` puts one in front of a text) or a coloured SVG like
+  `Bolt` (filled, ink outline). Text marks like ✓ ✗ ★ ▶ are fine (monochrome font glyphs, not emoji).
 - **Custom cursors** (`assets/cursors`, `tools/make_cursors.py`) are set in `App.UseCursors`, cleared in `App._ExitTree`
   (else Godot reports their textures as leaked at exit).
 

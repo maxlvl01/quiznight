@@ -166,7 +166,7 @@ public partial class MediaField : VBoxContainer
 			_body.AddChild(U.Panel(new VideoFrame(_video) { CustomMinimumSize = new Vector2(0, 220) }, "Inset"));
 			// (bigger than 720p: more to send to every player than it needs; the convert guide shrinks it)
 			if (Media.VideoSize(_media) is { } size && (size.W > Media.MaxVideo.W || size.H > Media.MaxVideo.H))
-				_body.AddChild(U.H(8, U.Text(Lang.F("⚠ This video is {0}×{1}: 720p is plenty, and smaller is quicker to send to everyone.", size.W, size.H), 13, C.Orange, null, true).Grow(),
+				_body.AddChild(U.H(8, Glyph.Before(Glyph.Kind.Warning, U.Text(Lang.F("This video is {0}×{1}: 720p is plenty, and smaller is quicker to send to everyone.", size.W, size.H), 13, C.Orange, null, true)),
 					U.Small("Shrink it to 720p", ShrinkVideo)));
 		}
 		else Fail(Media.VideoHelp);

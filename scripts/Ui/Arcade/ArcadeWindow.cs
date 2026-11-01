@@ -182,7 +182,7 @@ public partial class ArcadeWindow : Control
 				Play(new TetrisGame(score => _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Score, Value = score })));
 			}),
 			U.Btn("▶ Reaction", "AccentButton", PlayReaction),
-			U.Small("🏆 High scores", () => ShowScores(ArcadeGame.Reaction)));
+			U.Small("High scores", () => ShowScores(ArcadeGame.Reaction)).On(Glyph.Kind.Trophy, 15));
 
 		var versus = U.V(6, U.Eyebrow("1 vs 1"));
 		var incoming = view?.Invites.Where(i => i.To == me).ToList() ?? new();
@@ -202,7 +202,7 @@ public partial class ArcadeWindow : Control
 		var loading = view?.Downloading.ToHashSet() ?? new HashSet<string>();
 		// (still getting the quiz: 1 vs 1 only once that's done, the match would lag behind the files)
 		if (loading.Contains(me))
-			versus.AddChild(U.Text("⏳ Pong and billiard open once you have the quiz's files. Tetris and Reaction work already.", 13, C.Orange, null, true));
+			versus.AddChild(Glyph.Before(Glyph.Kind.Hourglass, U.Text("Pong and billiard open once you have the quiz's files. Tetris and Reaction work already.", 13, C.Orange, null, true)));
 		// Pick the game first (Pong or Billiard, and which billiard game; kept while the window is open), then challenge
 		// someone to it. (Until 0.12.3d3 Pong was only a small button next to each player, so with nobody to play it
 		// didn't show at all.)
@@ -304,7 +304,7 @@ public partial class ArcadeWindow : Control
 		foreach (var invite in view?.Invites.Where(i => i.To == link.MyId) ?? Enumerable.Empty<ArcadeInvite>())
 		{
 			var from = invite.From;
-			strip.AddChild(U.Panel(U.H(8, U.Text(Lang.F("🎮 {0} challenges you to {1}!", link.Name(from), Lang.T(ArcadeGame.Label(invite.Game))), 15, C.Gold, Fonts.Bold, true).Grow(),
+			strip.AddChild(U.Panel(U.H(8, Glyph.Before(Glyph.Kind.Gamepad, U.Text(Lang.F("{0} challenges you to {1}!", link.Name(from), Lang.T(ArcadeGame.Label(invite.Game))), 15, C.Gold, Fonts.Bold, true)),
 				U.Small("Accept", () =>
 				{
 					link.Send(new ArcadeRequest { Kind = ArcadeRequest.Accept, Who = from });
@@ -313,7 +313,7 @@ public partial class ArcadeWindow : Control
 				U.Small("No thanks", () => link.Send(new ArcadeRequest { Kind = ArcadeRequest.Decline, Who = from }))), "Inset"));
 		}
 		var rivals = Rivalries(view, link.Name).Take(2).ToList();
-		strip.AddChild(U.H(10, U.Small("🎮 Mini games", open).Tip("Tetris, Pong and Billiard while you wait"),
+		strip.AddChild(U.H(10, U.Small("Mini games", open).On(Glyph.Kind.Gamepad, 17).Tip("Tetris, Pong and Billiard while you wait"),
 			U.Muted(rivals.Count > 0 ? string.Join("   ·   ", rivals) : Lang.T("Tetris, Pong or Billiard while you wait."), 13, false).Raw()
 				.With(l => { l.SizeFlagsVertical = SizeFlags.ShrinkCenter; l.ClipText = true; }).Grow()));
 		return strip;

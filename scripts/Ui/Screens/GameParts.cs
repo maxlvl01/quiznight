@@ -270,7 +270,7 @@ public static class GameParts
 	/// <summary>"⏸ Paused: waiting for Ann to come back." (null when the game isn't paused).</summary>
 	public static string? PausedText(RoomState room) =>
 		room.Game is { Paused: true } game
-			? Lang.F("⏸ Paused: waiting for {0} to come back.", string.Join(", ", game.WaitingFor.Select(id => room.Player(id).Name)))
+			? Lang.F("Paused: waiting for {0} to come back.", string.Join(", ", game.WaitingFor.Select(id => room.Player(id).Name)))
 			: null;
 
 	/// <summary>

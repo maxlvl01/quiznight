@@ -39,7 +39,7 @@ public partial class QuestionPreview : Control
 		back.SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(back);
 		var bar = U.Panel(U.H(12,
-			U.V(0, U.Bold("👁 Preview: what players see", 17), U.Muted("You're the only player. Nothing is saved or counted.", 12, false)).Grow(),
+			U.V(0, Glyph.Before(Glyph.Kind.Eye, U.Bold("Preview: what players see", 17), 20), U.Muted("You're the only player. Nothing is saved or counted.", 12, false)).Grow(),
 			_actions,
 			U.Btn("Close", "", Close).With(b => b.TooltipText = "Esc")), "Bar");
 		var layout = U.V(0, bar, _stage);
@@ -140,7 +140,7 @@ public partial class QuestionPreview : Control
 				_actions.AddChild(U.Small("✓ Correct", () => host.Judge(true)));
 				_actions.AddChild(U.Small("✗ Wrong", () => host.Judge(false)));
 			}
-			if (q.Media != null) _actions.AddChild(U.Small(game.MediaPlaying ? "⏸ Pause" : "▶ Play", () => host.SetMedia(!game.MediaPlaying)));
+			if (q.Media != null) _actions.AddChild(U.Small(game.MediaPlaying ? "Pause" : "Play", () => host.SetMedia(!game.MediaPlaying)).On(game.MediaPlaying ? Glyph.Kind.Pause : Glyph.Kind.Play, 13));
 			if (q.Type == QuestionType.Steps && game.Hint < q.Hints.Count - 1) _actions.AddChild(U.Small("Next hint →", host.NextHint));
 			if (q.Type == QuestionType.Picture && game.Slide < q.Slides.Count - 1) _actions.AddChild(U.Small("Next picture →", () => host.SetSlide(game.Slide + 1)));
 			_actions.AddChild(U.Small("Reveal the answer", host.Reveal));

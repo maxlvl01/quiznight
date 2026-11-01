@@ -634,3 +634,100 @@ public static class Bolt
 		return U.Panel(row, "Pill").With(p => p.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter);
 	}
 }
+
+/// <summary>
+/// Small drawn icons for buttons and notices, instead of emoji (which come out as colour pictures from another app and
+/// don't fit the party show look; Max's rule since 0.13.3b). Drawn white and coloured where they're used: on a button
+/// they take its text colour (every skin and button kind), next to a label the label's colour.
+/// </summary>
+public static class Glyph
+{
+	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play }
+
+	// (24 × 24, white; holes by even-odd, so one path can carry the details)
+	static string Body(Kind kind) => kind switch
+	{
+		Kind.Trophy => "<path fill-rule='evenodd' d='M6 2.5h12V5h3.2a.8.8 0 0 1 .8.8v2.4a5.2 5.2 0 0 1-4.9 5.2A6.2 6.2 0 0 1 13.2 16.4V18.5H16a1 1 0 0 1 1 1V22H7v-2.5a1 1 0 0 1 1-1h2.8v-2.1A6.2 6.2 0 0 1 6.9 13.4 5.2 5.2 0 0 1 2 8.2V5.8A.8.8 0 0 1 2.8 5H6zM4 7v1.2a3.2 3.2 0 0 0 2.3 3.1A6.4 6.4 0 0 1 6 9.3V7zm16 0h-2v2.3a6.4 6.4 0 0 1-.3 2A3.2 3.2 0 0 0 20 8.2z'/>",
+		Kind.Gamepad => "<path fill-rule='evenodd' d='M7 6h10a5.5 5.5 0 0 1 5.5 5.5v3.3a3.6 3.6 0 0 1-6.4 2.3L14.6 15.3H9.4l-1.5 1.8A3.6 3.6 0 0 1 1.5 14.8v-3.3A5.5 5.5 0 0 1 7 6zM6.3 8.8v1.9H4.4v2h1.9v1.9h2v-1.9h1.9v-2H8.3V8.8zM16.2 8.9a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5zM18.6 11.6a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5z'/>",
+		Kind.Folder => "<path fill-rule='evenodd' d='M2 5.5A1.5 1.5 0 0 1 3.5 4h5.3l2.2 2.2h9.5A1.5 1.5 0 0 1 22 7.7v11.3a1.5 1.5 0 0 1-1.5 1.5h-17A1.5 1.5 0 0 1 2 19zM2 9.2h20v1.6H2z'/>",
+		Kind.Camera => "<path fill-rule='evenodd' d='M3.2 7H7l1.6-2.6h6.8L17 7h3.8A1.2 1.2 0 0 1 22 8.2v10.6a1.2 1.2 0 0 1-1.2 1.2H3.2A1.2 1.2 0 0 1 2 18.8V8.2A1.2 1.2 0 0 1 3.2 7zM12 8.6a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8zM12 10.6a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8z'/>",
+		Kind.Eye => "<path fill-rule='evenodd' d='M1.5 12C4 7.2 7.8 5 12 5s8 2.2 10.5 7c-2.5 4.8-6.3 7-10.5 7S4 16.8 1.5 12zM12 7.6a4.4 4.4 0 1 0 0 8.8 4.4 4.4 0 0 0 0-8.8zM12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z'/>",
+		Kind.Dice => "<path fill-rule='evenodd' d='M5.5 2.5h13a3 3 0 0 1 3 3v13a3 3 0 0 1-3 3h-13a3 3 0 0 1-3-3v-13a3 3 0 0 1 3-3zM7.8 5.9a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM16.2 5.9a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM12 10.1a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM7.8 14.3a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM16.2 14.3a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8z'/>",
+		Kind.Magnifier => "<path fill-rule='evenodd' d='M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zM10 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10z'/><path d='M15.4 17.6l2.2-2.2 4.9 4.9a1.55 1.55 0 0 1-2.2 2.2z'/>",
+		Kind.Hourglass => "<path fill-rule='evenodd' d='M5 2h14v2.2h-1.4c-.2 3.3-2 5.4-4.2 7.8 2.2 2.4 4 4.5 4.2 7.8H19V22H5v-2.2h1.4c.2-3.3 2-5.4 4.2-7.8C8.4 9.6 6.6 7.5 6.4 4.2H5zM8.6 4.2c.2 2.5 1.6 4.2 3.4 6.2 1.8-2 3.2-3.7 3.4-6.2zM12 13.6c-1.6 1.8-2.9 3.4-3.3 5.6h6.6c-.4-2.2-1.7-3.8-3.3-5.6z'/><path d='M9.6 6.8h4.8c-.6 1.1-1.4 2-2.4 3.1-1-1.1-1.8-2-2.4-3.1zM12 15.6c1 1.1 1.9 2.2 2.3 3.6H9.7c.4-1.4 1.3-2.5 2.3-3.6z'/>",
+		Kind.Sun => "<circle cx='12' cy='12' r='4.8'/>" + string.Concat(Enumerable.Range(0, 8).Select(i =>
+			$"<rect x='10.9' y='0.8' width='2.2' height='4.6' rx='1.1' transform='rotate({i * 45} 12 12)'/>")),
+		Kind.Warning => "<path fill-rule='evenodd' stroke='#fff' stroke-width='2' stroke-linejoin='round' d='M12 3.2 21.8 20.2H2.2zM10.9 9h2.2l-.4 6.2h-1.4zM12 16.4a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z'/>",
+		Kind.Pause => "<rect x='5' y='3' width='5' height='18' rx='1.6'/><rect x='14' y='3' width='5' height='18' rx='1.6'/>",
+		Kind.Play => "<path stroke='#fff' stroke-width='2.4' stroke-linejoin='round' d='M6.5 3.8 19.5 12 6.5 20.2z'/>",
+		_ => "",
+	};
+
+	static readonly System.Collections.Generic.Dictionary<(Kind, int), Texture2D?> Cache = new();
+
+	/// <summary>The icon, white, size × size (null in headless runs, which have no renderer for textures).</summary>
+	public static Texture2D? Icon(Kind kind, int size)
+	{
+		if (Cache.TryGetValue((kind, size), out var cached)) return cached;
+		Texture2D? texture = null;
+		if (DisplayServer.GetName() != "headless")
+		{
+			var image = new Image();
+			// (drawn at 2× and scaled down, for smooth edges at the canvas_items stretch)
+			if (image.LoadSvgFromString($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='#fff'>{Body(kind)}</svg>", size * 2 / 24f) == Error.Ok)
+				texture = ImageTexture.CreateFromImage(image);
+		}
+		Cache[(kind, size)] = texture;
+		return texture;
+	}
+
+	/// <summary>Puts the icon before a button's text, in the button's own text colour (hover, pressed and disabled too).</summary>
+	public static Button On(this Button b, Kind kind, int size = 16)
+	{
+		b.Icon = Icon(kind, size);
+		b.AddThemeConstantOverride("icon_max_width", size);
+		// (read from the theme once the button is in it, and again when a skin changes the theme)
+		void Tint()
+		{
+			foreach (var (font, icon) in States)
+			{
+				var c = b.GetThemeColor(font);
+				if (b.GetThemeColor(icon) != c) b.AddThemeColorOverride(icon, c);
+			}
+		}
+		b.Ready += Tint;
+		b.ThemeChanged += Tint;
+		return b;
+	}
+
+	static readonly (string Font, string Icon)[] States =
+	{
+		("font_color", "icon_normal_color"), ("font_hover_color", "icon_hover_color"), ("font_pressed_color", "icon_pressed_color"),
+		("font_hover_pressed_color", "icon_hover_pressed_color"), ("font_focus_color", "icon_focus_color"), ("font_disabled_color", "icon_disabled_color"),
+	};
+
+	/// <summary>The icon as a control in one colour (for rows and notices).</summary>
+	public static TextureRect Rect(Kind kind, int size, Color color) => new()
+	{
+		Texture = Icon(kind, size),
+		SelfModulate = color,
+		ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+		StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+		CustomMinimumSize = new Vector2(size, size),
+		SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+		MouseFilter = Control.MouseFilterEnum.Ignore,
+	};
+
+	/// <summary>A label with the icon before it, in the label's colour (with <paramref name="grow"/> the row and label take
+	/// the width left; wrapping labels stay wrapping).</summary>
+	public static HBoxContainer Before(Kind kind, Label label, int size = 0, bool grow = true)
+	{
+		var px = size > 0 ? size : Mathf.RoundToInt((label.HasThemeFontSizeOverride("font_size") ? label.GetThemeFontSize("font_size") : UiTheme.BaseFontSize) * 1.05f);
+		var icon = Rect(kind, px, label.HasThemeColorOverride("font_color") ? label.GetThemeColor("font_color") : C.Text);
+		// (on the first line of a wrapping label, not in the middle of all of them)
+		if (label.AutowrapMode != TextServer.AutowrapMode.Off) icon.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
+		var row = U.H(Mathf.Max(4, px / 3), icon, label);
+		if (grow) row.SizeFlagsHorizontal = label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		return row;
+	}
+}

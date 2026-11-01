@@ -289,7 +289,7 @@ public partial class QuizOverviewScreen : Control
 		prompt.ClipText = true;
 		prompt.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		var sub = U.H(0, U.Muted(QuizRules.Summary(q), 12, false));
-		if (QuizRules.MapNeedsCheck(q, _quiz.Maps)) sub.AddChild(U.Text(" · ⚠ map changed: check the spot", 12, C.Orange));
+		if (QuizRules.MapNeedsCheck(q, _quiz.Maps)) sub.AddChild(U.Text(" · map changed: check the spot", 12, C.Orange));
 		else if (broken) sub.AddChild(U.Text(" · incomplete", 12, C.Accent));
 		// (the category under the name; a quiet yellow note when it has none yet: the stats per category need one)
 		sub.AddChild(q.Category != ""
@@ -463,7 +463,7 @@ public partial class QuizOverviewScreen : Control
 				save.Next, save.Questions, U.Plural(save.Players.Count, "player", "players")), 13),
 			U.Muted(string.Join("  ·  ", leaders), 13).Raw());
 		if (save.Questions != quiz.Questions.Count)
-			box.AddChild(U.Text(Lang.F("⚠ The quiz has changed since: it had {0} questions, now {1}.", save.Questions, quiz.Questions.Count), 13, C.Orange, wrap: true));
+			box.AddChild(Glyph.Before(Glyph.Kind.Warning, U.Text(Lang.F("The quiz has changed since: it had {0} questions, now {1}.", save.Questions, quiz.Questions.Count), 13, C.Orange, wrap: true)));
 		var go = U.Btn("Continue", "AccentButton", () => App.I.HostQuiz(quiz, null, save))
 			.Tip(issue ?? Lang.T("Opens a lobby with everyone's points. Players join with the new code and get their seat back."));
 		go.Disabled = issue != null;
