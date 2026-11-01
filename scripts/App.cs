@@ -198,6 +198,7 @@ public partial class App : Control
 		foreach (var shape in Enum.GetValues<Input.CursorShape>()) Input.SetCustomMouseCursor(null, shape);
 		// (a monitor switched for fullscreen gets the desktop's resolution back)
 		DisplayModes.Restore();
+		DiscordPresence.Stop();
 	}
 
 	Action? _afterWelcome;
@@ -234,6 +235,43 @@ public partial class App : Control
 		Client?.Poll();
 		_dev?.Process(delta);
 		FollowScreen(delta);
+		UpdatePresence(delta);
+	}
+
+	double _presenceIn;
+
+	/// <summary>
+	/// What friends on Discord see, worked out every 2 s from the screen and the room (never the room code). Not in dev
+	/// runs with arguments (bots, screenshots), where several copies would take turns overwriting it.
+	/// </summary>
+	void UpdatePresence(double delta)
+	{
+		if ((_presenceIn -= delta) > 0 || OS.GetCmdlineUserArgs().Length > 0) return;
+		_presenceIn = 2;
+		DiscordPresence.Show(PresenceStatus());
+	}
+
+	DiscordPresence.Status PresenceStatus()
+	{
+		if (Host?.State is { } hosted) return Night(hosted, "Hosting a quiz night");
+		if (Client?.State is { } joined) return Night(joined, "At a quiz night");
+		return _screen switch
+		{
+			QuizListScreen or QuizOverviewScreen or QuestionEditorScreen => new("make", "Making a quiz"),
+			EternalTableScreen or ProfileScreen or MatchHistoryScreen => new("stats", "Looking at the stats"),
+			_ => new("menu", "In the menus"),
+		};
+
+		static DiscordPresence.Status Night(RoomState s, string what)
+		{
+			var players = Math.Min(s.Players.Count(p => p.Connected), Limits.MaxPlayers);
+			return s.Phase switch
+			{
+				Phase.Lobby => new("lobby", what, Lang.T("In the lobby"), players, Limits.MaxPlayers),
+				Phase.Playing when s.Game is { } g => new("game", what, Lang.F("Question {0} of {1}", g.Index + 1, g.Total), players, Limits.MaxPlayers),
+				_ => new("podium", what, Lang.T("At the podium")),
+			};
+		}
 	}
 
 	/// <summary>

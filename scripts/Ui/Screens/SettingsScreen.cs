@@ -170,6 +170,10 @@ public partial class SettingsScreen : Control
 			U.Muted("If Quiznight crashes or runs into an error, the next start sends the end of its log to Max, so he can fix it. Your Windows user name is left out.", 12),
 			U.Muted("When a quiz night over Steam ends, the host's game sends its results (everyone's name, Steam ID and points) to Max's private results list, for the eternal table. \"Copy share code\" uploads that quiz (without its sounds and videos), and the game asks GitHub if there's an update. Nothing else leaves your PC.", 12),
 			U.Muted("Bug reports and feedback you send with the bug button carry your Steam name and ID, so Max can ask you about it and credit your ideas.", 12),
+			// (applies at once: the next presence update, within 2 s, shows it or takes it away)
+			new CheckBox { Text = Lang.T("Show what I'm doing on Discord"), ButtonPressed = Settings.DiscordPresence, MouseDefaultCursorShape = CursorShape.PointingHand }
+				.With(b => b.Toggled += on => Settings.DiscordPresence = on),
+			U.Muted("While Discord is open, friends see \"Playing Quiznight?\" and what you're doing: in the menus, making a quiz, or at a quiz night (lobby, question 3 of 20). Never the room code.", 12),
 			U.Gap(4),
 			U.Eyebrow("Anti-cheat"),
 			U.Muted("Quiznight? is protected by the Pinke Geilheit Neural-Level Anti-Cheat. Neural level means it reads your thoughts and bans you if you even think about cheating.", 12));

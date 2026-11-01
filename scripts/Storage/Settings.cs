@@ -273,6 +273,13 @@ public static class Settings
 		set => Set("ask_delete_quiz", value ? "on" : "off");
 	}
 
+	/// <summary>Friends on Discord see what you're doing in Quiznight (Net/DiscordPresence); on unless switched off.</summary>
+	public static bool DiscordPresence
+	{
+		get => Get("discord_presence", "on") != "off";
+		set => Set("discord_presence", value ? "on" : "off");
+	}
+
 	/// <summary>As a player: hear the podium sound the host picked (else your own).</summary>
 	public static bool PodiumFollowHost
 	{
