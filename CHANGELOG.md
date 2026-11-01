@@ -13,6 +13,8 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0b] — "Sauce Please": the podium as a show with credits and awards, a preview for every question, answer pictures and fun facts, a guided tour and Discord status
+
 ## [0.13.0d9]
 
 ### Changed
