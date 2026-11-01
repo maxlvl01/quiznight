@@ -274,6 +274,11 @@ public sealed class DevTools
 			var quiz = Value("--host") is { } file ? QuizStore.Import(file) : QuizStore.Save(sample);
 			_app.HostQuiz(quiz, NetMode.Lan, Has("--continue") ? NightSaves.Load(quiz.Id) : null);
 			// --teams N: the lobby with team mode on (N teams), for screenshots
+			// --lobby-names N: N made-up players sitting in the lobby (no bots: nothing plays), for screenshots
+			if (int.TryParse(Value("--lobby-names"), out var seated) && _app.Host is { } lobbyHost)
+				foreach (var seat in new[] { "Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hal", "Ivy", "Jo", "Kim", "Lou" }.Take(seated))
+					lobbyHost.Room.Join("fake-" + seat, seat);
+			// (-1 = "Play in teams" ticked)
 			if (int.TryParse(Value("--teams"), out var teams)) _app.Host?.UpdateSettings(teams: teams);
 			// --settings-window: Settings open over the lobby (or the game), for screenshots
 			if (Has("--settings-window")) _app.GetTree().CreateTimer(1.5).Timeout += Ui.Screens.SettingsWindow.Open;

@@ -281,6 +281,27 @@ public sealed class Room : IGameHooks
 		return Result.Success();
 	}
 
+	/// <summary>The host picked how many teams (not left to "Play in teams" choosing by the number of players).</summary>
+	bool _teamsPicked;
+
+	/// <summary>Who a draw puts in teams: everyone here, and saved seats of a continued night.</summary>
+	int TeamPlayers => Players.Count(p => p.Connected || p.Saved);
+
+	/// <summary>
+	/// Before the draw, the number of teams follows the players: the best split for how many are here (TeamNames.Suggest),
+	/// unless the host picked one that still works. True if it changed.
+	/// </summary>
+	bool FollowPlayers()
+	{
+		if (!Settings.TeamMode || Players.Any(p => p.Team != null)) return false;
+		if (_teamsPicked && TeamNames.Splits(TeamPlayers).Contains(Settings.Teams)) return false;
+		_teamsPicked = false;
+		var best = TeamNames.Suggest(TeamPlayers);
+		if (best == Settings.Teams) return false;
+		Settings.Teams = best;
+		return true;
+	}
+
 	/// <summary>A newcomer once the teams are drawn: the smallest team gets them (no draw for one player).</summary>
 	void JoinSmallestTeam(Player player)
 	{
@@ -457,7 +478,9 @@ public sealed class Room : IGameHooks
 		// (another number of teams: the old draw is gone, the host draws again)
 		if (teams is { } t && Phase == Shared.Phase.Lobby)
 		{
-			var count = t < TeamNames.Min ? 0 : Math.Min(t, TeamNames.Max);
+			// "Play in teams" ticked: the number follows the players (Tick) until the host picks a split
+			_teamsPicked = t >= TeamNames.Min;
+			var count = t == TeamNames.Auto ? TeamNames.Suggest(TeamPlayers) : t < TeamNames.Min ? 0 : Math.Min(t, TeamNames.Max);
 			if (count != Settings.Teams)
 			{
 				Settings.Teams = count;
@@ -640,6 +663,7 @@ public sealed class Room : IGameHooks
 		{
 			var now = Now();
 			changed |= Players.RemoveAll(p => !p.Saved && !p.Connected && p.DisconnectedAt is { } at && now - at > PlayerGraceMs) > 0;
+			changed |= FollowPlayers();
 		}
 		return changed;
 	}

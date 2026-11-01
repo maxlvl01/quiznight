@@ -171,6 +171,27 @@ public static class TeamNames
 	};
 	public static string Name(int team) => All[Math.Clamp(team, 0, All.Length - 1)].Name;
 	public static string Color(int team) => All[Math.Clamp(team, 0, All.Length - 1)].Color;
+
+	/// <summary>RoomSettings.Teams sent by "Play in teams": the room picks the number itself (Suggest) and follows the players.</summary>
+	public const int Auto = -1;
+
+	/// <summary>How many teams are possible for this many players: 2 up to 6, at least 2 players a team (2 when there are few).</summary>
+	public static List<int> Splits(int players) => Enumerable.Range(Min, Math.Clamp(players / 2, Min, Max) - Min + 1).ToList();
+
+	/// <summary>
+	/// The best number of teams: about three players a team, even teams if possible (8 → 2 of 4, 9 → 3 of 3, 10 → 4/3/3,
+	/// 12 → 4 of 3). Uneven teams cost half a player of distance; on a tie, fewer teams.
+	/// </summary>
+	public static int Suggest(int players) => Splits(players).OrderBy(t => Score(players, t)).ThenBy(t => t).First();
+
+	/// <summary>The splits worth offering: the best three, fewest teams first.</summary>
+	public static List<int> Offered(int players) => Splits(players).OrderBy(t => Score(players, t)).ThenBy(t => t).Take(3).OrderBy(t => t).ToList();
+
+	static double Score(int players, int teams) => Math.Abs((double)players / teams - 3.3) + (players % teams != 0 ? 0.5 : 0);
+
+	/// <summary>Team sizes, biggest first ("4/3/3"), as the draw deals them.</summary>
+	public static string Sizes(int players, int teams) =>
+		string.Join("/", Enumerable.Range(0, teams).Select(t => players / teams + (t < players % teams ? 1 : 0)));
 }
 
 public sealed class QuizInfo

@@ -158,7 +158,6 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 				v => _host.UpdateSettings(answerTimeSec: v), " s"),
 			BuzzerPicker.Make(_host.BuzzerSound, id => _host.BuzzerSound = id, false),
 			PodiumPicker.Make(_host.PodiumSound, id => _host.PodiumSound = id, true),
-			U.Muted("Team mode", 13).With(l => l.TooltipText = Lang.T("Teams are drawn at random. A team answers together: anyone in it can change the team's answer until time is up. Jokers once per team. Team nights don't count for the Ewige Tabelle.")),
 			TeamRow(room));
 		_content.AddChild(U.Panel(U.V(8, U.Eyebrow("Game rules for tonight"), U.H(24, left.Grow(), right.Grow())), "Inset"));
 
@@ -197,20 +196,42 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		TeamDrawShow.MaybeShow(this, room);
 	}
 
-	/// <summary>Team mode: off or 2–6 teams, and the draw (again as often as you like until the start).</summary>
+	/// <summary>
+	/// "Play in teams" (off to start with). Ticked, the room picks how many teams from the players here and keeps
+	/// following them (Room.FollowPlayers); before the draw the host can pick another split instead ("2 teams of 4" or
+	/// "4 teams of 2"). Then the draw, again as often as you like until the start.
+	/// </summary>
 	Control TeamRow(RoomState room)
 	{
-		var counts = new[] { ("0", Lang.T("Off")) }.Concat(Enumerable.Range(TeamNames.Min, TeamNames.Max - TeamNames.Min + 1).Select(n => (n.ToString(), n.ToString()))).ToArray();
-		var row = U.H(8, U.Segmented(counts, room.Settings.TeamMode ? room.Settings.Teams.ToString() : "0", id => _host.UpdateSettings(teams: int.Parse(id))));
-		if (room.Settings.TeamMode)
-			row.AddChild(U.Small(room.Teams != null ? "🎲 Draw again" : "🎲 Draw teams", () =>
+		var on = room.Settings.TeamMode;
+		var box = Rule("Play in teams", "Teams are drawn at random. A team answers together: anyone in it can change the team's answer until time is up. Jokers once per team. Team nights don't count for the Ewige Tabelle.",
+			on, play => _host.UpdateSettings(teams: play ? TeamNames.Auto : 0));
+		if (!on) return box;
+		var players = room.Players.Count(p => p.Connected);
+		var splits = TeamNames.Offered(players);
+		if (!splits.Contains(room.Settings.Teams)) splits = splits.Append(room.Settings.Teams).OrderBy(t => t).ToList();
+		var drawn = room.Teams != null;
+		var col = U.V(8, box);
+		// (the split can only change before the draw; afterwards newcomers join the smallest team)
+		if (!drawn)
+			col.AddChild(U.Segmented(splits.Select(t => (t.ToString(), Split(players, t))).ToArray(), room.Settings.Teams.ToString(),
+				id => _host.UpdateSettings(teams: int.Parse(id))));
+		col.AddChild(U.H(10,
+			U.Small(drawn ? "🎲 Draw again" : "🎲 Draw teams", () =>
 			{
 				var result = _host.DrawTeams();
 				_error = result.Ok ? null : result.Error;
 				if (!result.Ok) Refresh(_host.State);
-			}).Tip("Everyone is put in a team at random, with a show on every screen."));
-		return row;
+			}).Tip("Everyone is put in a team at random, with a show on every screen."),
+			U.Muted(drawn ? Lang.F("{0} teams drawn. Draw again to change the split.", room.Settings.Teams)
+				: "Follows the number of players until you pick a split.", 12, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter)));
+		return col;
 	}
+
+	/// <summary>"2 teams of 4", or "3 teams (3/3/2)" when they can't be even.</summary>
+	static string Split(int players, int teams) => players >= teams && players % teams == 0
+		? Lang.F("{0} teams of {1}", teams, players / teams)
+		: Lang.F("{0} teams ({1})", teams, players >= teams ? TeamNames.Sizes(players, teams) : "…");
 
 	static CheckBox Rule(string text, string tip, bool on, Action<bool> changed)
 	{

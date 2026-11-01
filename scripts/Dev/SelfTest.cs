@@ -513,6 +513,21 @@ public static class SelfTest
 		(choice.Prompt, choice.Mode, choice.Choices, choice.CorrectChoice, choice.Points) = ("Which?", ClassicMode.Choice, new() { "A", "B", "C", "D" }, 1, 1);
 		var buzzer = QuizRules.NewQuestion(QuestionType.Classic, "t2");
 		(buzzer.Prompt, buzzer.AnswerText) = ("Who?", "Me");
+		Check(new[] { 2, 3, 4, 6, 8, 9, 10, 12 }.Select(TeamNames.Suggest).SequenceEqual(new[] { 2, 2, 2, 2, 2, 3, 3, 4 })
+			&& TeamNames.Offered(8).SequenceEqual(new[] { 2, 3, 4 }) && TeamNames.Sizes(10, 3) == "4/3/3",
+			"Play in teams picks about three a team, even teams if it can (8 players: 2 of 4, 4 of 2 offered)");
+		var (auto, _) = NewRoom(new Quiz { Id = "auto", Title = "Auto", Questions = new() { choice } }, "a1", "a2", "a3", "a4", "a5", "a6");
+		auto.UpdateSettings(teams: TeamNames.Auto);
+		var followed = auto.Settings.Teams == 2;
+		auto.Join("a7", "a7");
+		auto.Join("a8", "a8");
+		auto.Join("a9", "a9");
+		auto.Tick();
+		followed &= auto.Settings.Teams == 3;
+		auto.UpdateSettings(teams: 2);
+		auto.Tick();
+		Check(followed && auto.Settings.Teams == 2, "the number of teams follows the players until the host picks a split");
+
 		var (room, _) = NewRoom(new Quiz { Id = "teams", Title = "Teams", Questions = new() { choice, buzzer } }, "ann", "bob", "cat", "dan");
 		room.UpdateSettings(teams: 2);
 		Check(!room.Start().Ok, "team mode: no start before the teams are drawn");
