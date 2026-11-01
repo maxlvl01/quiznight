@@ -118,6 +118,12 @@ the original design decisions; most still apply.
   Steps say their screen (`Step.Where`) and the overlay opens it; the sample quiz is `Tutorial.TourQuiz()`, in memory
   only. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
   --tutorial-step N` for screenshots.
+- **Podium** (`Ui/Screens/PodiumScreen`): built once from the first finished state (`Shared.FinalResults`), never
+  again, so leaving can't change it (and `Room.Leave` keeps the seat in `Finished` too). Big → small (`ScaledBox`) →
+  standings and awards → `CreditsRoll`. Awards are made on the host (`Server/Awards.cs`, sent as `RoomState.Awards`,
+  kinds/texts in `Shared.NightAwards`; each screen words them in its own language). Every podium is kept in
+  `user://podiums` (`Storage/Podiums`; not in dev runs with arguments), shown under the match history's "Your podiums".
+  `--screen podium [--skip-show]` shows `SampleQuiz.Podium()`; `--screen history --pretend-podium`.
 - **Question preview** (`Ui/Screens/QuestionPreview`, the editor's 👁 Preview): a real game over the editor, a `Room`
   (`Preview = true`: one player starts it) with only the draft question, its `HostSession` and a `ClientSession` joined
   through `Net/LoopbackTransport` (in memory), showing the player's own `PlayerGameScreen` plus host buttons on top.

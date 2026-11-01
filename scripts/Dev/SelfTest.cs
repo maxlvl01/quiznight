@@ -505,6 +505,40 @@ public static class SelfTest
 		void Unused() => PeerConnected?.Invoke("");
 	}
 
+	/// <summary>The podium: nobody drops off it by leaving, its awards, and the kept podium's file.</summary>
+	static void PodiumAndAwards()
+	{
+		var room = new Room("TEST", SampleQuiz.Build()) { HostName = "Max" };
+		room.Join("a", "Ann");
+		room.Join("b", "Bob");
+		room.Start();
+		room.Finish();
+		room.Leave("b");
+		Check(room.GetPlayer("b") is { Connected: false } && room.ToState("host").Players.Count == 2, "leaving at the podium keeps the seat: they stay on it");
+		Check(room.ToState("a") is { HostName: "Max", Awards: not null }, "a finished room says who hosted and has its awards");
+
+		var r = SampleQuiz.Podium();
+		string? Won(string kind) => r.Awards.FirstOrDefault(a => a.Kind == kind) is { } a ? string.Join(",", a.Players) : null;
+		Check(Won("most-right") == "p0" && Won("fastest-buzzer") == "p0" && Won("bullseye") == "p0" && Won("map-master") == "p1" && Won("best-speller") == "p5",
+			"awards go to the best at each (most right, fastest buzzer, closest pin, best on maps, no typos)");
+		Check(Won("quickest-answers") == "p3" && Won("host-favourite") == "p4" && Won("trigger-happy") == null && Won("mind-reader") == null,
+			"awards need enough tries (one answer isn't an average, one wrong buzz each isn't trigger-happy)");
+
+		var tie = new Room("TEST", SampleQuiz.Build());
+		tie.Join("a", "Ann");
+		tie.Join("b", "Bob");
+		tie.Start();
+		tie.NoteScored("a");
+		tie.NoteScored("b");
+		tie.Finish();
+		Check(tie.ToState("host").Awards?.FirstOrDefault(a => a.Kind == "most-right") is { Players.Count: 2, Value: 1 }, "an award two are equal at is shared");
+		Check(r.Player("p5") is { LeftAt: 5 } && r.Players.Count == 6 && r.Players[0].Id == "p0" && r.Host == "maxlvl01", "the final results keep whoever left, in ranked order, with the host");
+		var back = FinalResults.FromJson(r.ToJson());
+		Check(back != null && back.Players.Count == 6 && back.Awards.Count == r.Awards.Count && back.Player("p5")?.LeftAt == 5 && back.Players[0].Stats.Scored == r.Players[0].Stats.Scored,
+			"a kept podium reads back the same");
+		Check(FinalResults.FromJson("{\"format\": 99, \"players\": [{}]}") == null && FinalResults.FromJson("nonsense") == null, "a podium file from a newer game or broken is skipped");
+	}
+
 	/// <summary>The editors' undo and redo (EditHistory) and the question snapshots they keep.</summary>
 	static void Undo()
 	{
@@ -708,6 +742,7 @@ public static class SelfTest
 		FastPassFirst();
 		FairBuzzers();
 		SaveAndResume();
+		PodiumAndAwards();
 		Safety();
 		Undo();
 		Files();

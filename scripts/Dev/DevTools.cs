@@ -8,7 +8,7 @@
 //   --quit-at-end                  quit a few seconds after the podium
 //   --bot NAME [--address IP]      join a LAN room and answer on its own
 //   --open TYPE                    open the editor on the sample quiz's question of that type
-//   --screen home|quizzes|quiz|settings|eternal|history|delete  open that screen (delete: the delete question, deleting nothing)
+//   --screen home|quizzes|quiz|settings|eternal|history|podium|delete  open that screen (delete: the delete question, deleting nothing; podium: a made-up night's)
 //   --lang en|de                   use that language this run (not saved)
 //   --video-guide [FILE]           open a new video question with the MP4 → .ogv guide
 //   --whats-new                    the home screen with this version's What's new open
@@ -379,7 +379,15 @@ public sealed class DevTools
 					_app.GoEternalTable();
 					break;
 				case "history":
+					// (--pretend-podium: a made-up kept podium in "Your podiums")
+					if (Has("--pretend-podium")) Storage.Podiums.Pretend = SampleQuiz.Podium();
 					_app.GoMatchHistory();
+					break;
+				// (a made-up night's podium with its show and credits; --shot … --after SEC for a moment of it)
+				case "podium":
+					_app.GoPodium(SampleQuiz.Podium());
+					// (--skip-show: straight to the end, the podium small with everything below it)
+					if (Has("--skip-show")) Callable.From(() => (_app.CurrentScreen as PodiumScreen)?.GoBack()).CallDeferred();
 					break;
 				// (the newest night on its own screen, with its graphs: --graph points for the other one)
 				case "night":

@@ -13,6 +13,17 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d7]
+
+### Added
+- **The podium is a show now, with credits.** When the quiz ends, the podium comes in big: 3rd place rises out of the floor, then 2nd, then the winner with confetti. After a moment it shrinks, and everyone else's places and tonight's awards come in below it. Then the credits roll, like at the end of a party game: the quiz, the quizmaster, everyone who played with their place, and the awards, ending on "Thanks for playing!". A click skips the podium's show, and Skip or Esc ends the credits. "▶ Credits" plays them again. (Thanks for the idea, maxlvl01!)
+- **Tonight's awards.** The podium names the best of the night at each thing the stats count: most right answers, fastest buzzer, quickest answers, biggest haul on one question, map master, the closest pin (Bullseye), best guesser on estimations, best speller, mind reader (right at the first hint), time traveller (timeline items), the host's favourite (points from the host), and the most wrong buzzes (Trigger-happy). An award needs enough tries to mean something (an average needs at least two), only shows when someone won it, and players who are equal share it.
+- **Watch a podium again.** Every podium you see is kept on your PC, as host or player. The match history has them under "Your podiums" with "▶ Watch again": the podium with its show and credits, as it was that night.
+- **Save the podium as a picture.** "📷 Save picture" on the podium saves the screen without its buttons in Documents/Quiznight/Pictures and opens the folder.
+
+### Fixed
+- **Players who left disappeared from the podium.** If someone closed the game or left on the podium, they vanished from it for everyone, which ruined screenshots. Leaving the room took their seat away (that's how the lobby works), and the podium was drawn again from the room as it was then. Now leaving on the podium keeps the seat, like during the game, and every screen takes the final standings once, when the quiz ends, so nobody drops off it any more. (Thanks for the report, maxlvl01!)
+
 ## [0.13.0d6]
 
 ### Added

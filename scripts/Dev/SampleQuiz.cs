@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Godot;
 using QuizNight.Server;
 using QuizNight.Shared;
@@ -13,6 +14,46 @@ namespace QuizNight.Dev;
 
 public static class SampleQuiz
 {
+	/// <summary>
+	/// A made-up finished night of the sample quiz (--screen podium, the self-test): six players with points, buzzes,
+	/// pins and typos, one who left, through a real Room so its awards are the real ones.
+	/// </summary>
+	public static FinalResults Podium()
+	{
+		var room = new Room("TEST", Build()) { HostName = "maxlvl01" };
+		var names = new[] { "[OTB] BassGaming", "Ann", "Kirito", "Lena", "Tom", "Sophie" };
+		foreach (var (name, i) in names.Select((n, i) => (n, i))) room.Join($"p{i}", name);
+		room.Start();
+		void Q(int index, string id, int points, long? buzzMs = null, long? answerMs = null, double? km = null, int? typos = null, int wrong = 0)
+		{
+			// (the stats go to the current question: these are filed by hand under each one)
+			var key = (index, id);
+			var s = room.StatsOf(id);
+			var q = room.QuestionStats.TryGetValue(key, out var x) ? x : room.QuestionStats[key] = new QuestionStat();
+			room.Scores[id] = room.Score(id) + points;
+			q.Points += points;
+			if (points > 0) { s.Scored++; q.Right = true; }
+			if (buzzMs is { } b) { s.BuzzMs += b; s.Buzzes++; q.BuzzMs = b; }
+			if (answerMs is { } a) { s.AnswerMs += a; s.Answers++; q.AnswerMs = a; }
+			if (km is { } k) { s.Km += k; s.KmAnswers++; q.Km = k; }
+			q.Typos = typos;
+			q.WrongBuzzes += wrong;
+		}
+		Q(0, "p0", 3, buzzMs: 900); Q(0, "p1", 0, buzzMs: 1500, wrong: 1); Q(0, "p2", 0, buzzMs: 2100, wrong: 1);
+		Q(1, "p0", 2, answerMs: 4200, typos: 0); Q(1, "p1", 2, answerMs: 3100, typos: 0); Q(1, "p3", 2, answerMs: 6000, typos: 2);
+		Q(2, "p1", 5, km: 12.4); Q(2, "p0", 2, km: 85); Q(2, "p2", 1, km: 140); Q(2, "p4", 0, km: 610);
+		Q(3, "p2", 4, buzzMs: 700); Q(3, "p0", 0, buzzMs: 1100, wrong: 1); Q(3, "p5", 1, answerMs: 5200, typos: 0);
+		Q(4, "p1", 1, km: 33); Q(4, "p0", 3, km: 4.2); Q(4, "p3", 1, answerMs: 2600, typos: 0); Q(4, "p5", 2, answerMs: 4800, typos: 0);
+		room.NoteHostPoints("p4", 2);
+		room.Scores["p4"] += 2;
+		room.Leave("p5");
+		room.GetPlayer("p5")!.LeftAt = 5;
+		room.Finish();
+		var results = FinalResults.From(room.ToState("host"));
+		results.Host = room.HostName;
+		return results;
+	}
+
 	public static Quiz Build()
 	{
 		var skyrim = new MapAsset { Id = "map-skyrim", Name = "Skyrim", PresetId = "skyrim", WidthKm = MapPresets.Get("skyrim")!.WidthKm };

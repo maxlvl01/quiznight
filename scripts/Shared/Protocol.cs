@@ -175,6 +175,10 @@ public sealed class RoomState
 	public ArcadeView? Arcade;
 	/// <summary>The lobby continues a saved night: the question (1-based) it goes on at. Scores holds the saved points.</summary>
 	public int? ResumeFrom;
+	/// <summary>The host's name (for the podium's credits).</summary>
+	public string HostName = "";
+	/// <summary>The night's awards, once it's finished (the podium's credits).</summary>
+	public List<NightAward>? Awards;
 
 	public int Score(string playerId) => Scores.TryGetValue(playerId, out var s) ? s : 0;
 

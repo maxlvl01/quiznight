@@ -117,6 +117,12 @@ public sealed class Room : IGameHooks
 	/// <summary>The editor's question preview (Ui/Screens/QuestionPreview): one player is enough to start.</summary>
 	public bool Preview;
 
+	/// <summary>The host's name, for the podium's credits.</summary>
+	public string HostName = "";
+
+	/// <summary>The night's awards, made once it's finished (until the room goes back to the lobby).</summary>
+	List<NightAward>? _awards;
+
 	public static string NewCode(Random? rng = null)
 	{
 		rng ??= Random.Shared;
@@ -268,6 +274,8 @@ public sealed class Room : IGameHooks
 			Settings = Settings.Clone(),
 			HostConnected = true,
 			ResumeFrom = Phase == Shared.Phase.Lobby && Resume is { } save ? Math.Min(save.Next, Quiz.Questions.Count - 1) + 1 : null,
+			HostName = HostName,
+			Awards = Phase == Shared.Phase.Finished ? _awards ??= Server.Awards.Make(this) : null,
 			Players = Players.Select(p => new PublicPlayer { Id = p.Id, Name = p.Name, Color = p.Color, Connected = p.Connected, JoinedAt = p.JoinedAt, LeftAt = p.LeftAt, Version = p.Version }).ToList(),
 		};
 	}
@@ -371,11 +379,14 @@ public sealed class Room : IGameHooks
 		Game.PlayerLeft(id);
 	}
 
-	/// <summary>A player leaves: in the lobby their seat goes; during a game it's kept so they can come back.</summary>
+	/// <summary>
+	/// A player leaves: in the lobby their seat goes; during a game it's kept so they can come back, and on the podium
+	/// too (they finished the night: they stay on it).
+	/// </summary>
 	public void Leave(string id)
 	{
 		Trace.Log("room", $"leave {id} ({Phase})");
-		if (Playing || GetPlayer(id) is { Saved: true }) Disconnect(id);
+		if (Playing || Phase == Shared.Phase.Finished || GetPlayer(id) is { Saved: true }) Disconnect(id);
 		else Remove(id);
 	}
 
@@ -552,6 +563,7 @@ public sealed class Room : IGameHooks
 			p.Saved = false;
 		}
 		_openSave = null;
+		_awards = null;
 		Phase = Shared.Phase.Lobby;
 	}
 

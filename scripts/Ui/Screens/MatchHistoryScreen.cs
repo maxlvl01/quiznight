@@ -27,6 +27,7 @@ public partial class MatchHistoryScreen : Control
 			EternalTableScreen.TopBar("history"),
 			U.Heading("Match history", 34),
 			U.Muted("Every quiz night so far, newest first.", 15));
+		if (Kept() is { } kept) page.AddChild(kept);
 		if (nights.Count == 0)
 			page.AddChild(U.Card(8, U.Muted("No quiz nights yet. After each one the results go to Max; with the next update they show up here.", 15, true, HorizontalAlignment.Center)));
 		var me = MyId;
@@ -46,6 +47,28 @@ public partial class MatchHistoryScreen : Control
 			page.AddChild(card);
 		}
 		AddChild(U.Page(page, 980, 20));
+	}
+
+	/// <summary>
+	/// The podiums this PC saw (Storage.Podiums), newest first: the quiz, when, the winner, and "Watch again" for the
+	/// podium with its credits. Null when there are none.
+	/// </summary>
+	static Control? Kept()
+	{
+		var podiums = Podiums.All();
+		if (podiums.Count == 0) return null;
+		var list = U.V(8, U.Eyebrow("Your podiums"), U.Muted("Every podium you were at on this PC: watch it again with its credits.", 13));
+		foreach (var r in podiums.Take(10))
+		{
+			var winners = string.Join(" & ", r.Players.Where(p => p.Place == 1).Select(p => p.Name));
+			var date = r.Date.ToString("dd.MM.yyyy HH:mm", Inv);
+			list.AddChild(GameParts.Row(10,
+				U.Bold(r.QuizTitle == "" ? Lang.T("Quiz") : r.QuizTitle, 16).Raw().Clipped(120),
+				U.Text("🏆 " + winners, 14, C.Accent).Raw().Clipped(80),
+				U.Mono(date, 13, C.Muted),
+				U.Link("▶ Watch again", () => App.I.GoPodium(r), 13)));
+		}
+		return U.Card(8, list);
 	}
 
 	/// <summary>Quiz name, "by host", Beta and the date, in one line (centred on each other).</summary>

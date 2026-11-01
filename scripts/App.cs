@@ -608,6 +608,8 @@ public partial class App : Control
 		else GoEternalTable();
 	}
 	public void GoMatchNight(Storage.Results.Night night) => Show(new MatchNightScreen(night), () => GoMatchNight(night));
+	/// <summary>A podium kept on this PC, with its show and credits again (from the match history).</summary>
+	public void GoPodium(FinalResults results) => Show(new PodiumScreen(results), () => GoPodium(results));
 
 	public void GoQuiz(string id)
 	{
@@ -673,7 +675,7 @@ public partial class App : Control
 			code = Room.NewCode();
 			lanPort = lan.Port;
 		}
-		Host = new HostSession(new Room(code, quiz), transport, mode, lanPort) { BuzzerSound = Settings.BuzzerSound, PodiumSound = Settings.PodiumSound, Autosaves = true };
+		Host = new HostSession(new Room(code, quiz) { HostName = Settings.PlayerName }, transport, mode, lanPort) { BuzzerSound = Settings.BuzzerSound, PodiumSound = Settings.PodiumSound, Autosaves = true };
 		if (resume != null) Host.Restore(resume);
 		_hostAssets = new HostAssets(() => Host?.Room);
 		Host.Changed += OnRoomChanged;
