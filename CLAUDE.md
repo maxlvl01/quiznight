@@ -226,6 +226,11 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
   join needs the room code (`JoinRequest.Code`) and a Steam-confirmed ID (claimed ones are refused); the lobby list only
   has `SteamService.CodeKey` (PBKDF2) of the code; kicked players stay out; `RoomSettings.FriendsOnly`. LAN host frames
   ≤ 1 MB, joins within 15 s, ≤ 48 connections. The self-test's `Safety()` covers these.
+- **Never use emoji for graphics (Max's rule, 0.13.3b).** No emoji as icons on buttons, labels, pills or anywhere players
+  see a picture: they look pasted in from another app. Draw a fitting icon in the game's style instead: a
+  `MediaIcon.Kind` shape (`Ui/MusicPlayer.cs`: flat, in the skin's text colour, details cut out in `C.Panel2`; the bug,
+  jukebox, gear and calendar buttons) or a coloured SVG like `Bolt` (`Ui/Widgets.cs`: filled, ink outline). Older
+  screens still have some (🏆 🎮 🗂 📷 👁 🎲 🔍 ⏳ ☀): replace them when you touch those screens.
 - **Custom cursors** (`assets/cursors`, `tools/make_cursors.py`) are set in `App.UseCursors`, cleared in `App._ExitTree`
   (else Godot reports their textures as leaked at exit).
 
