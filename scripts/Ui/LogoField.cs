@@ -1,6 +1,6 @@
 // The home screen's logo as a quiz answer field: "Quiznight?" in a text box with a blinking cursor. Every so often it
 // deletes itself letter by letter and types an easter egg instead (Klaus? Mond? Autobahn? …), waits, and types
-// "Quiznight?" back. Two spotlights sweep over it from above (Spotlights, drawn behind the page).
+// "Quiznight?" back. Two spotlights from the top corners shine on it (Spotlights, or LitSpotlights in Settings).
 
 using System;
 using System.Collections.Generic;
@@ -131,20 +131,28 @@ public partial class LogoField : PanelContainer
 }
 
 /// <summary>
-/// Two spotlights from above that sweep slowly across the top of the home screen and cross over the logo: soft cones,
-/// bright at the lamp, fading out below. Drawn behind the page; the mouse goes through.
+/// Two spotlights from the top corners aimed at the logo (home screen and title screen): soft cones that sway a little
+/// around it, ending in a round pool of light on the logo. Drawn behind the logo; the mouse goes through.
 /// </summary>
 public partial class Spotlights : Control
 {
 	double _t;
-	/// <summary>Where the light lands, from the top (the logo's height on the screen).</summary>
-	public float Target = 150;
+	/// <summary>What they light: the logo (its middle is where the light lands).</summary>
+	public Control? Logo;
 
 	public Spotlights()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
 		SetAnchorsPreset(LayoutPreset.FullRect);
+		// (drawn over the logo and added to it, so the pool of light shows on the logo instead of behind its box)
+		Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
 	}
+
+	/// <summary>The spotlights a screen gets: the real ones if switched on in Settings (or --real-spotlights), else drawn.</summary>
+	public static Control For(Control logo) =>
+		Storage.Settings.RealSpotlights || Array.IndexOf(OS.GetCmdlineUserArgs(), "--real-spotlights") >= 0
+			? new LitSpotlights { Logo = logo }
+			: new Spotlights { Logo = logo };
 
 	public override void _Process(double delta)
 	{
@@ -153,109 +161,156 @@ public partial class Spotlights : Control
 		QueueRedraw();
 	}
 
-	void Cone(Vector2 lamp, Vector2 aim, float width, Color color)
+	/// <summary>Where each lamp hangs and where its light lands now, and how big the pool is (shared with LitSpotlights).</summary>
+	internal static (Vector2 Lamp, Vector2 Aim)[] Beams(Control self, Control? logo, double t, out float pool)
+	{
+		var w = self.Size.X;
+		var rect = logo != null && IsInstanceValid(logo) && logo.IsVisibleInTree()
+			? new Rect2(logo.GlobalPosition - self.GlobalPosition, logo.Size * logo.GetGlobalTransform().Scale)
+			: new Rect2(w / 2 - 200, 80, 400, 120);
+		var c = rect.GetCenter();
+		pool = Math.Max(rect.Size.X, rect.Size.Y) * 0.42f;
+		// (they sway around the logo at different speeds, so their pools cross on it)
+		var sway = rect.Size.X * 0.22f;
+		return new[]
+		{
+			(new Vector2(w * 0.12f, -20), c + new Vector2((float)Math.Sin(t * 0.45) * sway, (float)Math.Sin(t * 0.7) * rect.Size.Y * 0.08f)),
+			(new Vector2(w * 0.88f, -20), c + new Vector2((float)Math.Sin(t * 0.37 + 1.7) * sway, (float)Math.Sin(t * 0.6 + 0.8) * rect.Size.Y * 0.08f)),
+		};
+	}
+
+	/// <summary>The round pool of light where a beam lands (also LitSpotlights': real lights barely show on the logo's dark box).</summary>
+	internal static void Pool(CanvasItem on, Vector2 aim, float pool, Color color)
+	{
+		// (many thin steps, so it fades smoothly instead of in rings)
+		for (var i = 0; i < 24; i++)
+			on.DrawCircle(aim, pool * (1 - i / 25f), new Color(color, color.A * 0.055f));
+	}
+
+	void Cone(Vector2 lamp, Vector2 aim, float pool, Color color)
 	{
 		var dir = (aim - lamp).Normalized();
 		var side = new Vector2(-dir.Y, dir.X);
-		var far = lamp + dir * (aim - lamp).Length() * 1.35f;
-		var bright = color;
 		var faint = new Color(color, 0);
-		DrawPolygon(new[] { lamp + side * 6, lamp - side * 6, far - side * width, far + side * width },
-			new[] { bright, bright, faint, faint });
-		// (the pool of light where it lands)
-		for (var i = 0; i < 6; i++)
-			DrawCircle(aim, width * 0.55f * (1 - i / 7f), new Color(color, color.A * 0.12f));
+		// (the beam widens to the pool's size where it lands, and fades a little past it)
+		DrawPolygon(new[] { lamp + side * 6, lamp - side * 6, aim - side * pool, aim + side * pool },
+			new[] { color, color, new Color(color, color.A * 0.35f), new Color(color, color.A * 0.35f) });
+		DrawPolygon(new[] { aim + side * pool, aim - side * pool, aim + dir * pool * 0.9f - side * pool * 1.05f, aim + dir * pool * 0.9f + side * pool * 1.05f },
+			new[] { new Color(color, color.A * 0.35f), new Color(color, color.A * 0.35f), faint, faint });
+		// (the round pool of light on the logo)
+		Pool(this, aim, pool, color);
 	}
 
 	public override void _Draw()
 	{
-		var w = Size.X;
-		// (two lamps at the top corners; they swing at different speeds, so their pools meet and part)
-		var a = (float)Math.Sin(_t * 0.45) * 0.22f;
-		var b = (float)Math.Sin(_t * 0.37 + 1.7) * 0.22f;
-		var warm = new Color(C.Gold, 0.16f);
-		var cool = new Color(C.Pink, 0.13f);
-		Cone(new Vector2(w * 0.12f, -20), new Vector2(w * (0.5f + a), Target), 150, warm);
-		Cone(new Vector2(w * 0.88f, -20), new Vector2(w * (0.5f + b), Target), 150, cool);
+		var beams = Beams(this, Logo, _t, out var pool);
+		Cone(beams[0].Lamp, beams[0].Aim, pool, new Color(C.Gold, 0.16f));
+		Cone(beams[1].Lamp, beams[1].Aim, pool, new Color(C.Pink, 0.13f));
 	}
 }
 
 /// <summary>
-/// The experimental version (Settings → "Real spotlights"): the same two lamps as real 2D lights that cast shadows. Every
-/// button, card and the logo on the page gets an occluder the size of its box, so the light falls past them and leaves
-/// their shadows on the background. Godot has no ray tracing in 2D; its lights trace shadows per light from the occluders'
-/// edges, which is what this uses. The occluders follow the page a few times a second (it hardly moves).
+/// The experimental version (Settings → "Real spotlights"): the same two lamps aimed at the logo as real 2D lights. The
+/// light ends in a round pool on the logo, and the logo throws its shadow onto what's behind it (only the logo: the
+/// buttons and cards don't). Godot has no ray tracing in 2D; its lights trace shadows from occluders' edges, which is
+/// what this uses.
 /// </summary>
 public partial class LitSpotlights : Control
 {
-	double _t, _sinceOccluders = 1;
-	public float Target = 150;
-	/// <summary>The page whose boxes cast shadows.</summary>
-	public Control? Page;
+	double _t;
+	/// <summary>What they light and what throws the shadow.</summary>
+	public Control? Logo;
 	readonly PointLight2D[] _lamps = new PointLight2D[2];
-	readonly Node2D _occluders = new();
+	readonly LightOccluder2D _shadow = new() { Occluder = new OccluderPolygon2D() };
 	static Texture2D? _cone;
+	/// <summary>The cone texture's size, and where in it the pool's middle is (from the top).</summary>
+	const int N = 256;
+	const float PoolY = N * 0.78f;
 
 	public LitSpotlights()
 	{
 		MouseFilter = MouseFilterEnum.Ignore;
 		SetAnchorsPreset(LayoutPreset.FullRect);
-		AddChild(_occluders);
+		// (its own drawing, the pools, is added over the logo like the drawn spotlights')
+		Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
+		AddChild(_shadow);
 		var colours = new[] { new Color(C.Gold, 1), new Color(C.Pink, 1) };
 		for (var i = 0; i < 2; i++)
 		{
 			_lamps[i] = new PointLight2D
 			{
-				Texture = _cone ??= ConeTexture(), TextureScale = 4f, Color = colours[i], Energy = 1.4f,
+				Texture = _cone ??= ConeTexture(), Color = colours[i], Energy = 3.2f,
 				BlendMode = Light2D.BlendModeEnum.Add, ShadowEnabled = true, ShadowFilter = Light2D.ShadowFilterEnum.Pcf5,
 				ShadowFilterSmooth = 3, ShadowColor = new Color(0, 0, 0, 0),
-				// (only the background takes shadows, ShadowLayer: the page's boxes are lit, not in their own shadow)
+				// (they light only the logo and what's behind it, LitLayer: not the buttons and cards; only what's behind
+				// the logo takes its shadow, ShadowLayer, so the logo itself is lit)
+				RangeItemCullMask = LitLayer,
 				ShadowItemCullMask = ShadowLayer,
 				// (the texture's top middle is the lamp)
-				Offset = new Vector2(0, 128),
+				Offset = new Vector2(0, N / 2f),
 			};
 			AddChild(_lamps[i]);
 		}
 	}
 
 	const int ShadowLayer = 2;
+	const int LitLayer = 4;
 
-	/// <summary>The app's background (everything drawn before the screens) takes the page's shadows.</summary>
-	public override void _Ready() => MarkBackground(true);
+	/// <summary>Everything drawn before this (the app's background, a title screen's glow) takes the logo's shadow.</summary>
+	public override void _Ready() => MarkBehind(true);
 
-	public override void _ExitTree() => MarkBackground(false);
+	public override void _ExitTree() => MarkBehind(false);
 
-	void MarkBackground(bool on)
+	void MarkBehind(bool on)
 	{
-		Node? screens = this;
-		while (screens?.GetParent() is { } parent && parent != App.I) screens = parent;
-		if (screens == null || App.I == null) return;
 		static void Set(Node n, bool on)
 		{
-			if (n is CanvasItem item) item.LightMask = on ? item.LightMask | ShadowLayer : item.LightMask & ~ShadowLayer;
+			if (n is CanvasItem item) item.LightMask = on ? item.LightMask | ShadowLayer | LitLayer : item.LightMask & ~(ShadowLayer | LitLayer);
 			foreach (var child in n.GetChildren()) Set(child, on);
 		}
-		foreach (var child in App.I.GetChildren())
+		// (each ancestor's children before the branch this is in: the background, the page)
+		for (Node node = this; node.GetParent() is { } parent; node = parent)
 		{
-			if (child == screens) break;
-			Set(child, on);
+			foreach (var sibling in parent.GetChildren())
+			{
+				if (sibling == node) break;
+				Set(sibling, on);
+			}
+			if (parent == App.I) break;
 		}
+		// (but the page itself isn't lit, only the logo: lit, and not in its own shadow)
+		if (GetParent() is { } screen)
+			foreach (var sibling in screen.GetChildren())
+			{
+				if (sibling == this) break;
+				Set(sibling, false);
+			}
+		if (Logo != null && IsInstanceValid(Logo)) SetLit(Logo, on);
 	}
 
-	/// <summary>A 256×256 cone of light pointing down from the top middle, bright near the lamp, soft at its edges.</summary>
+	static void SetLit(Node n, bool on)
+	{
+		if (n is CanvasItem item) item.LightMask = on ? (item.LightMask | LitLayer) & ~ShadowLayer : item.LightMask & ~LitLayer;
+		foreach (var child in n.GetChildren()) SetLit(child, on);
+	}
+
+	/// <summary>A cone of light pointing down from the top middle, widening into a round pool at PoolY, soft at its edges.</summary>
 	static ImageTexture ConeTexture()
 	{
-		const int n = 256;
-		var img = Image.CreateEmpty(n, n, false, Image.Format.Rgba8);
-		for (var y = 0; y < n; y++)
-			for (var x = 0; x < n; x++)
+		var img = Image.CreateEmpty(N, N, false, Image.Format.Rgba8);
+		var poolR = N * 0.17f;
+		for (var y = 0; y < N; y++)
+			for (var x = 0; x < N; x++)
 			{
-				var dx = (x - n / 2f) / n;
-				var dy = (y + 1f) / n;
-				var angle = Math.Abs(Math.Atan2(dx, dy));
-				var edge = Math.Clamp((0.42 - angle) / 0.12, 0, 1);
-				var fall = Math.Clamp(1 - dy * 0.85, 0, 1);
-				var v = (float)(edge * edge * fall);
+				var dx = x - N / 2f;
+				// (the beam: as wide as the pool where it lands, fainter than the pool)
+				var halfWidth = 3 + (poolR - 3) * Math.Min(1f, (y + 1f) / PoolY);
+				var edge = Math.Clamp((halfWidth - Math.Abs(dx)) / (halfWidth * 0.45f), 0, 1);
+				var beam = edge * edge * (y <= PoolY ? 0.45 : 0.45 * Math.Clamp(1 - (y - PoolY) / (N - PoolY), 0, 1));
+				// (the round pool)
+				var d = new Vector2(dx, y - PoolY).Length() / poolR;
+				var pool = Math.Clamp(1 - d, 0, 1);
+				var v = (float)Math.Min(1, beam + pool * pool * 0.9);
 				img.SetPixel(x, y, new Color(v, v, v, 1));
 			}
 		return ImageTexture.CreateFromImage(img);
@@ -264,55 +319,31 @@ public partial class LitSpotlights : Control
 	public override void _Process(double delta)
 	{
 		if (!Announcer.ReduceMotion) _t += delta;
-		var w = Size.X;
-		var a = (float)Math.Sin(_t * 0.45) * 0.22f;
-		var b = (float)Math.Sin(_t * 0.37 + 1.7) * 0.22f;
-		Aim(_lamps[0], new Vector2(w * 0.12f, -20), new Vector2(w * (0.5f + a), Target));
-		Aim(_lamps[1], new Vector2(w * 0.88f, -20), new Vector2(w * (0.5f + b), Target));
-		_sinceOccluders += delta;
-		if (_sinceOccluders >= 0.25)
+		var beams = Spotlights.Beams(this, Logo, _t, out var pool);
+		for (var i = 0; i < 2; i++)
 		{
-			_sinceOccluders = 0;
-			PlaceOccluders();
+			var (from, to) = beams[i];
+			var lamp = _lamps[i];
+			lamp.Position = from;
+			lamp.Rotation = (to - from).Angle() - Mathf.Pi / 2;
+			// (stretched so the pool lands on the logo, whatever the distance)
+			lamp.TextureScale = (to - from).Length() / PoolY;
 		}
+		// (the logo's shadow, where the logo is now: it hardly moves)
+		if (Logo != null && IsInstanceValid(Logo) && Logo.IsVisibleInTree())
+		{
+			var r = new Rect2(Logo.GlobalPosition - GlobalPosition, Logo.Size * Logo.GetGlobalTransform().Scale);
+			_shadow.Visible = true;
+			_shadow.Occluder.Polygon = new[] { r.Position, new Vector2(r.End.X, r.Position.Y), r.End, new Vector2(r.Position.X, r.End.Y) };
+		}
+		else _shadow.Visible = false;
+		QueueRedraw();
 	}
 
-	static void Aim(PointLight2D lamp, Vector2 from, Vector2 to)
+	public override void _Draw()
 	{
-		lamp.Position = from;
-		lamp.Rotation = (to - from).Angle() - Mathf.Pi / 2;
-	}
-
-	/// <summary>An occluder per visible button, card and the logo (in this control's coordinates), reusing the ones there.</summary>
-	void PlaceOccluders()
-	{
-		var rects = new List<Rect2>();
-		void Walk(Node n)
-		{
-			if (n is Control { Visible: false }) return;
-			// (not the page's own background panel: a box over most of the screen would put everything in its shadow)
-			if (n is BaseButton or PanelContainer or LineEdit && n is Control c && c.Size.X > 8 && c.Size.Y > 8 && c.Size.X * c.Size.Y < Size.X * Size.Y * 0.35f)
-			{
-				rects.Add(new Rect2(c.GlobalPosition - GlobalPosition, c.Size * c.GetGlobalTransform().Scale));
-				// (a card's own buttons are inside its shadow already)
-				if (n is PanelContainer) return;
-			}
-			foreach (var child in n.GetChildren()) Walk(child);
-		}
-		if (Page != null && IsInstanceValid(Page)) Walk(Page);
-		var have = _occluders.GetChildCount();
-		for (var i = 0; i < Math.Max(have, rects.Count); i++)
-		{
-			if (i >= rects.Count)
-			{
-				_occluders.GetChild<LightOccluder2D>(i).Visible = false;
-				continue;
-			}
-			var r = rects[i];
-			var occ = i < have ? _occluders.GetChild<LightOccluder2D>(i) : new LightOccluder2D { Occluder = new OccluderPolygon2D() };
-			if (i >= have) _occluders.AddChild(occ);
-			occ.Visible = true;
-			occ.Occluder.Polygon = new[] { r.Position, new Vector2(r.End.X, r.Position.Y), r.End, new Vector2(r.Position.X, r.End.Y) };
-		}
+		var beams = Spotlights.Beams(this, Logo, _t, out var pool);
+		Spotlights.Pool(this, beams[0].Aim, pool, new Color(C.Gold, 0.13f));
+		Spotlights.Pool(this, beams[1].Aim, pool, new Color(C.Pink, 0.1f));
 	}
 }

@@ -38,6 +38,8 @@ public partial class TitleScreen : Control
 		center.OffsetBottom = -60;
 		center.AddChild(Logo);
 		AddChild(center);
+		// (the home screen's spotlights on the logo here too)
+		AddChild(Spotlights.For(Logo));
 		Prompt = U.Text(Lang.T("Press any button").ToUpper(), 22, C.Text, Fonts.Spaced, false, HorizontalAlignment.Center);
 		Prompt.SetAnchorsPreset(LayoutPreset.CenterBottom);
 		Prompt.GrowHorizontal = GrowDirection.Both;
