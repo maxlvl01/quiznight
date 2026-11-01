@@ -13,6 +13,8 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.2d2]
+
 ### Fixed
 
 - **Pong and billiard over the internet were laggy and out of sync** (reported by Max). Three causes, three fixes:
