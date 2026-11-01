@@ -153,6 +153,7 @@ public static class QuizJson
 			case QuestionType.Interactive:
 				o["timeLimitSec"] = q.TimeLimitSec;
 				o["judging"] = q.Judging;
+				if (q.IsList && q.AnswerText != "") o["answer"] = q.AnswerText;
 				break;
 			case QuestionType.MapPin:
 				o["image"] = WriteImage(q.Image);
@@ -234,7 +235,7 @@ public static class QuizJson
 			q.Hints = hints.Select(h => h is JsonValue v && v.TryGetValue<string>(out var s) ? s : "").Take(QuestionLimits.HintsMax).ToList();
 			while (q.Hints.Count < QuestionLimits.HintsMax) q.Hints.Add("");
 		}
-		q.Judging = Str(o, "judging", Judging.Vote) == Judging.Host ? Judging.Host : Judging.Vote;
+		q.Judging = Str(o, "judging", Judging.Vote) switch { Judging.Host => Judging.Host, Judging.List => Judging.List, _ => Judging.Vote };
 		q.StepsMode = Str(o, "stepsMode", StepsMode.Hints) == StepsMode.Sentence ? StepsMode.Sentence : StepsMode.Hints;
 		q.BuzzFirst = o["buzzFirst"] is JsonValue bf && bf.TryGetValue<bool>(out var b) && b;
 		q.Typed = o["typed"] is JsonValue ty && ty.TryGetValue<bool>(out var typed) && typed;

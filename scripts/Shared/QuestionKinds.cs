@@ -36,7 +36,7 @@ public static class QuestionKinds
 		QuestionType.Sound or QuestionType.Video or QuestionType.Image => new[] { ClassicMode.Buzzer, Typed },
 		QuestionType.Estimation => new[] { Scoring.ClosestWins, Scoring.Top3, Places },
 		QuestionType.Order => new[] { OrderMode.All, OrderMode.Timeline },
-		QuestionType.Interactive => new[] { Judging.Vote, Judging.Host },
+		QuestionType.Interactive => new[] { Judging.Vote, Judging.Host, Judging.List },
 		QuestionType.Steps => new[] { StepsMode.Hints, StepsMode.Sentence },
 		_ => System.Array.Empty<string>(),
 	};

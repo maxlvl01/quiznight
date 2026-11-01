@@ -348,7 +348,8 @@ public static class GameParts
 	/// <param name="toggle">Host, write-the-answer: tick or untick a player's answer.</param>
 	/// <param name="bonus">Host, on a question with a bonus: give it to a player or take it back.</param>
 	/// <param name="heading">False on players' screens, which show the answer above it already.</param>
-	public static Control RevealPanel(RoomState room, Action<string>? toggle = null, Action<string>? bonus = null, bool heading = true)
+	/// <param name="toggleItem">Host, interactive lists: tick or untick one of a player's answers.</param>
+	public static Control RevealPanel(RoomState room, Action<string>? toggle = null, Action<string>? bonus = null, bool heading = true, Action<string, int>? toggleItem = null)
 	{
 		var game = room.Game!;
 		var reveal = game.Reveal!;
@@ -390,7 +391,20 @@ public static class GameParts
 			if (e.Rank is { } rank) row.AddChild(RankBadge(rank));
 			row.AddChild(new Avatar(p, 26));
 			row.AddChild(U.Text(p.Name, 15).Raw().MinSize(140));
-			row.AddChild(U.Text(e.Text, 15, C.Muted).Raw().Grow());
+			// (interactive lists: each answer on its own, green when it counts; the host clicks one to change it)
+			if (e.ItemsRight is { } right && e.Value?.Texts is { } texts)
+			{
+				var flow = U.Flow(4).Grow();
+				for (var i = 0; i < texts.Count && i < right.Count; i++)
+				{
+					var (item, id) = (i, e.PlayerId);
+					flow.AddChild(toggleItem != null
+						? (Control)U.Btn((right[i] ? "✓ " : "") + texts[i], right[i] ? "TealButton" : "SmallButton", () => toggleItem(id, item), 13).Raw().Tip("Click to change")
+						: U.Pill(texts[i], right[i] ? C.Teal : C.Muted).Raw());
+				}
+				row.AddChild(flow);
+			}
+			else row.AddChild(U.Text(e.Text, 15, C.Muted).Raw().Grow());
 			if (e.Doubled) row.AddChild(U.Pill("×2", C.Accent).Tip("Double points"));
 			row.AddChild(U.Text(e.Points > 0 ? $"+{e.Points}" : "", 15, C.Teal, Fonts.Bold).MinSize(36));
 			if (toggle != null)

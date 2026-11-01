@@ -764,6 +764,43 @@ public static class SelfTest
 			Eq(g2.View("host").Buzzes[0].AtSec, 0.7, "buzz time counts from the unlock");
 			Eq(r2.StatsOf("bob").BuzzMs, 700L, "stats' buzz time counts from the unlock");
 		}
+		{
+			// (0.13: interactive "type as many as you can")
+			var listQuiz = Dev.SampleQuiz.Build();
+			var lq = QuizRules.NewQuestion(QuestionType.Interactive, "list1");
+			lq.Judging = Judging.List;
+			lq.Prompt = "Name F1 champions";
+			lq.AnswerText = "Hamilton\nSchumacher\nVerstappen";
+			lq.Points = 1;
+			listQuiz.Questions = new List<Question> { lq };
+			var back = QuizJson.Parse(QuizJson.Write(listQuiz), out _)!.Questions[0];
+			Check(back.IsList && !back.IsInteractive && back.AnswerText == lq.AnswerText && back.HasTimeLimit, "a list question survives saving (and isn't a recording one)");
+			var (r5, _) = NewRoom(listQuiz, "ann", "bob");
+			Check(r5.Start().Ok, "start (list)");
+			var g5 = r5.Game!;
+			Check(g5.View("ann").Interactive == null && g5.View("ann").Question.Judging == Judging.List, "players get a list question, no recording");
+			Check(g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Hamilton" })).Ok, "ann sends her list so far");
+			Check(g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Hamilton", "hamilton", " ", "Shumacher", "Alonso" }, true)).Ok, "ann sends it again, done");
+			Check(!g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Senna" })).Ok, "no changes after done");
+			Eq(g5.View("ann").MyAnswer?.Texts?.Count, 3, "repeats and blanks are left out");
+			Check(!g5.AnswersClosed, "still open while bob types");
+			Check(g5.Answer("bob", 0, AnswerValue.Listed(new[] { "Vettel" }, true)).Ok && g5.AnswersClosed, "everyone done: answers close");
+			Check(g5.HostReveal(), "host reveals the list");
+			var ann = g5.View("host").Reveal!.Entries.First(e => e.PlayerId == "ann");
+			Check(ann.ItemsRight!.SequenceEqual(new[] { true, true, false }) && ann.Points == 2, "written-down answers are ticked by themselves (typos too)");
+			Check(g5.ToggleListItem("ann", 2) && r5.Score("ann") == 3 && g5.ToggleListItem("bob", 0) && r5.Score("bob") == 1, "the host ticks more: a point each");
+		}
+		{
+			// (0.13: the host's "+5 s")
+			var timed = Dev.SampleQuiz.Build();
+			timed.Questions = timed.Questions.Where(x => x.IsChoice).Take(1).ToList();
+			var (r4, c4) = NewRoom(timed, "ann", "bob");
+			Check(r4.Start().Ok, "start (+5 s)");
+			var ends = r4.Game!.View("host").EndsAt;
+			Check(ends != null && r4.Game.AddTime(Limits.AddTimeSec) && r4.Game.View("ann").EndsAt == ends + Limits.AddTimeSec * 1000L, "+5 s moves everyone's clock");
+			c4.Now = ends!.Value + 1000;
+			Check(!r4.Tick() && !r4.Game.AnswersClosed, "the old end has passed, the question is still open");
+		}
 		Check(v.HostAnswer == null, "players never see the host answer");
 		Check(room.ToState("host").Game!.HostAnswer == "Mars", "host sees the answer");
 		g.Judge(false);

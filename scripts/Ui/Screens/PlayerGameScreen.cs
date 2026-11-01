@@ -115,7 +115,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		{
 			var box = U.V(14, GameParts.Row(16,
 				U.Text(game.Shown || game.Stage == Stage.Reveal ? q.Prompt : "", 30, C.Text, Fonts.Black, true).Raw(),
-				game.Stage == Stage.Open && game.Shown ? new Countdown(game.EndsAt, null, 30) : U.Gap(0)));
+				game.Stage == Stage.Open && game.Shown ? new Countdown(game.EndsAt, null, 30) { Follow = () => _room.Game?.EndsAt } : U.Gap(0)));
 			if (game.Stage == Stage.Open && game.Shown && GameParts.BonusLine(q) is { } bonusLine) box.AddChild(bonusLine);
 			if (q.HintCount != null && (game.Shown || game.Stage == Stage.Reveal))
 			{
@@ -205,6 +205,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		else if (game.Timeline is { } tl)
 			_panel.Set($"{key}|tl|{tl.Phase}|{tl.PendingGap}|{tl.Placed.Count}|{tl.TurnPlayerId}|{string.Join(",", tl.WrongGaps)}|{tl.Last?.Kind}{tl.Last?.PlayerId}{tl.Last?.Item}", () => Timeline(room));
 		else if (q.Type == QuestionType.Order) _panel.Set($"{key}{closed}|{game.MyAnswer?.Picks != null}", () => Order(room));
+		else if (q.Type == QuestionType.Interactive && q.Judging == Judging.List) _panel.Set($"{key}{closed}|list|{game.MyAnswer?.Done}", () => ListAnswers(room));
 		else if (q.Written) _panel.Set($"{key}{closed}|{game.MyAnswer?.Text}", () => Write(room));
 		else if (q.Type == QuestionType.Estimation) _panel.Set($"{key}{closed}|{game.MyAnswer?.Num}", () => Estimate(room));
 		else _panel.Set($"{key}{closed}|{game.MyAnswer?.Point != null}|{q.Map == null || _client.Assets.MapReady(q.Map)}", () => MapPin(room));
@@ -521,7 +522,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 			if (tl.TurnPlayerId is { } turn && tl.Current != null)
 			{
 				var p = room.Player(turn);
-				info.Add(GameParts.Row(10, new Avatar(p, 30), U.Bold(Lang.F("{0}'s turn", p.Name), 22).Raw(), new Countdown(tl.TurnEndsAt, null, 22)).With(r => r.Alignment = BoxContainer.AlignmentMode.Center));
+				info.Add(GameParts.Row(10, new Avatar(p, 30), U.Bold(Lang.F("{0}'s turn", p.Name), 22).Raw(), new Countdown(tl.TurnEndsAt, null, 22) { Follow = () => _room.Game?.Timeline?.TurnEndsAt }).With(r => r.Alignment = BoxContainer.AlignmentMode.Center));
 				info.Add(U.Muted(Lang.F("Where does {0} go?", tl.Current), 16, false, HorizontalAlignment.Center).Raw());
 			}
 			if (tl.Missed.Contains(MyId)) info.Add(U.Muted("You missed this one — the others get a go.", 14, false, HorizontalAlignment.Center));
@@ -534,7 +535,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		var banner = U.Panel(GameParts.Row(16,
 			U.Text("Your turn!", 30, C.AccentInk, Fonts.Black),
 			U.Text(Lang.F("Where does {0} go? Drag it into the timeline, then lock in.", tl.Current), 17, C.AccentInk, null, true).Raw().Grow(),
-			new Countdown(tl.TurnEndsAt, null, 24)));
+			new Countdown(tl.TurnEndsAt, null, 24) { Follow = () => _room.Game?.Timeline?.TurnEndsAt }));
 		banner.AddThemeStyleboxOverride("panel", UiTheme.Box(C.Accent, 14, null, 0, 20, 14));
 		box.AddChild(banner);
 		var error = U.Error();
@@ -610,6 +611,66 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		var form = U.V(12, U.Field("Your answer", field), lockIn, error);
 		if (watch != null) form.AddChild(U.Muted(watch, 14, false, HorizontalAlignment.Center).Center());
 		return form;
+	}
+
+	// Interactive lists: what this player typed so far for the question (sent whole after every change).
+	int _listIndex = -1;
+	List<string> _list = new();
+
+	/// <summary>Interactive "type as many as you can": one answer at a time (Enter adds it), until "I'm done" or the time is up.</summary>
+	Control ListAnswers(RoomState room)
+	{
+		var game = room.Game!;
+		if (_listIndex != game.Index)
+		{
+			_listIndex = game.Index;
+			_list = game.MyAnswer?.Texts?.ToList() ?? new();
+		}
+		Control Chips(Action<int>? remove)
+		{
+			var flow = U.Flow(6);
+			for (var i = 0; i < _list.Count; i++)
+			{
+				var at = i;
+				var chip = GameParts.Row(4, U.Text(_list[i], 16, C.Text, Fonts.Bold).Raw());
+				if (remove != null) chip.AddChild(U.Small("×", () => remove(at)).Tip("Take it out"));
+				flow.AddChild(U.Panel(chip, "Card2"));
+			}
+			return flow;
+		}
+		if (game.MyAnswer is { Done: true } || game.AnswersClosed)
+			return Status(U.Muted(Lang.F("Your answers: {0}", _list.Count), 15), Chips(null), U.Muted(Waiting(game), 14));
+		var error = U.Error();
+		var count = U.Muted("", 14, false);
+		var chips = U.V(0);
+		var field = U.Input("", "Type an answer, Enter adds it", null, QuestionLimits.ListAnswerMaxLength).With(e => e.ThemeTypeVariation = "BigInput");
+		void Send(bool done = false) => Submit(game.Index, AnswerValue.Listed(_list, done), error);
+		void Show()
+		{
+			chips.Clear();
+			chips.AddChild(Chips(i =>
+			{
+				_list.RemoveAt(i);
+				Send();
+				Show();
+			}));
+			count.Text = Lang.F("Your answers: {0}", _list.Count);
+		}
+		void Add()
+		{
+			var text = field.Text.Trim();
+			field.Text = "";
+			field.CallDeferred(Control.MethodName.GrabFocus);
+			if (text == "" || _list.Count >= QuestionLimits.ListAnswersMax || _list.Any(t => string.Equals(t, text, StringComparison.OrdinalIgnoreCase))) return;
+			_list.Add(text);
+			Send();
+			Show();
+		}
+		field.TextSubmitted += _ => Add();
+		field.CallDeferred(Control.MethodName.GrabFocus);
+		Show();
+		var done = U.Btn("I'm done", "TealButton", () => Send(true), 18).Tip("Locks in your list (it's also sent when the time is up)");
+		return U.V(12, U.Field("Your answers", GameParts.Row(8, field.Grow(), U.Btn("Add", "", Add, 18))), count, chips, done, error);
 	}
 
 	Control MapPin(RoomState room)

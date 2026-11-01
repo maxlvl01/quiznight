@@ -176,11 +176,15 @@ public static class Judging
 	public const string Vote = "vote";
 	/// <summary>The host picks a favourite, who gets the question's points.</summary>
 	public const string Host = "host";
+	/// <summary>Not a recording: everyone types as many answers as they can ("Name all F1 champions"); the host ticks the
+	/// right ones at the reveal, the question's points for each.</summary>
+	public const string List = "list";
 
 	public static readonly (string Id, string Label)[] All =
 	{
 		(Vote, "Players vote"),
 		(Host, "I pick my favourite"),
+		(List, "Type as many as you can"),
 	};
 }
 
@@ -391,7 +395,10 @@ public sealed class Question
 
 	// interactive
 	public string Judging = Shared.Judging.Vote;
-	public bool IsInteractive => Type == QuestionType.Interactive;
+	/// <summary>An interactive question with recordings (vote or host pick); not the typed list.</summary>
+	public bool IsInteractive => Type == QuestionType.Interactive && Judging != Shared.Judging.List;
+	/// <summary>Interactive "type as many as you can": everyone types a list, the host ticks the right ones.</summary>
+	public bool IsList => Type == QuestionType.Interactive && Judging == Shared.Judging.List;
 
 	public bool IsMedia => Type is QuestionType.Sound or QuestionType.Video;
 	/// <summary>Sound, video and image reveal: buzz times count on a clock that only runs while it plays.</summary>
@@ -423,7 +430,7 @@ public sealed class Question
 	/// <summary>Whether there's anything to show after the answer.</summary>
 	public bool HasAfter => AfterText.Trim() != "" || Source.Trim() != "" || AfterImage is { DataUrl: not "" };
 	/// <summary>Everyone answers within a time limit (instead of buzzing in).</summary>
-	public bool HasTimeLimit => IsCloseness || IsChoice || IsWritten || (Type == QuestionType.Order && !IsTimeline) || IsInteractive;
+	public bool HasTimeLimit => IsCloseness || IsChoice || IsWritten || (Type == QuestionType.Order && !IsTimeline) || IsInteractive || IsList;
 	public bool HasImageField => Type is QuestionType.Classic or QuestionType.Estimation or QuestionType.MapPin or QuestionType.Image or QuestionType.Write;
 
 	// Through text: in-memory JsonValues don't convert between number types when read back.
@@ -489,6 +496,12 @@ public static class QuestionLimits
 	public const int HintsMax = 5;
 	public const int HintMaxLength = 160;
 	public const int InteractiveTimeDefault = 90;
+	/// <summary>Interactive lists: how many answers a player can type, and how long each.</summary>
+	public const int ListAnswersMax = 40;
+	public const int ListAnswerMaxLength = 60;
+	public const int ListTimeDefault = 30;
+	/// <summary>Interactive lists: the right answers the quiz maker writes down (one per line).</summary>
+	public const int ListKeyMaxLength = 2000;
 }
 
 public static class QuizRules
@@ -656,6 +669,7 @@ public static class QuizRules
 			return q.IsMulti ? $"{kind} · {Lang.T("several correct")} · {q.TimeLimitSec} s"
 				: q.IsChoice ? $"{kind} · A–D · {q.TimeLimitSec} s" : q.IsTyped ? $"{kind} · {Lang.T("everyone types")} · {q.TimeLimitSec} s" : $"{kind} · {Lang.T("buzzer")}";
 		if (q.IsSteps) return $"{kind} · {(q.IsSentence ? Lang.F("{0} parts", q.FilledHints.Count) : Lang.F("{0} hints", q.FilledHints.Count))}";
+		if (q.IsList) return $"{kind} · {Lang.T("list")} · {q.TimeLimitSec} s";
 		if (q.IsInteractive) return $"{kind} · {Lang.T(q.Judging == Judging.Host ? "host picks" : "vote")} · {q.TimeLimitSec} s";
 		if (q.Type == QuestionType.Order)
 			return $"{kind} · {(q.IsTimeline ? Lang.T("timeline") + " · " : "")}{Lang.F("{0} items", q.Items.Count(i => !string.IsNullOrWhiteSpace(i)))} · {q.TimeLimitSec} s";

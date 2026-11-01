@@ -19,6 +19,9 @@ public static class VersionCheck
 		[QuestionType.Steps] = "0.9.0b",
 	};
 
+	/// <summary>Interactive "type as many as you can" (Judging.List).</summary>
+	const string ListSince = "0.13.0d1";
+
 	/// <summary>A player's version, or the one before 0.12 if their game didn't say.</summary>
 	public static AppVersion Of(string? version) => AppVersion.Parse(version) ?? AppVersion.Parse(BeforeVersions)!.Value;
 
@@ -36,6 +39,8 @@ public static class VersionCheck
 			string? what = null, since = null;
 			if (TypeSince.TryGetValue(q.Type, out var typeSince) && player < AppVersion.Parse(typeSince)!.Value)
 				(what, since) = (Lang.T(QuestionKinds.TypeLabel(q.Type)), typeSince);
+			else if (q.IsList && player < AppVersion.Parse(ListSince)!.Value)
+				(what, since) = (Lang.T("Type as many as you can"), ListSince);
 			else if (q.Type == QuestionType.MapPin && quiz.MapById(q.MapId) is { } map && MapPresets.Get(map.PresetId) is { AddedIn: { } added } preset
 				&& AppVersion.Parse(added) is { } addedIn && player < addedIn)
 				(what, since) = (preset.Name, added);

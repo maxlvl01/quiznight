@@ -19,6 +19,8 @@ public static class Limits
 	/// </summary>
 	public const int Protocol = 1;
 	public const int NameMaxLength = 12;
+	/// <summary>The host's "+5 s" on a running clock.</summary>
+	public const int AddTimeSec = 5;
 	/// <summary>A clan tag in square brackets before the name ("[OTB] maxlvl") doesn't count: up to this many inside the brackets.</summary>
 	public const int ClanTagMaxLength = 6;
 	/// <summary>Name fields: a name and a clan tag with its brackets and space.</summary>
@@ -208,11 +210,16 @@ public sealed class AnswerValue
 	public List<int>? Picks;
 	/// <summary>Write the answer: what the player typed.</summary>
 	public string? Text;
+	/// <summary>Interactive lists: everything the player typed so far, in order.</summary>
+	public List<string>? Texts;
+	/// <summary>Interactive lists: the player said they're done (else the list stays open until the time is up).</summary>
+	public bool Done;
 
 	public static AnswerValue Number(double n) => new() { Num = n };
 	public static AnswerValue At(NormPoint p) => new() { Point = p };
 	public static AnswerValue Picked(IEnumerable<int> picks) => new() { Picks = picks.ToList() };
 	public static AnswerValue Written(string text) => new() { Text = text };
+	public static AnswerValue Listed(IEnumerable<string> texts, bool done = false) => new() { Texts = texts.ToList(), Done = done };
 }
 
 /// <summary>Where players can get a question's map. Built-in maps ship with the game.</summary>
@@ -430,6 +437,8 @@ public sealed class RevealEntry
 	public bool Bonus;
 	/// <summary>Played Double points on this question (Points are already doubled).</summary>
 	public bool Doubled;
+	/// <summary>Interactive lists: which of the player's answers the host ticked as right (same order as Value.Texts).</summary>
+	public List<bool>? ItemsRight;
 }
 
 public sealed class RevealView

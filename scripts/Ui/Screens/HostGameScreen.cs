@@ -105,7 +105,7 @@ public partial class HostGameScreen : Control, IRoomScreen
 
 		_head.Set(key + ia?.Phase, () => GameParts.Row(16,
 			U.Text(q.Prompt, 34, C.Text, Fonts.Black, true).Raw(),
-			game.Stage == Stage.Open ? new Countdown(game.EndsAt, null, 34) : U.Gap(0)));
+			game.Stage == Stage.Open ? new Countdown(game.EndsAt, null, 34) { Follow = () => _game?.EndsAt } : U.Gap(0)));
 
 		// The player stays alive through the reveal so the music doesn't restart.
 		// Sound, video and image reveals start once the question is shown.
@@ -167,7 +167,7 @@ public partial class HostGameScreen : Control, IRoomScreen
 					var p = room.Player(turn);
 					status.AddChild(new Avatar(p, 28));
 					status.AddChild(U.Bold(Lang.F("{0}'s turn", p.Name), 18).Raw());
-					status.AddChild(new Countdown(tl.TurnEndsAt, null, 22));
+					status.AddChild(new Countdown(tl.TurnEndsAt, null, 22) { Follow = () => _game?.Timeline?.TurnEndsAt });
 				}
 				box.AddChild(status);
 			}
@@ -177,13 +177,15 @@ public partial class HostGameScreen : Control, IRoomScreen
 				box.AddChild(U.Muted("Everyone puts these in order on their own screen.", 16));
 			}
 			if (reveal == null && q.Written) box.AddChild(U.Muted("Everyone types their answer on their own screen.", 16));
+			if (reveal == null && q.Type == QuestionType.Interactive && q.Judging == Judging.List)
+				box.AddChild(U.Muted("Everyone types as many answers as they can on their own screen. At the reveal you tick the right ones (answers you wrote down in the editor are ticked already).", 16));
 			if (q.Type == QuestionType.MapPin && reveal != null && q.Map != null)
 			{
 				// Map and results side by side, so everything fits on the TV.
 				var map = GameMap.Make(q.Map, _assets.Map(q.Map), reveal.Target, null, GameParts.RevealPins(room), U.Flexible).Grow(1.6f);
 				box.AddChild(U.H(20, map, GameParts.RevealPanel(room, null, _host.ToggleBonus).Grow()));
 			}
-			else if (reveal != null) box.AddChild(GameParts.RevealPanel(room, q.Written ? _host.ToggleWritten : null, _host.ToggleBonus));
+			else if (reveal != null) box.AddChild(GameParts.RevealPanel(room, q.Written ? _host.ToggleWritten : null, _host.ToggleBonus, toggleItem: _host.ToggleListItem));
 			if (reveal != null && GameParts.After(q, _assets) is { } after) box.AddChild(after);
 			return box;
 		});
@@ -234,6 +236,9 @@ public partial class HostGameScreen : Control, IRoomScreen
 				row.AddChild(U.Btn(Lang.F("Skip {0}", room.Player(turnId).Name), "", _host.SkipTurn).Tip("The next player tries the same item"));
 			if (tl is { Current: not null, Phase: not TimelinePhase.Locked })
 				row.AddChild(U.Btn("Place it for free", "", _host.PlaceForFree).Tip("Puts the item in its place without points; the next player gets the next one"));
+			// (+5 s on a running clock: everyone gets a moment longer, e.g. to decide)
+			if (game.Stage == Stage.Open && game.Shown && !game.AnswersClosed && (game.EndsAt != null || tl?.TurnEndsAt != null))
+				row.AddChild(U.Btn(Lang.F("+{0} s", Limits.AddTimeSec), "", _host.AddTime).Tip("Gives everyone a few more seconds"));
 			// Everyone's answers (or votes) are in, or the time is up: the host reveals when they're ready.
 			if (game.Stage == Stage.Open && game.AnswersClosed)
 			{

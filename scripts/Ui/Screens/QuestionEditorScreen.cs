@@ -656,6 +656,38 @@ public partial class QuestionEditorScreen : Control
 
 	Control InteractiveForm()
 	{
+		var list = _draft.Judging == Judging.List;
+		var kind = U.Field("How it's played", U.Segmented(Judging.All, _draft.Judging, id =>
+		{
+			// (a list is played much quicker than a recording: its own default time)
+			if (id == Judging.List && _draft.TimeLimitSec == QuestionLimits.InteractiveTimeDefault) _draft.TimeLimitSec = QuestionLimits.ListTimeDefault;
+			else if (id != Judging.List && _draft.Judging == Judging.List && _draft.TimeLimitSec == QuestionLimits.ListTimeDefault) _draft.TimeLimitSec = QuestionLimits.InteractiveTimeDefault;
+			_draft.Judging = id;
+			Changed();
+			BuildForm();
+		}));
+		var time = U.Field(list ? "Time to type (seconds)" : "Time to record (seconds)", new NumberField(_draft.TimeLimitSec, v =>
+		{
+			_draft.TimeLimitSec = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.TimeLimitMin), QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax);
+			Changed();
+		}, QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax, true));
+		if (list)
+		{
+			var listLeft = U.V(14,
+				U.Field("Task", U.Area(_draft.Prompt, "e.g. Name all F1 drivers with at least one world title", t =>
+				{
+					_draft.Prompt = t;
+					Changed();
+				}, 2, QuestionLimits.PromptMaxLength), "Players type as many answers as they can, one at a time, until the time is up."),
+				U.Field("Right answers (optional, only you see them)", U.Area(_draft.AnswerText, "One per line, e.g.\nHamilton\nSchumacher\nVerstappen", t =>
+				{
+					_draft.AnswerText = t;
+					Changed();
+				}, 5, QuestionLimits.ListKeyMaxLength), "Answers that match one of these (small typos are fine) are ticked by themselves at the reveal. You tick or untick any answer there."));
+			var listSettings = RoundSettings.Panel(kind, time, RoundSettings.Points(_draft, () => Changed(), "Points per right answer"),
+				RoundSettings.Bonus(_draft, () => Changed()));
+			return Columns((listLeft, 1.6f), (listSettings, 1));
+		}
 		var left = U.V(14,
 			U.Field("Task", U.Area(_draft.Prompt, "e.g. Imitate the Super Mario jump sound!", t =>
 			{
@@ -665,17 +697,8 @@ public partial class QuestionEditorScreen : Control
 			U.Muted(Lang.F("Players record themselves on their own PC (each recording up to {0} seconds), listen back and send it. When the time is up, you play everyone's recording one by one, on your screen and on every player's PC.", QuestionLimits.RecordingMaxSec), 14));
 		var vote = _draft.Judging == Judging.Vote;
 		var settings = RoundSettings.Panel(
-			U.Field("Time to record (seconds)", new NumberField(_draft.TimeLimitSec, v =>
-			{
-				_draft.TimeLimitSec = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.TimeLimitMin), QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax);
-				Changed();
-			}, QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax, true)),
-			U.Field("Who decides", U.Segmented(Judging.All, _draft.Judging, id =>
-			{
-				_draft.Judging = id;
-				Changed();
-				BuildForm();
-			})),
+			time,
+			kind,
 			vote ? U.Muted("Everyone votes for the best recording (not their own). Every vote is a point; Double points doubles it.", 13)
 				: RoundSettings.Points(_draft, () => Changed()),
 			vote ? U.Gap(0) : U.Muted("You pick your favourite recording: they get the points (doubled with Double points).", 13));

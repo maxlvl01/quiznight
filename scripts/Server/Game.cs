@@ -317,6 +317,19 @@ public sealed class Game
 		return true;
 	}
 
+	/// <summary>
+	/// The host's "+5 s": more time on the running clock (the question's, or the timeline turn's), e.g. when everyone
+	/// needs a moment longer to decide. Only while one runs; a closed question stays closed.
+	/// </summary>
+	public bool AddTime(int seconds)
+	{
+		if (Stage != Shared.Stage.Open || !Shown || Paused || AnswersClosed || seconds <= 0) return false;
+		if (_tlTurnEnds != null) _tlTurnEnds += seconds * 1000L;
+		else if (_endsAt != null) _endsAt += seconds * 1000L;
+		else return false;
+		return true;
+	}
+
 	/// <summary>Runs timers. Returns true if something changed (the time ran out).</summary>
 	public bool Tick()
 	{
@@ -485,6 +498,7 @@ public sealed class Game
 			if (raw?.Num is not { } gap || gap != Math.Floor(gap)) return Result.Fail("Pick a spot on the timeline.");
 			return Place(playerId, (int)gap);
 		}
+		if (q.IsList) return ListAnswer(playerId, raw);
 		if (_answers.Any(a => a.PlayerId == playerId)) return Result.Fail("You already locked in your answer.");
 
 		AnswerValue value;
@@ -531,6 +545,25 @@ public sealed class Game
 		return Result.Success();
 	}
 
+	/// <summary>
+	/// Interactive lists: the player's list so far (it replaces the last one they sent), until they say they're done or
+	/// the time is up. Blank and repeated answers are left out.
+	/// </summary>
+	Result ListAnswer(string playerId, AnswerValue? raw)
+	{
+		if (_answers.FirstOrDefault(a => a.PlayerId == playerId).Value is { Done: true }) return Result.Fail("You already locked in your answer.");
+		var texts = (raw?.Texts ?? new List<string>())
+			.Select(t => (t ?? "").Trim()).Where(t => t != "")
+			.Select(t => t.Length > QuestionLimits.ListAnswerMaxLength ? t[..QuestionLimits.ListAnswerMaxLength] : t)
+			.Distinct(StringComparer.OrdinalIgnoreCase).Take(QuestionLimits.ListAnswersMax).ToList();
+		var done = raw?.Done == true;
+		_answers.RemoveAll(a => a.PlayerId == playerId);
+		_answers.Add((playerId, AnswerValue.Listed(texts, done)));
+		if (done) _hooks.NoteAnswerTime(playerId, _hooks.Now() - _openedAt);
+		if (Active().All(id => _answers.Any(a => a.PlayerId == id && a.Value.Done))) CloseAnswers();
+		return Result.Success();
+	}
+
 	/// <summary>Someone left or reconnected: maybe everyone who is still here has answered.</summary>
 	public bool CheckAllAnswered()
 	{
@@ -544,7 +577,7 @@ public sealed class Game
 		}
 		if (Stage == Shared.Stage.Open && Question.IsInteractive && Shown) return CheckInteractiveDone();
 		if (Stage != Shared.Stage.Open || Question.IsBuzzer || AnswersClosed || _answers.Count == 0) return false;
-		if (!Active().All(id => _answers.Any(a => a.PlayerId == id))) return false;
+		if (!Active().All(id => _answers.Any(a => a.PlayerId == id && (!Question.IsList || a.Value.Done)))) return false;
 		CloseAnswers();
 		return true;
 	}
@@ -1078,6 +1111,23 @@ public sealed class Game
 			};
 		}
 
+		if (q.IsList)
+		{
+			// (each answer that matches one the quiz maker wrote down is ticked already; the host changes what they like)
+			var entries = _answers.Where(a => a.Value.Texts is { Count: > 0 }).Select(a =>
+			{
+				var right = a.Value.Texts!.Select(t => q.AnswerText.Trim() != "" && QuizRules.WrittenMatches(t, q.AnswerText)).ToList();
+				var count = right.Count(r => r);
+				return new RevealEntry { PlayerId = a.PlayerId, Value = a.Value, Text = string.Join(" · ", a.Value.Texts!), ItemsRight = right, Correct = count > 0, Points = count * q.Points };
+			}).OrderByDescending(e => e.Points).ToList();
+			return new RevealView
+			{
+				AnswerText = string.Join(", ", q.AnswerText.Split('\n', ';').Select(s => s.Trim()).Where(s => s != "")),
+				WinnerIds = entries.Where(e => e.Correct).Select(e => e.PlayerId).ToList(),
+				Entries = entries,
+			};
+		}
+
 		if (q.IsWritten)
 		{
 			var entries = _answers.Select(a =>
@@ -1184,6 +1234,19 @@ public sealed class Game
 			return false;
 		entry.Correct = !entry.Correct;
 		SetPoints(entry, ((entry.Correct ? Question.Points : 0) + (entry.Bonus ? Question.BonusPoints : 0)) * Multiplier(playerId));
+		_reveal.WinnerIds = _reveal.Entries.Where(e => e.Correct).Select(e => e.PlayerId).ToList();
+		return true;
+	}
+
+	/// <summary>Interactive lists, at the reveal: the host ticks or unticks one of a player's answers (a point each).</summary>
+	public bool ToggleListItem(string playerId, int item)
+	{
+		if (Stage != Shared.Stage.Reveal || !Question.IsList || _reveal?.Entries.FirstOrDefault(e => e.PlayerId == playerId) is not { ItemsRight: { } right } entry
+			|| item < 0 || item >= right.Count) return false;
+		right[item] = !right[item];
+		var count = right.Count(r => r);
+		entry.Correct = count > 0;
+		SetPoints(entry, (count * Question.Points + (entry.Bonus ? Question.BonusPoints : 0)) * Multiplier(playerId));
 		_reveal.WinnerIds = _reveal.Entries.Where(e => e.Correct).Select(e => e.PlayerId).ToList();
 		return true;
 	}
@@ -1335,7 +1398,8 @@ public sealed class Game
 			pq.TimeLimitSec = q.TimeLimitSec;
 		}
 		if (q.IsMedia) pq.StartSec = q.StartSec;
-		if (q.IsInteractive) pq.TimeLimitSec = q.TimeLimitSec;
+		if (q.IsInteractive || q.IsList) pq.TimeLimitSec = q.TimeLimitSec;
+		if (q.Type == QuestionType.Interactive) pq.Judging = q.Judging;
 		if (q.IsSteps)
 		{
 			var hints = q.FilledHints;
@@ -1395,6 +1459,7 @@ public sealed class Game
 		if (q.Type == QuestionType.MapPin) return Lang.T("The marked spot on the map (shown at the reveal).");
 		if (q.IsSteps) return $"{q.AnswerText}  ·  {Lang.T(q.IsSentence ? "next part" : "next hint")}: {(Hint + 1 < q.FilledHints.Count ? q.FilledHints[Hint + 1] : "–")}";
 		if (q.IsInteractive) return Lang.T(q.Judging == Judging.Host ? "You pick your favourite recording." : "The players vote for the best recording.");
+		if (q.IsList) return q.AnswerText.Trim() != "" ? q.AnswerText.Trim() : Lang.T("You tick the right answers at the reveal.");
 		return q.AnswerText;
 	}
 
@@ -1408,7 +1473,7 @@ public sealed class Game
 			Total = _quiz.Questions.Count,
 			Stage = Stage,
 			// A hidden question: players only learn its number, type and points.
-			Question = Shown || viewer == "host" || !open ? PublicQuestion() : new PublicQuestion { Type = Question.Type, Category = ShownCategory, Points = Question.HasRankPoints ? Question.MaxPoints : Question.Points, RankScoring = Question.HasRankPoints, Buzzer = Question.IsBuzzer, Written = Question.IsWritten, Mode = Question.IsClassicLike ? Question.Mode : null, OrderMode = Question.Type == QuestionType.Order ? Question.OrderMode : null, WrongCosts = (Question.IsChoice || Question.Type == QuestionType.Order && !Question.IsTimeline) && Question.WrongCosts, Judging = Question.IsInteractive ? Question.Judging : null },
+			Question = Shown || viewer == "host" || !open ? PublicQuestion() : new PublicQuestion { Type = Question.Type, Category = ShownCategory, Points = Question.HasRankPoints ? Question.MaxPoints : Question.Points, RankScoring = Question.HasRankPoints, Buzzer = Question.IsBuzzer, Written = Question.IsWritten, Mode = Question.IsClassicLike ? Question.Mode : null, OrderMode = Question.Type == QuestionType.Order ? Question.OrderMode : null, WrongCosts = (Question.IsChoice || Question.Type == QuestionType.Order && !Question.IsTimeline) && Question.WrongCosts, Judging = Question.Type == QuestionType.Interactive ? Question.Judging : null },
 			Shown = Shown || !open,
 			BuzzersOpen = BuzzersOpen,
 			BuzzRound = _buzzRound,
@@ -1418,7 +1483,8 @@ public sealed class Game
 			// (interactive: who has sent a recording, then who has voted)
 			AnsweredIds = Question.IsInteractive
 				? (_iaPhase == InteractivePhase.Voting ? _votes.Keys.ToList() : _clipOrder.ToList())
-				: _answers.Select(a => a.PlayerId).ToList(),
+				// (lists: who said they're done, not who has typed something)
+				: _answers.Where(a => !Question.IsList || a.Value.Done).Select(a => a.PlayerId).ToList(),
 			Buzzes = _buzzes.Select(b => new BuzzEntry { PlayerId = b.PlayerId, Status = b.Status, AtSec = b.AtMs / 1000.0, FastPass = b.FastPass }).ToList(),
 			MediaPlaying = _playingSince != null,
 			MediaPlayedMs = PlayTimeMs(_hooks.Now()),

@@ -196,7 +196,9 @@ public static class Chips
 /// <summary>"0:12" countdown to a host-time deadline; turns red in the last 5 seconds.</summary>
 public partial class Countdown : HBoxContainer
 {
-	readonly long? _endsAt;
+	long? _endsAt;
+	/// <summary>Where the deadline comes from, read every frame (the host's "+5 s" moves it without rebuilding the screen).</summary>
+	public Func<long?>? Follow;
 	readonly Label _time;
 	readonly Color? _ink;
 
@@ -218,6 +220,11 @@ public partial class Countdown : HBoxContainer
 
 	void Update()
 	{
+		if (Follow != null)
+		{
+			_endsAt = Follow();
+			Visible = _endsAt != null;
+		}
 		if (ServerClock.SecondsLeft(_endsAt) is not { } left) return;
 		var s = (int)Math.Ceiling(left);
 		_time.Text = $"{s / 60}:{s % 60:00}";

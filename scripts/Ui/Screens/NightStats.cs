@@ -65,6 +65,7 @@ public static class NightStatsView
 		{
 			QuestionType.Steps when q.StepsMode == StepsMode.Sentence => Lang.T("The question comes part by part; the rest stays blurred. Buzz in as soon as you know it: the earlier you're right, the more points. A buzz stops the reading."),
 			QuestionType.Steps => Lang.T("Hints come one by one, the hardest first. Buzz in as soon as you know it: the earlier you're right, the more points."),
+			QuestionType.Interactive when q.Judging == Judging.List => Lang.T("Type as many right answers as you can before the time runs out, one at a time. The host ticks the right ones: a point for each."),
 			QuestionType.Interactive => Lang.T(q.Judging == Judging.Host
 				? "Do the task with your microphone and send your recording. The host plays them all and picks a favourite."
 				: "Do the task with your microphone and send your recording. Everyone hears them all, then votes for the best (not your own)."),

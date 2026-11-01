@@ -477,6 +477,8 @@ public sealed class HostSession : IDisposable
 		if (result.Ok) Broadcast();
 	}
 	public void ReopenBuzzers() => GameAction(g => g.ReopenBuzzers());
+	public void AddTime() => GameAction(g => g.AddTime(Limits.AddTimeSec));
+	public void ToggleListItem(string playerId, int item) => GameAction(g => g.ToggleListItem(playerId, item));
 	public void SkipTurn() => GameAction(g => g.SkipTurn());
 	public void PlaceForFree() => GameAction(g => g.PlaceCurrentForFree());
 	public void RevealPlacement() => GameAction(g => g.RevealPlacement());
