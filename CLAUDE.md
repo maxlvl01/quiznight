@@ -98,6 +98,12 @@ the original design decisions; most still apply.
   never upload. To update the table: copy the repo's CSVs into `assets/results/` (nights before 1.0: `assets/results/beta/`,
   the Beta table) with a 3-line `importer="keep"` .import each (else Godot imports CSVs as translations); `EternalTableScreen` adds them up per player id (the same
   night twice counts once). Never ship test results there.
+- **Bug reports and ideas** (`Storage/BugReports.cs`, the 🐞 button): a bug becomes a GitHub Issue in
+  `maxlvl01/quiznight-results` (title "<category> (<version>)", label `bug`, log in `<details>`; Max adds `wip`/`pending`
+  and closes it when the fix is out), its screenshot a file in `bugs/Reported/`. This needs the shipped token to have
+  "Issues: read and write"; without it (or on any error) the bug goes as a `.md` file to `bugs/Reported/` as before.
+  Ideas stay files in `features/Requested/` (moved on by hand: WIP, Pending, Resolved). Offline reports wait in
+  `user://bug-reports`. Each sent report pushes to ntfy.sh, opening the issue/file. `--bug-check` sends a real test report.
 - **Game state is per viewer** (`Room.ToState(viewer)`): players never get answers before the
   reveal. Question images/custom maps are fetched by asset key (`q3/image`, `q3/map`) only for
   questions already shown, split into ≤300 KB parts (Steam's message limit is 512 KB).

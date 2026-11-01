@@ -1,11 +1,14 @@
-// Bug reports, sent by hand (the 🐞 button, Ui/BugReport): one Markdown file per report in Max's private results repo
-// (bugs/Reported/<date> <version> <category> <id>.md), from the same template every time, with a screenshot next to it
-// (.png, same name). Feedback (ideas: maps, question types, quality of life …) goes the same way to features/Requested/
-// (<kind> in the name), without the log. Max moves them on by hand: bugs/ and features/ each have WIP (in a test build),
-// Pending (waiting for the public release) and Resolved. If the upload fails (no internet), the report waits in
-// user://bug-reports and goes on the next start.
-// Every report says who sent it (Steam name and ID, so ideas can be credited in the changelog), and once it's uploaded a
-// push goes to Max's phone and PC through ntfy.sh (Push).
+// Bug reports, sent by hand (the 🐞 button, Ui/BugReport), from the same template every time. Since 0.12.9 a bug report is
+// a GitHub Issue in Max's private results repo (title "<category> (<version>)", label "bug", the log folded into a
+// <details> block: IssueTitle/IssueBody); its screenshot is still a file, bugs/Reported/<date> <version> <category> <id>.png,
+// shown in the issue. Max adds wip/pending labels and closes the issue once the fix is out. If the issue can't be made
+// (the token lacks "Issues: read and write" → 403/404), the report goes as a Markdown file next to the screenshot as before
+// (bugs/Reported, .md); old files in bugs/ (WIP, Pending, Resolved) stay where they are.
+// Feedback (ideas: maps, question types, quality of life …) stays a file in features/Requested/ (<kind> in the name),
+// without the log; Max moves those on by hand (WIP, Pending, Resolved). If sending fails (no internet), the report waits in
+// user://bug-reports and goes on the next start (a bug trying the issue first again).
+// Every report says who sent it (Steam name and ID, so ideas can be credited in the changelog), and once it's in a push
+// goes to Max's phone and PC through ntfy.sh (Push), opening the issue (or the file) when tapped.
 
 using System;
 using System.IO;
@@ -29,6 +32,8 @@ public static class BugReports
 	const string NtfyTopic = "quiznight-k8x2m9q4v7";
 	/// <summary>How much of the player's text the push shows (the whole report is a tap away).</summary>
 	const int PushTextMax = 600;
+	/// <summary>GitHub takes at most 65 536 characters in an issue body; the log is cut from its start to stay under this.</summary>
+	const int IssueBodyMax = 60_000;
 
 	/// <summary>Reports can be sent (the game has the results token).</summary>
 	public static bool Enabled => ResultsUpload.Token != null;
@@ -108,9 +113,7 @@ public static class BugReports
 			var ok = true;
 			try
 			{
-				await Put(name + ".md", Encoding.UTF8.GetBytes(report));
-				if (png != null) await Put(name + ".png", png);
-				await Push(name + ".md", report, false);
+				await Push(await Deliver(name, report, png), report, false);
 			}
 			catch (Exception e)
 			{
@@ -135,13 +138,12 @@ public static class BugReports
 				{
 					// (the repo path is in the file name, "/" as "~")
 					var name = Moved(Path.GetFileNameWithoutExtension(md).Replace('~', '/'));
-					var report = await File.ReadAllBytesAsync(md);
-					await Put(name + ".md", report);
+					var report = await File.ReadAllTextAsync(md);
 					var png = Path.ChangeExtension(md, ".png");
-					if (File.Exists(png)) await Put(name + ".png", await File.ReadAllBytesAsync(png));
+					var url = await Deliver(name, report, File.Exists(png) ? await File.ReadAllBytesAsync(png) : null);
 					File.Delete(md);
 					if (File.Exists(png)) File.Delete(png);
-					await Push(name + ".md", Encoding.UTF8.GetString(report), true);
+					await Push(url, report, true);
 				}
 				catch (Exception e)
 				{
@@ -150,6 +152,83 @@ public static class BugReports
 				}
 			}
 		});
+	}
+
+	/// <summary>
+	/// Puts a report into the repo and says where to open it: the screenshot first (a file, also for bugs), then a bug as an
+	/// issue, or as name.md if that fails (no Issues permission, …) or it's feedback. Throws if nothing went (offline): the
+	/// caller keeps it. A screenshot already there (sent before the rest failed) counts as sent.
+	/// </summary>
+	static async Task<string> Deliver(string name, string report, byte[]? png)
+	{
+		if (png != null) await Put(name + ".png", png, alreadyThereOk: true);
+		if (name.StartsWith(Reported + "/"))
+		{
+			try
+			{
+				return await CreateIssue(IssueTitle(report), IssueBody(report, png != null ? name + ".png" : null));
+			}
+			catch (Exception e)
+			{
+				GD.PrintErr($"Couldn't open an issue for the bug report, sending it as a file: {e.Message}");
+			}
+		}
+		await Put(name + ".md", Encoding.UTF8.GetBytes(report));
+		return FileUrl(name + ".md");
+	}
+
+	static string FileUrl(string file) =>
+		$"https://github.com/{ResultsUpload.Repo}/blob/HEAD/{string.Join('/', file.Split('/').Select(Uri.EscapeDataString))}";
+
+	/// <summary>The issue's title, read from the report: "&lt;category&gt; (&lt;version&gt;)" (the version without "(test build)").</summary>
+	public static string IssueTitle(string report)
+	{
+		var lines = report.Replace("\r", "").Split('\n');
+		var category = (lines.FirstOrDefault() ?? "").TrimStart('#', ' ');
+		if (category.StartsWith("Bug:")) category = category[4..].Trim();
+		var version = lines.FirstOrDefault(l => l.StartsWith("- **Version:** "))?["- **Version:** ".Length..].Split(' ')[0] ?? "";
+		return version == "" ? category : $"{category} ({version})";
+	}
+
+	/// <summary>
+	/// The issue's text: the report without its heading (that's the title), the screenshot (a file in the repo) shown under
+	/// the player's text, and the log folded away in a &lt;details&gt; block, cut from its start if the body would be too long.
+	/// </summary>
+	public static string IssueBody(string report, string? screenshot)
+	{
+		var lines = report.Replace("\r", "").Split('\n').ToList();
+		if (lines.Count > 0 && lines[0].StartsWith("# ")) lines.RemoveAt(0);
+		var logAt = lines.FindIndex(l => l.StartsWith("## Log"));
+		var head = string.Join('\n', logAt < 0 ? lines : lines.Take(logAt)).Trim('\n');
+		var log = logAt < 0 ? "" : string.Join('\n', lines.Skip(logAt + 1)).Trim('\n');
+		if (log.StartsWith("```")) log = log[3..].TrimStart('\n');
+		if (log.EndsWith("```")) log = log[..^3].TrimEnd('\n');
+		var body = new StringBuilder(head).Append("\n\n");
+		if (screenshot != null)
+		{
+			var url = FileUrl(screenshot);
+			body.Append($"## Screenshot\n\n[![Screenshot]({url}?raw=true)]({url})\n\n");
+		}
+		if (logAt >= 0)
+		{
+			var summary = lines[logAt].TrimStart('#', ' ');
+			var room = Math.Max(0, IssueBodyMax - body.Length - summary.Length - 60);
+			if (log.Length > room) log = "…" + log[^room..];
+			// (a longer fence, in case the log holds ``` itself)
+			body.Append($"<details><summary>{summary}</summary>\n\n````\n{log}\n````\n\n</details>\n");
+		}
+		return body.ToString();
+	}
+
+	/// <summary>Opens the issue (label "bug", which GitHub makes if it's missing) and returns its page.</summary>
+	static async Task<string> CreateIssue(string title, string body)
+	{
+		using var http = ResultsUpload.Client(ResultsUpload.Token!);
+		var json = new JsonObject { ["title"] = title, ["body"] = body, ["labels"] = new JsonArray("bug") }.ToJsonString();
+		using var response = await http.PostAsync($"https://api.github.com/repos/{ResultsUpload.Repo}/issues", new StringContent(json, Encoding.UTF8, "application/json"));
+		if (!response.IsSuccessStatusCode) throw new HttpRequestException($"GitHub said {(int)response.StatusCode}");
+		return JsonNode.Parse(await response.Content.ReadAsStringAsync())?["html_url"]?.GetValue<string>()
+			?? throw new HttpRequestException("GitHub's answer had no html_url");
 	}
 
 	/// <summary>A report kept by 0.12.3b or older (bug-reports/&lt;category&gt;/… or feedback/&lt;kind&gt;/…) goes where new ones
@@ -181,10 +260,10 @@ public static class BugReports
 
 	/// <summary>
 	/// The push to Max's phone and PC (ntfy.sh), read from the report itself so late ones look the same: "Bug" or "Feature
-	/// request" and where, who sent it, the start of the text; tapping it opens the report in the repo. A push that fails
-	/// is only logged: the report is already in.
+	/// request" and where, who sent it, the start of the text; tapping it opens the issue (or the report's file). A push
+	/// that fails is only logged: the report is already in.
 	/// </summary>
-	static async Task Push(string file, string report, bool late)
+	static async Task Push(string click, string report, bool late)
 	{
 		try
 		{
@@ -204,7 +283,7 @@ public static class BugReports
 				["message"] = message,
 				["tags"] = new JsonArray(bug ? "lady_beetle" : "bulb"),
 				["priority"] = bug ? 4 : 3,
-				["click"] = $"https://github.com/{ResultsUpload.Repo}/blob/HEAD/{string.Join('/', file.Split('/').Select(Uri.EscapeDataString))}",
+				["click"] = click,
 			}.ToJsonString();
 			using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 			using var response = await http.PostAsync("https://ntfy.sh/", new StringContent(body, Encoding.UTF8, "application/json"));
@@ -216,12 +295,14 @@ public static class BugReports
 		}
 	}
 
-	static async Task Put(string file, byte[] content)
+	static async Task Put(string file, byte[] content, bool alreadyThereOk = false)
 	{
 		using var http = ResultsUpload.Client(ResultsUpload.Token!);
 		var body = new JsonObject { ["message"] = $"Bug report: {file}", ["content"] = Convert.ToBase64String(content) }.ToJsonString();
 		var url = $"https://api.github.com/repos/{ResultsUpload.Repo}/contents/{string.Join('/', file.Split('/').Select(Uri.EscapeDataString))}";
 		using var response = await http.PutAsync(url, new StringContent(body, Encoding.UTF8, "application/json"));
+		// (422: the file is there already, GitHub wants its sha to replace it)
+		if (alreadyThereOk && (int)response.StatusCode == 422) return;
 		if (!response.IsSuccessStatusCode) throw new HttpRequestException($"GitHub said {(int)response.StatusCode}");
 	}
 }

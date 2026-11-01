@@ -17,6 +17,14 @@ Your mom is so fat that when she sat on the buzzer, it stayed locked for everyon
 
 Removed Herobrine.
 
+### Changed
+
+- **Bug reports (🐞) now reach Max as GitHub Issues**: before, each one landed as a loose file in a folder he had to sort
+  through by hand, so it was easy to lose track of what was fixed. Now every report opens its own issue (titled with what
+  it's about and your version, your text, the screenshot shown in it and the log folded away), which he can label and close
+  once the fix is out. Nothing changes for you: same window, same button. If the issue can't be made, the report still
+  goes in the old way, and if you're offline it still waits and goes on the next start. Ideas (💡) go in as before.
+
 ## [0.12.8b]
 
 ### Added
