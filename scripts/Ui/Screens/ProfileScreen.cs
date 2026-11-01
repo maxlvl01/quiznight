@@ -93,13 +93,18 @@ public partial class ProfileScreen : Control
 
 		var attributes = TypeAttributes(byPlayer, playerId);
 		var other = OtherAttributes(byPlayer, careers, nights, playerId);
+		var hosting = HostAttributes(rows, nights, playerId);
+		// (the pitch's spot for hosting: how hard their questions are, all three together)
+		var rated = hosting.Where(a => a.Rating != null).ToList();
+		var host = new Attribute("Hosting", rated.Count > 0 ? (int)Math.Round(rated.Average(a => a.Rating!.Value)) : null,
+			rated.Count > 0 ? Lang.T("How hard their questions are, from the three hosting attributes") : Lang.T("Hasn't hosted enough questions yet"));
 		var page = U.V(16, back,
-			Header(me, mine, careers.IndexOf(me) + 1, nights.Count(n => n.HostId == playerId), attributes, other, tableLabel,
+			Header(me, mine, nights.Where(n => n.HostId == playerId).ToList(), careers.IndexOf(me) + 1, nights.Count(n => n.HostId == playerId), attributes, other, tableLabel,
 				Results.FavouritePuppy(careers) == playerId),
 			U.H(16,
-				Section("Attributes", AttributeList(other, attributes)).MinSize(330),
+				Section("Attributes", AttributeList(other, attributes, hosting)).MinSize(330),
 				Section("Best positions", U.V(14, new ProfileRadar(attributes) { CustomMinimumSize = new Vector2(380, 300) },
-					new ProfilePitch(attributes) { CustomMinimumSize = new Vector2(300, 300) })).Grow(),
+					new ProfilePitch(attributes.Append((ProfilePitch.Host, host)).ToList()) { CustomMinimumSize = new Vector2(300, 300) })).Grow(),
 				Section("Scouting report", Report(byPlayer, rows, playerId, mine, nights, myRows)).MinSize(360)),
 			Section("Points per night", new ProfileBars(mine.Select(m => (m.Me.Points, m.Me.Place, m.Night.Quiz, EternalTableScreen.Date(m.Night.Date))).ToList())
 				{ CustomMinimumSize = new Vector2(0, 170), TooltipText = " " }),
@@ -126,6 +131,31 @@ public partial class ProfileScreen : Control
 				: Lang.F("{0}: fewer than {1} questions so far", Lang.T(QuestionKinds.TypeLabel(type)), MinQuestions);
 			return (type, new Attribute(TypeAttribute[type], Rate(rates, id, true), tip));
 		}).ToList();
+
+	/// <summary>
+	/// How hard someone's questions are as a host, against everyone else who hosted: how seldom they're answered right,
+	/// how long players think about them, and how many nobody got. From the nights they hosted (by date and quiz).
+	/// </summary>
+	static List<Attribute> HostAttributes(List<Results.QuestionRow> rows, List<Results.Night> nights, string id)
+	{
+		var hostOf = new Dictionary<string, string>();
+		foreach (var n in nights.Where(n => n.HostId != "")) hostOf[$"{n.Date}|{n.Quiz.Trim()}"] = n.HostId;
+		var byHost = rows.Where(r => hostOf.ContainsKey($"{r.Date}|{r.Quiz}")).GroupBy(r => hostOf[$"{r.Date}|{r.Quiz}"]).ToDictionary(g => g.Key, g => g.ToList());
+		static int Questions(List<Results.QuestionRow> r) => r.Select(x => (x.Date, x.Quiz, x.Question)).Distinct().Count();
+		Dictionary<string, double?> From(Func<List<Results.QuestionRow>, double?> f) =>
+			byHost.ToDictionary(h => h.Key, h => Questions(h.Value) >= MinQuestions ? f(h.Value) : null);
+		var right = From(r => (double)r.Count(x => x.Right) / r.Count);
+		var time = From(r => r.Where(x => (x.AnswerS ?? x.BuzzS) != null).Select(x => (x.AnswerS ?? x.BuzzS)!.Value).DefaultIfEmpty(double.NaN).Average() is var t && !double.IsNaN(t) ? t : null);
+		var stumped = From(r => (double)r.GroupBy(x => (x.Date, x.Quiz, x.Question)).Count(q => !q.Any(x => x.Right)) / Questions(r));
+		var mine = byHost.GetValueOrDefault(id) ?? new();
+		var few = Lang.F("Fewer than {0} hosted questions so far", MinQuestions);
+		return new()
+		{
+			new("Tough questions", Rate(right, id, false), right.GetValueOrDefault(id) is { } r ? Lang.F("Players got {0} % of their answers right", Math.Round(r * 100)) : few),
+			new("Brain teasers", Rate(time, id, true), time.GetValueOrDefault(id) is { } t ? Lang.F("Players took Ø {0} s to answer or buzz", t.ToString("0.0", Inv)) : few),
+			new("Stumpers", Rate(stumped, id, true), stumped.GetValueOrDefault(id) is { } s ? Lang.F("Nobody got {0} of {1} questions", (int)Math.Round(s * Questions(mine)), Questions(mine)) : few),
+		};
+	}
 
 	/// <summary>Speed, nerves and the mental side: buzz and answer times, wrong buzzes, consistency, wins, jokers.</summary>
 	static List<Attribute> OtherAttributes(Dictionary<string, List<Results.QuestionRow>> byPlayer, List<Results.Career> careers,
@@ -165,7 +195,7 @@ public partial class ProfileScreen : Control
 		};
 	}
 
-	static Control Header(Results.Career me, List<(Results.Night Night, Results.NightPlayer Me)> mine, int place, int hosted,
+	static Control Header(Results.Career me, List<(Results.Night Night, Results.NightPlayer Me)> mine, List<Results.Night> hostedNights, int place, int hosted,
 		List<(string Type, Attribute A)> types, List<Attribute> other, string tableLabel, bool puppy)
 	{
 		var who = EternalTableScreen.Who(me.Id, me.Name);
@@ -184,10 +214,21 @@ public partial class ProfileScreen : Control
 			Fact("Points", $"{me.Points}", C.Accent), Fact("Ø points", avg.ToString("0.0", Inv)),
 			Fact("From the host", (me.HostPoints > 0 ? "+" : "") + me.HostPoints, me.HostPoints > 0 ? C.Pink : null)
 				.Tip(Lang.T("Points the hosts handed them: bonuses and score changes by hand (recorded from 0.10.0b on).")));
-		// (form: the last five nights' places, newest on the right, like FM)
+		// (form: the last five nights' places, newest on the right, like FM; a night they hosted shows the host's microphone)
 		var form = U.H(6);
-		foreach (var (night, p) in mine.TakeLast(5))
+		var last = mine.Select(m => (m.Night, Me: (Results.NightPlayer?)m.Me)).Concat(hostedNights.Select(n => (Night: n, Me: (Results.NightPlayer?)null)))
+			.OrderBy(x => x.Night.Date).TakeLast(5).ToList();
+		foreach (var (night, played) in last)
 		{
+			if (played is not { } p)
+			{
+				var hostPill = U.Panel(new TypeIcon(QuestionType.Interactive, 18).With(i => i.SizeFlagsHorizontal = SizeFlags.ShrinkCenter));
+				hostPill.AddThemeStyleboxOverride("panel", UiKitBox(new Color(C.Gold, 0.25f)));
+				hostPill.CustomMinimumSize = new Vector2(46, 28);
+				hostPill.TooltipText = $"{EternalTableScreen.Date(night.Date)} · {night.Quiz} · {Lang.T("Hosted")}";
+				form.AddChild(hostPill);
+				continue;
+			}
 			var pill = U.Panel(U.Mono(Lang.Ordinal(p.Place), 14, p.Place <= 3 ? C.OnBright : C.Text).With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
 			pill.AddThemeStyleboxOverride("panel", UiKitBox(C.Medal(p.Place) ?? C.Panel2));
 			pill.CustomMinimumSize = new Vector2(46, 28);
@@ -195,7 +236,7 @@ public partial class ProfileScreen : Control
 			form.AddChild(pill);
 		}
 		// (fewer than five nights: the rest are empty slots)
-		for (var i = Math.Min(5, mine.Count); i < 5; i++) form.AddChild(new EmptySlot { CustomMinimumSize = new Vector2(46, 28), TooltipText = Lang.T("No quiz night yet") });
+		for (var i = Math.Min(5, last.Count); i < 5; i++) form.AddChild(new EmptySlot { CustomMinimumSize = new Vector2(46, 28), TooltipText = Lang.T("No quiz night yet") });
 		var since = mine.Count > 0 ? Lang.F("First quiz night: {0}", EternalTableScreen.Date(mine[0].Night.Date)) : "";
 		var right = U.V(8, U.Eyebrow("Form"), form, U.Muted(since, 13), U.Muted(tableLabel, 12));
 		right.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
@@ -226,7 +267,7 @@ public partial class ProfileScreen : Control
 
 	static StyleBoxFlat UiKitBox(Color bg) => UiTheme.Box(bg, 8, null, 0, 8, 4);
 
-	static Control AttributeList(List<Attribute> other, List<(string Type, Attribute A)> types)
+	static Control AttributeList(List<Attribute> other, List<(string Type, Attribute A)> types, List<Attribute> hosting)
 	{
 		var box = U.V(4);
 		void Group(string title, IEnumerable<Attribute> list)
@@ -244,6 +285,7 @@ public partial class ProfileScreen : Control
 		Group("Speed & technique", other.Take(4));
 		Group("Mental", other.Skip(4));
 		Group("Question types", types.Select(t => t.A));
+		Group("Hosting", hosting);
 		box.AddChild(U.Gap(4));
 		box.AddChild(U.Muted("1–20 against everyone in this table. Hover one to see what it's based on.", 12));
 		return box;
@@ -410,10 +452,14 @@ public partial class ProfilePitch : Control
 	readonly List<(string Type, ProfileScreen.Attribute A)> _types;
 
 	/// <summary>Where each type plays on the pitch (0–1 across, 0 = our goal at the bottom … 1 = attack at the top).</summary>
+	/// <summary>The hosting spot (not a question type): ProfileScreen's "Hosting", how hard their questions are.</summary>
+	public const string Host = "host";
+
 	static readonly Dictionary<string, Vector2> Spots = new()
 	{
 		[QuestionType.MapPin] = new(0.5f, 0.92f),
-		[QuestionType.Order] = new(0.12f, 0.7f), [QuestionType.Estimation] = new(0.37f, 0.74f), [QuestionType.Write] = new(0.63f, 0.74f), [QuestionType.Classic] = new(0.88f, 0.7f),
+		// (writing counts as classic since 0.10.3b: its spot is hosting's)
+		[QuestionType.Order] = new(0.12f, 0.7f), [QuestionType.Estimation] = new(0.37f, 0.74f), [Host] = new(0.63f, 0.74f), [QuestionType.Classic] = new(0.88f, 0.7f),
 		[QuestionType.Picture] = new(0.22f, 0.48f), [QuestionType.Steps] = new(0.5f, 0.52f), [QuestionType.Image] = new(0.78f, 0.48f),
 		[QuestionType.Sound] = new(0.2f, 0.2f), [QuestionType.Interactive] = new(0.5f, 0.14f), [QuestionType.Video] = new(0.8f, 0.2f),
 	};

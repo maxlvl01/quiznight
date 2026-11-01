@@ -84,7 +84,10 @@ public static class SpaceScene
 			var twinkle = 0.35f + 0.65f * (0.5f + 0.5f * Mathf.Sin(t * speed + phase));
 			var at = P(new Vector2(Mathf.PosMod(x - t * (0.0015f + size * 0.0024f), 1f), y));
 			var colour = new Color(0.85f + 0.15f * Mathf.Sin(phase * 3), 0.9f, 1f, twinkle);
-			ci.DrawCircle(at, size * 0.6f * k, colour);
+			// (most stars are a pixel or two across: a square looks the same there and is far cheaper than a round circle)
+			var r = size * 0.6f * k;
+			if (r < 1.3f) ci.DrawRect(new Rect2(at - new Vector2(r, r), new Vector2(r * 2, r * 2)), colour);
+			else ci.DrawCircle(at, r, colour);
 			// (the brightest ones get a little cross of light)
 			if (size > 2)
 			{

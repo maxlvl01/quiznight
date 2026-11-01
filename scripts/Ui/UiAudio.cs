@@ -109,7 +109,8 @@ public partial class UiAudio : Node
 
 	readonly AudioStreamPlayer _music = new() { Bus = Prefs.GameMusicBus };
 	readonly AudioStreamPlayer _hover = new() { Bus = Prefs.SfxBus, MaxPolyphony = 2 };
-	readonly AudioStreamPlayer _click = new() { Bus = Prefs.SfxBus, MaxPolyphony = 3 };
+	// (6 dB under the other sound effects: clicks are heard all the time, so they shouldn't make anyone turn the buzzer down)
+	readonly AudioStreamPlayer _click = new() { Bus = Prefs.SfxBus, MaxPolyphony = 3, VolumeDb = -6 };
 	// (a little louder than the other sound effects: it's the show's host talking)
 	readonly AudioStreamPlayer _voice = new() { Bus = Prefs.SfxBus };
 	bool _greeted;

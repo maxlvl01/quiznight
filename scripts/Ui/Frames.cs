@@ -68,13 +68,21 @@ public partial class ScreenFrame : Container
 	double _t = OS.GetCmdlineUserArgs() is var args && System.Array.IndexOf(args, "--space-time") is var i and >= 0 && i + 1 < args.Length
 		&& double.TryParse(args[i + 1], System.Globalization.CultureInfo.InvariantCulture, out var start) ? start : 0;
 	bool _wasOn;
+	/// <summary>Time since the scene was last drawn: it's drawn 30 times a second, which is plenty for its slow motion.</summary>
+	double _sinceDrawn;
 
 	public override void _Process(double delta)
 	{
 		// (redrawn while on, and once more when it goes off: another screen then has a clean background)
 		var space = SpaceScene.OnScreen;
 		var on = Seasonal.OnScreen || space;
-		if (on || _wasOn) _scene.QueueRedraw();
+		// (the space scene, with its hundreds of shapes, 30 times a second instead of 60: half the work, the same look)
+		_sinceDrawn += delta;
+		if (on && (!space || _sinceDrawn >= 1 / 30.0) || !on && _wasOn)
+		{
+			_scene.QueueRedraw();
+			_sinceDrawn = 0;
+		}
 		_wasOn = on;
 		// (the space scene also stands still with Background movement off)
 		if (on && !Announcer.ReduceMotion && (!space || Storage.Settings.BackgroundMotion)) _t += delta;
@@ -124,18 +132,19 @@ public partial class SpaceBackdrop : Control
 			""",
 	};
 
-	/// <summary>The out-of-focus layer for the animated background: the video's frame, blurred as it's drawn.</summary>
+	/// <summary>The out-of-focus layer for the animated background: the video's frame, blurred as it's drawn (25 samples a pixel,
+	/// wider apart: as soft as the 49 it took before 0.13, for half the work).</summary>
 	static readonly Shader Blur = new()
 	{
 		Code = """
 			shader_type canvas_item;
 			void fragment() {
 				vec4 sum = vec4(0.0);
-				vec2 step = TEXTURE_PIXEL_SIZE * 5.0;
-				for (int x = -3; x <= 3; x++)
-					for (int y = -3; y <= 3; y++)
+				vec2 step = TEXTURE_PIXEL_SIZE * 7.0;
+				for (int x = -2; x <= 2; x++)
+					for (int y = -2; y <= 2; y++)
 						sum += texture(TEXTURE, UV + vec2(float(x), float(y)) * step);
-				COLOR = sum / 49.0 * COLOR;
+				COLOR = sum / 25.0 * COLOR;
 			}
 			""",
 	};
@@ -167,6 +176,7 @@ public partial class SpaceBackdrop : Control
 	{
 		_picture = picture;
 		_customVersion = Storage.Backgrounds.Changed;
+		_drawnFocus = new Vector2(-1, -1);
 		_sharp = _blurred = null;
 		_video?.QueueFree();
 		_video = null;
@@ -227,11 +237,19 @@ public partial class SpaceBackdrop : Control
 		var target = moving ? (GetLocalMousePosition() / Size).Clamp(Vector2.Zero, Vector2.One) : new Vector2(0.5f, 0.5f);
 		// (slow to follow, so quick mouse moves don't swing it around)
 		_focus = _focus.Lerp(target, (float)Mathf.Min(1, delta * 1.5));
+		// (only drawn again when something changed: the focus still moving, a video's next frame, a new window size; a
+		// full-screen blur 60 times a second for a picture that stands still was a good part of the space skin's cost)
+		var changed = _video != null || _focus.DistanceTo(_drawnFocus) > 0.0005f || Size != _drawnSize;
+		if (!changed) return;
+		_drawnFocus = _focus;
+		_drawnSize = Size;
 		_material.SetShaderParameter("focus", _focus);
 		_material.SetShaderParameter("aspect", Size.X / Size.Y);
 		QueueRedraw();
 		_top.QueueRedraw();
 	}
+
+	Vector2 _drawnFocus = new(-1, -1), _drawnSize;
 
 	public override void _Draw() => DrawPicture(this, _blurred);
 

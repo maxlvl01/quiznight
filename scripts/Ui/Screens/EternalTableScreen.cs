@@ -31,7 +31,8 @@ public partial class EternalTableScreen : Control
 	/// <summary>"all", "season:N" or "beta"; empty: the beta until 1.0 has nights of its own, then all time.</summary>
 	static string _table = "";
 	/// <summary>"quiz" (quiz points) or a scoring preset's name (championship points per night's place).</summary>
-	static string _system = ScoringPresets.BuiltIn[0].Name;
+	// (quiz points first, since 0.13: championship points are a pick away in "Ranked by")
+	static string _system = "quiz";
 	/// <summary>Which questions (see KindStats.Matches).</summary>
 	static string _kind = "";
 	/// <summary>"table", or a graph: "positions" (everyone's place after each night) or "points" (climbing from 0).</summary>
