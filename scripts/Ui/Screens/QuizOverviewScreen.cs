@@ -160,6 +160,9 @@ public partial class QuizOverviewScreen : Control
 		return (_sort switch
 		{
 			"type" => all.OrderBy(i => System.Array.IndexOf(QuestionType.All, KindOf(_quiz.Questions[i]))),
+			// (A–Z by the category as it's shown; questions without one last, where they stand out)
+			"category" => all.OrderBy(i => _quiz.Questions[i].Category == "")
+				.ThenBy(i => Categories.Label(_quiz.Questions[i].Category), System.StringComparer.CurrentCultureIgnoreCase),
 			// (questions made before 0.12.0d5 don't know when: they come first, in play order)
 			"created" => all.OrderBy(i => _quiz.Questions[i].CreatedAt),
 			_ => all.OrderBy(i => i),
@@ -174,11 +177,17 @@ public partial class QuizOverviewScreen : Control
 		_sortBar.Clear();
 		_sortBar.Visible = _quiz.Questions.Count > 1;
 		_sortBar.AddChild(U.Muted("Show", 13, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter));
-		_sortBar.AddChild(U.Segmented(new[] { ("play", "Play order"), ("type", "By type"), ("created", "Order made") }, _sort, id =>
+		// (one drop-down: three buttons took the whole row, and a fourth way didn't fit)
+		_sortBar.AddChild(U.Select(new[] { ("play", "Play order"), ("type", "By type"), ("category", "By category"), ("created", "Order made") }, _sort, id =>
 		{
 			_sort = id;
 			Callable.From(RefreshList).CallDeferred();
-		}).Grow());
+		}).With(s =>
+		{
+			s.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+			s.CustomMinimumSize = new Vector2(200, 0);
+		}));
+		_sortBar.AddChild(U.Gap(0).Grow());
 		var shown = Shown();
 		if (_sort != "play" && !shown.SequenceEqual(Enumerable.Range(0, shown.Count)))
 			_sortBar.AddChild(U.Small("Play in this order", () =>

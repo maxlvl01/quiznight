@@ -1621,6 +1621,7 @@ public static class LangDe
 		["Too loud!"] = "Zu laut!",
 		["Play order"] = "Spielreihenfolge",
 		["By type"] = "Nach Typ",
+		["By category"] = "Nach Kategorie",
 		["Order made"] = "Erstellt",
 		["Play in this order"] = "In dieser Reihenfolge spielen",
 		["Changes the order the questions are played in to the one shown (Ctrl+Z takes it back)"] = "Spielt die Fragen ab jetzt in der gezeigten Reihenfolge (Strg+Z nimmt es zurück)",

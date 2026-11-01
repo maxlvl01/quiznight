@@ -13,6 +13,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d4]
+
+### Changed
+- **Sorting the quiz's questions is one drop-down, with a new "By category".** Above the question list, "Show" had three buttons side by side (Play order, By type, Order made) that took the whole row. It's now one drop-down, and "By category" sorts the questions A–Z by their category, with the ones that still have none at the end. As before, "Play in this order" makes the shown order the play order. (Thanks for the idea, maxlvl01!)
+
 ## [0.13.0d3]
 
 ### Added
