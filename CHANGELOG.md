@@ -13,6 +13,8 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.1b]
+
 ## [0.13.1d4]
 
 ### Added
