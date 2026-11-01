@@ -17,9 +17,12 @@
     <!-- (messages and saved files go through System.Text.Json by reflection over our types, which stay whole) -->
     <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
+  <!-- Discord Rich Presence (Net/DiscordPresence): talks to the Discord app on this PC, Windows and Linux. -->
+  <ItemGroup>
+    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
+  </ItemGroup>
   <!-- Steam lobbies (room codes) and Steam relay networking. Runs under the Spacewar test app (480). -->
   <ItemGroup Condition="'$(GodotTargetPlatform)' != 'linuxbsd'">
-    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
     <PackageReference Include="Facepunch.Steamworks" Version="2.3.3" />
     <!-- The native Steam library has to sit next to the game's assemblies. -->
     <None Include="steam_api64.dll" CopyToOutputDirectory="PreserveNewest" />
