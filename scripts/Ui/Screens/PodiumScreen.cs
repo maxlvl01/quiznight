@@ -97,8 +97,8 @@ public partial class PodiumScreen : Control, IRoomScreen
 		// ---- the right side: header, podium, score list ----
 		var side = U.V(12);
 		// (everything has a sponsor's name, like in American sports)
-		side.AddChild(U.H(10, U.Eyebrow("The"), new TrackGlowLogo(0.55f) { SizeFlagsVertical = SizeFlags.ShrinkCenter }, U.Eyebrow("Podium")).Center());
-		side.AddChild(U.Eyebrow(Lang.F("{0} · final results", r.QuizTitle)).Center());
+		side.AddChild(U.H(12, Head("The", 20), new TrackGlowLogo(0.7f) { SizeFlagsVertical = SizeFlags.ShrinkCenter }, Head("Podium", 20)).Center());
+		side.AddChild(Head(Lang.F("{0} · final results", r.QuizTitle), 16).Raw().Center());
 		side.AddChild(U.H(0, U.Heading(top.Count(p => p.Place == 1) > 1 ? "It's a tie at the top" : "And the winner is", 40, false), U.Text("…", 40, C.Accent, Fonts.Black)).Center());
 		side.AddChild(U.Gap(6));
 
@@ -213,6 +213,15 @@ public partial class PodiumScreen : Control, IRoomScreen
 		step.Alignment = BoxContainer.AlignmentMode.End;
 		return (step, block);
 	}
+
+	/// <summary>
+	/// The heading lines over the podium: spaced capitals like an eyebrow, but heavier and at their real size (the eyebrow's
+	/// thin 12 px letters looked scuffed once the podium was zoomed up: fonts aren't redrawn sharper when scaled).
+	/// </summary>
+	static Label Head(string text, int size) =>
+		U.Text(Lang.T(text).ToUpper(), size, new Color(C.Text, 0.75f), _head ??= new FontVariation { BaseFont = Fonts.Black, SpacingGlyph = 3 });
+
+	static FontVariation? _head;
 
 	/// <summary>"left at Q 7/20" / "joined at Q 3/20", or null.</summary>
 	static Label? SeatNote(FinalPlayer p, FinalResults r) =>

@@ -13,6 +13,12 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.1d3]
+
+### Changed
+- **The spotlights shine on the logo now**, on the home screen and (new) on the title screen: two beams from the top corners that sway a little around the logo and end in a round pool of light on it, instead of sweeping across the whole top of the screen. The pool was always meant to be there but sat behind the logo's box, so you never saw it; it's on the logo now. With Settings → "Real spotlights" on, the real lights also only light the logo and the background behind it (not the buttons any more), and only the logo throws a shadow. (Thanks for the idea, maxlvl01!)
+- **The lines over the podium are easier to read.** "THE TrackGlow PODIUM" and "… · FINAL RESULTS" were thin, small letters that looked scuffed once the podium was zoomed up (text doesn't get sharper when it's scaled); they're bigger and heavier now. (Thanks for reporting it, maxlvl01!)
+
 ### Fixed
 - **Pop-up pages like "What's new" can't get wider than they're meant to be any more.** Besides the long line in 0.13.1d2's fix, the page itself grew as wide as its widest line, so on 21:9 it reached past the game's 16:9 frame under the buttons at the top. It now stays at its width whatever is in it. (Thanks for reporting it, maxlvl01!)
 
