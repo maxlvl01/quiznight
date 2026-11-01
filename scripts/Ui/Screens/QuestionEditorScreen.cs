@@ -137,7 +137,7 @@ public partial class QuestionEditorScreen : Control
 		_form.Clear();
 		_primaryImage = null;
 		_mediaField = null;
-		_form.AddChild(_draft.Type switch
+		var form = _draft.Type switch
 		{
 			QuestionType.Classic or QuestionType.Picture => ClassicForm(),
 			QuestionType.Estimation => EstimationForm(),
@@ -147,8 +147,14 @@ public partial class QuestionEditorScreen : Control
 			QuestionType.Interactive => InteractiveForm(),
 			QuestionType.Steps => StepsForm(),
 			_ => MediaForm(),
-		});
-		_form.AddChild(AfterSection());
+		};
+		_form.AddChild(form);
+		// "After the answer" goes under the question's own fields, not under the round settings: below everything it was
+		// off the bottom of the screen (Max's report). Map pin's first column is narrow, so its parts stack there.
+		if (form is HBoxContainer row && row.GetChildCount() > 0 && row.GetChild(0) is VBoxContainer first)
+			first.AddChild(AfterSection(stacked: row.GetChildCount() > 2));
+		else
+			_form.AddChild(AfterSection(stacked: false));
 		// Maps and previews take the height that's left, so the form fits without scrolling.
 		U.PropagateGrow(_form);
 		UpdateIssues();
@@ -161,7 +167,7 @@ public partial class QuestionEditorScreen : Control
 	/// After the answer (every type, optional): a fun fact or short story, the source and a picture, shown to everyone
 	/// at the reveal. Folded away until it's opened, so the form still fits.
 	/// </summary>
-	Control AfterSection()
+	Control AfterSection(bool stacked)
 	{
 		if (!_afterOpen && !_draft.HasAfter)
 			return U.Link("+ Fun fact, source or picture for after the answer", () =>
@@ -186,7 +192,7 @@ public partial class QuestionEditorScreen : Control
 			Changed();
 		}, Images.ScreenshotMax, "e.g. the cover, or the game's store page"));
 		return U.Card(10, U.Bold("After the answer", 17), U.Muted("Shown to everyone with the answer, at the reveal.", 13),
-			Columns((U.V(12, text, source), 1.4f), (picture, 1f)));
+			stacked ? U.V(12, text, source, picture) : Columns((U.V(12, text, source), 1.4f), (picture, 1f)));
 	}
 
 	static HBoxContainer Columns(params (Control Col, float Ratio)[] cols)
@@ -648,7 +654,8 @@ public partial class QuestionEditorScreen : Control
 				: "Points: right on the first hint gets as many points as there are hints (5 with five), each hint after one less. Double points doubles them.", 13),
 			U.Muted(sentence
 				? "A buzz stops the reading: you can only read on once the answer is judged. Every new part gives everyone another go, also who was wrong before."
-				: "Every new hint gives everyone another go, also who was wrong before.", 13));
+				: "Every new hint gives everyone another go, also who was wrong before.", 13),
+			RoundSettings.Category(_draft, () => Changed()));
 		return Columns((left, 1.6f), (settings, 1));
 	}
 
@@ -701,7 +708,9 @@ public partial class QuestionEditorScreen : Control
 			kind,
 			vote ? U.Muted("Everyone votes for the best recording (not their own). Every vote is a point; Double points doubles it.", 13)
 				: RoundSettings.Points(_draft, () => Changed()),
-			vote ? U.Gap(0) : U.Muted("You pick your favourite recording: they get the points (doubled with Double points).", 13));
+			vote ? U.Gap(0) : U.Muted("You pick your favourite recording: they get the points (doubled with Double points).", 13),
+			// (no bonus here, which is where the other types get their category from)
+			RoundSettings.Category(_draft, () => Changed()));
 		return Columns((left, 1.6f), (settings, 1));
 	}
 

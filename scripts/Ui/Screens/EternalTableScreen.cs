@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -410,10 +411,14 @@ public partial class EternalTableScreen : Control
 		var places = Places(lines, cols);
 		var placesBefore = before.Count > 0 ? Places(before, cols) : null;
 
-		var grid = new LinedGrid { Columns = cols.Count + 2 };
+		// Two grids side by side: place and name stay put, only the numbers scroll sideways (Max's idea), so you always
+		// see whose row you're reading. Their rows are made the same height once both are built (MatchRows).
+		var names = new LinedGrid { Columns = 2 };
+		var grid = new LinedGrid { Columns = cols.Count };
+		names.AddThemeConstantOverride("h_separation", 22);
 		grid.AddThemeConstantOverride("h_separation", cols.Count > 10 ? 16 : 22);
-		grid.AddThemeConstantOverride("v_separation", 12);
-		grid.AddChild(U.Eyebrow("#"));
+		foreach (var g in new[] { names, grid }) g.AddThemeConstantOverride("v_separation", 12);
+		names.AddChild(U.Eyebrow("#"));
 		foreach (var (id, label, tip) in cols.Select(c => (c.Id, c.Label, c.Tip)).Prepend(("player", "Player", "")))
 		{
 			var col = id;
@@ -433,19 +438,23 @@ public partial class EternalTableScreen : Control
 			foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) head.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
 			head.Alignment = id == "player" ? HorizontalAlignment.Left : HorizontalAlignment.Center;
 			head.AutowrapMode = TextServer.AutowrapMode.Off;
-			grid.AddChild(head);
+			(id == "player" ? names : grid).AddChild(head);
 		}
 		static Label Num(string text, int size, Color? color = null) =>
-			U.Mono(text, size, color).With(l => l.HorizontalAlignment = HorizontalAlignment.Center);
+			U.Mono(text, size, color).With(l =>
+			{
+				l.HorizontalAlignment = HorizontalAlignment.Center;
+				l.VerticalAlignment = VerticalAlignment.Center;
+			});
 		var main = MainColumn;
 		var puppy = _kind == "" ? Results.FavouritePuppy(Results.Table(csvs, until, from)) : null;
 		foreach (var line in Sorted(lines))
 		{
 			var place = places[line.Id];
-			grid.AddChild(GameParts.Row(6, GameParts.PlaceBox(place), Move(place, placesBefore, line.Id)));
+			names.AddChild(GameParts.Row(6, GameParts.PlaceBox(place), Move(place, placesBefore, line.Id)));
 			var who = GameParts.Row(8, new Avatar(Who(line.Id, line.Name), 26), NameLink(line.Id, line.Name, 16, place == 1 ? C.Accent : C.Text)).Grow();
 			if (line.Id == puppy) who.AddChild(ProfileScreen.PuppyBadge(11));
-			grid.AddChild(who);
+			names.AddChild(who);
 			foreach (var c in cols)
 			{
 				var text = line.V.GetValueOrDefault(c.Id) is { } v ? KindStats.Format(c.Format, v) : "–";
@@ -453,8 +462,30 @@ public partial class EternalTableScreen : Control
 				grid.AddChild(c.Id == main ? Num(text, 16, C.Accent) : c.Id == "points" ? Num(text, 15) : Num(text, 15, C.Muted));
 			}
 		}
-		// (scrolls sideways when the columns are wider than the page: before, the table pushed the page past the window)
-		page.AddChild(U.Card(0, U.SideScroll(grid)));
+		// (the numbers scroll sideways when they're wider than the page: before, the table pushed the page past the window)
+		var stats = U.SideScroll(grid);
+		page.AddChild(U.Card(0, U.H(22, names, stats)));
 		AddChild(U.Page(page, 1180, 20));
+		// (on every layout: sizes are only right once the fonts are in; setting the same height again changes nothing)
+		names.SortChildren += () => MatchRows(names, grid);
+		grid.SortChildren += () => MatchRows(names, grid);
 	}
+
+	/// <summary>Gives each row of the two grids the taller one's height, so the names and their numbers line up.</summary>
+	static void MatchRows(GridContainer a, GridContainer b)
+	{
+		var rows = Math.Min(a.GetChildCount() / a.Columns, b.GetChildCount() / b.Columns);
+		for (var i = 0; i < rows; i++)
+		{
+			var ca = a.GetChild<Control>(i * a.Columns);
+			var cb = b.GetChild<Control>(i * b.Columns);
+			// (the tallest cell of the row in either grid, e.g. the avatar beside the name)
+			var h = Math.Max(RowHeight(a, i), RowHeight(b, i));
+			ca.CustomMinimumSize = ca.CustomMinimumSize with { Y = h };
+			cb.CustomMinimumSize = cb.CustomMinimumSize with { Y = h };
+		}
+	}
+
+	static float RowHeight(GridContainer g, int row) =>
+		Enumerable.Range(row * g.Columns, g.Columns).Max(i => g.GetChild<Control>(i).GetCombinedMinimumSize().Y);
 }

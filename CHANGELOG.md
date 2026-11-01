@@ -13,6 +13,15 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d2]
+
+### Changed
+- **In the Ewige Tabelle only the numbers scroll.** Since 0.13.0d1 the table scrolls sideways when it has more columns than fit, but the place and the names scrolled away with them, so further right you no longer knew whose row you were reading. Now the place and name stay where they are and only the numbers beside them scroll. (Thanks for the idea, maxlvl01!)
+
+### Fixed
+- **Interactive and step-by-step questions had no category field.** In the other types the category comes with the bonus field in the round settings, and these two have no bonus, so the field was missing too. As every question needs a category for the stats, they all showed up as "no category yet" in the quiz overview, with no way to fix it. Both now have the category in their round settings. (Thanks for the report, maxlvl01!)
+- **"+ Fun fact, source or picture for after the answer" sat at the very bottom of the editor.** It came under both columns, below the round settings, so on most screens you had to scroll to find it while the space under the question's own fields stayed empty. It now sits right under the question's fields, and opens there too. (Thanks for the report, maxlvl01!)
+
 ## [0.13.0d1]
 
 Your mom is so fat that when she sat on the buzzer, it stayed locked for everyone.
