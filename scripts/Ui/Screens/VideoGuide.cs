@@ -96,7 +96,9 @@ public static partial class VideoGuide
 	/// <summary>A dimmed full-window cover with a centred, scrolling card (also used by What's new and the updater).</summary>
 	public partial class GuideOverlay : Control
 	{
-		readonly ScrollContainer _scroll = new() { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+		// (ShowNever, not Disabled: a disabled direction makes the scroll as wide as its widest line, and one line that didn't
+		// wrap made "What's new" wider than the window, past the 16:9 frame on 21:9; now the card stays 740 wide whatever is in it)
+		readonly ScrollContainer _scroll = new() { HorizontalScrollMode = ScrollContainer.ScrollMode.ShowNever };
 		/// <summary>Click outside or Esc closes it (off while an update downloads).</summary>
 		public bool Closable = true;
 

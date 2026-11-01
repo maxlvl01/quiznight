@@ -13,6 +13,9 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+### Fixed
+- **Pop-up pages like "What's new" can't get wider than they're meant to be any more.** Besides the long line in 0.13.1d2's fix, the page itself grew as wide as its widest line, so on 21:9 it reached past the game's 16:9 frame under the buttons at the top. It now stays at its width whatever is in it. (Thanks for reporting it, maxlvl01!)
+
 ## [0.13.1d2]
 
 ### Fixed
