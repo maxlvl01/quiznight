@@ -988,7 +988,7 @@ public static class SelfTest
 		Check(!g.View("ann").Question.AllSlidesShown && g.SetSlide(2) && g.SetSlide(0) && g.View("ann").Question is { AllSlidesShown: true, Files.Count: 3 }
 			&& g.AssetDataUrl(Game.SlideKey(g.Index, 2)) != null, "once all are shown, players may flip through them all themselves");
 		g.SetSlide(1);
-		Check(g.CurrentFiles().Count() == 3, "the current question's files are its three pictures");
+		Check(g.CurrentFiles().Count() == 4, "the current question's files are its three pictures and the answer picture");
 		g.SetBuzzers(true);
 		Check(g.BuzzIn("ann") && g.Judge(false) && !g.BuzzIn("ann"), "wrong: no second buzz");
 		Check(g.ReopenBuzzers() && g.BuzzIn("ann") && g.View("host").Buzzes.Count == 1, "the host lets everyone buzz again");
