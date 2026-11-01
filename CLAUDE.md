@@ -66,6 +66,13 @@ the original design decisions; most still apply.
   (timer) → listening (host `SetClip`/`PlayClip`; every screen's `ClipPlayer` plays when `InteractiveView.Plays` goes up;
   recordings are fetched like pictures, asset key `q3/rec0`) → voting (`Judging.Vote`: votes are `Answer`s with the clip
   index, a point each, not your own) or the host's `PickFavourite` (`Judging.Host`, the question's points).
+  Since format 13 there's also `Judging.List` ("type as many as you can"): `Question.IsList` (and `IsInteractive` is false
+  for it, so none of the recording machinery runs): players send their whole list each time (`AnswerValue.Texts`, `Done`),
+  the host ticks answers at the reveal (`Game.ToggleListItem`, `RevealEntry.ItemsRight`); lines of `AnswerText` are ticked
+  by themselves.
+- **After the answer** (format 13): `Question.AfterText`, `Source`, `AfterImage` show to everyone at the reveal
+  (`PublicQuestion.AfterText`/`Source`/`AfterImageKey`, asset `q3/after`, shared ahead of time but unlocked only at the reveal;
+  `GameParts.After`). `Question.BonusAnswer` is host-only (`GameView.HostBonusAnswer`).
 - **Steam avatars** (`Net/SteamAvatars`): every app asks Steam for the picture of "steam:<id>" players; `Avatar` draws it.
 - **The host runs the pace.** Questions open hidden (`Game.Shown`) until the host shows them; buzzers stay
   locked (`BuzzersOpen`) until unlocked — both lobby rules. Players get no content of a hidden question, and
