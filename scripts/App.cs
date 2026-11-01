@@ -47,9 +47,23 @@ public partial class App : Control
 
 	readonly ColorRect _bg = new();
 
+	/// <summary>
+	/// Exported builds: the songs are in music.pck next to the game (from 0.13.1d1; tools/music_preset.py), so an update
+	/// that doesn't change them doesn't download them. Mounted before anything plays or lists res://assets/music; without
+	/// it the game runs without music.
+	/// </summary>
+	static void LoadMusicPack()
+	{
+		if (!OS.HasFeature("template")) return;
+		var pack = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(OS.GetExecutablePath()) ?? "", "music.pck");
+		if (!System.IO.File.Exists(pack) || !ProjectSettings.LoadResourcePack(pack, false))
+			GD.Print($"No music: couldn't load {pack}.");
+	}
+
 	public override void _Ready()
 	{
 		I = this;
+		LoadMusicPack();
 		// (nothing saved yet: the very first start on this PC, which asks for the accessibility settings first)
 		var firstStart = Settings.NothingSaved;
 		var volumesReset = Settings.ResetVolumesOnce(firstStart);

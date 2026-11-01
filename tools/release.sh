@@ -82,6 +82,19 @@ mkdir -p "$OUT/AnyConverter" && cp "$ANYCONVERTER" "$OUT/AnyConverter/AnyConvert
 # (crash reports are our own, Storage/CrashReports). ~6.5 MB.
 strip_dotnet() { (cd "$1" && rm -f mscordbi.dll mscordaccore.dll mscordaccore_amd64_amd64_*.dll Microsoft.DiaSymReader.Native.amd64.dll createdump.exe clrgc.dll   libmscordbi.so libmscordaccore.so createdump libclrgc.so); }
 strip_dotnet "$OUT/data_QuizNight!_windows_x86_64"
+# The songs are their own music.pck next to the game (not in Quiznight.pck, see export_presets' "Music pack"), so an
+# update that doesn't change the music doesn't download it again (App.LoadMusicPack mounts it). The same file for Linux.
+# Every .pck carries the project settings (with the version), so a fresh export would differ each release: the pack is
+# kept by a hash of the songs and their import settings (~/.quiznight/music-<hash>.pck) and only exported again when they change.
+py -I tools/music_preset.py
+MUSIC_HASH=$(find assets/music -type f \( -name "*.ogg" -o -name "*.ogg.import" \) -print0 | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+MUSIC_CACHE="$HOME/.quiznight/music-$MUSIC_HASH.pck"
+if [ ! -s "$MUSIC_CACHE" ]; then
+	mkdir -p "$HOME/.quiznight"
+	"$G" --headless --path . --export-pack "Music pack" "$MUSIC_CACHE" > build/export-music.log 2>&1 || true
+	[ -s "$MUSIC_CACHE" ] || { echo "Music pack export failed, see build/export-music.log"; exit 1; }
+fi
+cp "$MUSIC_CACHE" "$OUT/music.pck"
 
 echo "== Linux build"
 rm -rf "$OUT_LINUX" && mkdir -p "$OUT_LINUX"
@@ -93,6 +106,7 @@ rm -rf build/anyconverter-linux && mkdir -p build/anyconverter-linux "$OUT_LINUX
 /c/Windows/System32/tar.exe -x -f "$ANYCONVERTER_LINUX" -C build/anyconverter-linux
 cp build/anyconverter-linux/AnyConverter-linux/AnyConverter "$OUT_LINUX/AnyConverter/AnyConverter"
 strip_dotnet "$OUT_LINUX/data_QuizNight!_linuxbsd_x86_64"
+cp "$OUT/music.pck" "$OUT_LINUX/music.pck"
 # (the export builds the C# for Linux; build it for Windows again for the editor and the self-test)
 dotnet build "QuizNight!.csproj" -nologo -v q
 
