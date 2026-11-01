@@ -1622,7 +1622,47 @@ public static class LangDe
 		["Play order"] = "Spielreihenfolge",
 		["By type"] = "Nach Typ",
 		["By category"] = "Nach Kategorie",
-		["Show what I'm doing on Discord"] = "Auf Discord zeigen, was ich mache",
+		// (the guided tour, Ui/Tutorial.cs)
+		["Welcome to Quiznight!"] = "Willkommen bei Quiznight!",
+		["A short tour through the game: joining a quiz night, making your own quiz, and telling Max what you think. Skip it any time (Esc); Settings → \"Take the tour\" shows it again."] =
+			"Eine kurze Tour durchs Spiel: einem Quizabend beitreten, dein eigenes Quiz bauen und Max sagen, was du denkst. Überspring sie jederzeit (Esc); Einstellungen → „Tour starten“ zeigt sie wieder.",
+		["Join a quiz night"] = "Einem Quizabend beitreten",
+		["Got a room code from a friend? Type it here with your name and press Join!. Everyone plays on their own PC; talk on Discord while you play."] =
+			"Du hast einen Raumcode von einem Freund? Gib ihn hier mit deinem Namen ein und drück Beitreten!. Jeder spielt am eigenen PC; geredet wird nebenbei auf Discord.",
+		["Be the quizmaster"] = "Sei der Quizmaster",
+		["Here you make your own quizzes and host them. The host runs the night and doesn't play along. Let's have a look."] =
+			"Hier baust du eigene Quizze und leitest sie. Der Host führt durch den Abend und spielt nicht mit. Schauen wir mal rein.",
+		["Your quizzes"] = "Deine Quizze",
+		["Start a new quiz, import a quiz file, or paste a share code a friend sent you. Your quizzes are listed below: click one to open it."] =
+			"Fang ein neues Quiz an, importier eine Quizdatei oder füg einen Teilen-Code ein, den dir ein Freund geschickt hat. Darunter stehen deine Quizze: Klick eins an, um es zu öffnen.",
+		["A quiz, opened"] = "Ein geöffnetes Quiz",
+		["This is a sample quiz just for the tour (it isn't saved). Here you build the quiz: its name, its questions and their order."] =
+			"Das ist ein Beispielquiz nur für die Tour (es wird nicht gespeichert). Hier baust du das Quiz: seinen Namen, seine Fragen und ihre Reihenfolge.",
+		["They're listed in the order they're played, each with its type and category. Click one to edit it; drag it by its dots, or type another number, to move it."] =
+			"Sie stehen in der Reihenfolge, in der sie gespielt werden, jede mit Typ und Kategorie. Klick eine an, um sie zu bearbeiten; zieh sie an den Punkten oder gib eine andere Nummer ein, um sie zu verschieben.",
+		["Why categories?"] = "Warum Kategorien?",
+		["Give every question a category: the stats per category (who knows geography best?) need them, and the lobby can show them to players as a hint. Questions without one say so in yellow."] =
+			"Gib jeder Frage eine Kategorie: Die Statistik pro Kategorie (wer kennt sich in Geografie am besten aus?) braucht sie, und die Lobby kann sie den Spielern als Hinweis zeigen. Fragen ohne Kategorie sagen es in Gelb.",
+		["Sort the list"] = "Die Liste sortieren",
+		["\"Show\" sorts the list by type, by category or by when you made the questions. \"Play in this order\" makes the order you see the play order."] =
+			"„Anzeige“ sortiert die Liste nach Typ, nach Kategorie oder danach, wann du die Fragen gebaut hast. „In dieser Reihenfolge spielen“ macht die angezeigte Reihenfolge zur Spielreihenfolge.",
+		["Pick a category"] = "Wähl eine Kategorie",
+		["One of the suggestions, or your own. Players only see it if \"Show categories\" is on in the lobby (it makes questions easier); \"Keep it secret\" hides it even then. It always counts for the statistics."] =
+			"Einen der Vorschläge oder deine eigene. Spieler sehen sie nur, wenn „Kategorien zeigen“ in der Lobby an ist (das macht Fragen leichter); „Geheim halten“ versteckt sie auch dann. Für die Statistik zählt sie immer.",
+		["Sources, fun facts and answer pictures"] = "Quellen, Fun Facts und Antwortbilder",
+		["Under the question: the answer as a big picture (the game a Steam review is about), a fun fact or a short story, and the source, all shown to everyone at the reveal. A source lets players check it themselves."] =
+			"Unter der Frage: die Antwort als großes Bild (das Spiel, um das es in einer Steam-Rezension geht), ein Fun Fact oder eine kurze Geschichte und die Quelle, alles wird bei der Auflösung allen gezeigt. Mit einer Quelle können Spieler es selbst nachprüfen.",
+		["Try it out"] = "Probier's aus",
+		["Preview shows the question exactly as players will see it, and you can play it yourself. Nothing is saved or counted."] =
+			"Die Vorschau zeigt die Frage genau so, wie Spieler sie sehen werden, und du kannst sie selbst spielen. Nichts wird gespeichert oder gezählt.",
+		["Ctrl+Z takes back a change, Ctrl+Y does it again. Ctrl+V pastes a picture (a screenshot, say), and you can drop picture, sound and video files onto the window. Esc goes back one screen, and so does your mouse's back button."] =
+			"Strg+Z nimmt eine Änderung zurück, Strg+Y macht sie wieder. Strg+V fügt ein Bild ein (etwa einen Screenshot), und du kannst Bild-, Ton- und Videodateien aufs Fenster ziehen. Esc geht einen Bildschirm zurück, die Zurück-Taste deiner Maus auch.",
+		["That's it!"] = "Das war's!",
+		["Have fun creating and quizzing! Settings → \"Take the tour\" shows this again."] = "Viel Spaß beim Bauen und Quizzen! Einstellungen → „Tour starten“ zeigt das hier wieder.",
+		["Sample quiz (tour)"] = "Beispielquiz (Tour)",
+		["A guided tour through the game, the first time it starts."] = "Eine Tour durchs Spiel, wenn es zum ersten Mal startet.",
+		["▶ Take the tour"] = "▶ Tour starten",
+		["Show what I'm doing on Discord"] ="Auf Discord zeigen, was ich mache",
 		["While Discord is open, friends see \"Playing Quiznight?\" and what you're doing: in the menus, making a quiz, or at a quiz night (lobby, question 3 of 20). Never the room code."] =
 			"Solange Discord offen ist, sehen Freunde „Spielt Quiznight?“ und was du machst: in den Menüs, beim Quiz-Bauen oder auf einem Quizabend (Lobby, Frage 3 von 20). Nie den Raumcode.",
 		["Hosting a quiz night"] = "Leitet einen Quizabend",

@@ -12,7 +12,7 @@ public partial class QuizOverviewScreen : Control
 {
 	readonly Quiz _quiz;
 	readonly VBoxContainer _questions = U.V(6);
-	readonly HBoxContainer _sortBar = U.H(8);
+	readonly HBoxContainer _sortBar = Tutorial.Mark(U.H(8), "overview.sort");
 	/// <summary>How the list is shown: "play" (the order they're played in), "type" or "created". Only the view: the play order
 	/// changes only with "Play them in this order". Kept while the game runs, for every quiz.</summary>
 	static string _sort = "play";
@@ -106,12 +106,6 @@ public partial class QuizOverviewScreen : Control
 			Save();
 			RefreshList();
 		});
-	}
-
-	/// <summary>A new quiz (no questions yet): the tour of how a quiz is made, the first time.</summary>
-	public override void _Ready()
-	{
-		Tutorial.Offer("overview", this, _quiz.Questions.Count == 0);
 	}
 
 	public bool Undo() => _history.Undo();

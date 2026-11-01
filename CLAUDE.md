@@ -111,6 +111,13 @@ the original design decisions; most still apply.
   "Issues: read and write"; without it (or on any error) the bug goes as a `.md` file to `bugs/Reported/` as before.
   Ideas stay files in `features/Requested/` (moved on by hand: WIP, Pending, Resolved). Offline reports wait in
   `user://bug-reports`. Each sent report pushes to ntfy.sh, opening the issue/file. `--bug-check` sends a real test report.
+- **Discord Rich Presence** (`Net/DiscordPresence`, DiscordRichPresence NuGet, app ID in the code): `App.UpdatePresence`
+  every 2 s from the screen and the room (never the room code); off with `Settings.DiscordPresence`, in headless runs and
+  in dev runs with arguments. The Discord app's art asset key is `logo`.
+- **Guided tour** (`Ui/Tutorial.cs`, `Tutorial.Guided`): offered once on Home, Settings' "Take the tour" starts it again.
+  Steps say their screen (`Step.Where`) and the overlay opens it; the sample quiz is `Tutorial.TourQuiz()`, in memory
+  only. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
+  --tutorial-step N` for screenshots.
 - **Question preview** (`Ui/Screens/QuestionPreview`, the editor's 👁 Preview): a real game over the editor, a `Room`
   (`Preview = true`: one player starts it) with only the draft question, its `HostSession` and a `ClientSession` joined
   through `Net/LoopbackTransport` (in memory), showing the player's own `PlayerGameScreen` plus host buttons on top.

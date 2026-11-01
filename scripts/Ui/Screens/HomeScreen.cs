@@ -57,10 +57,10 @@ public partial class HomeScreen : Control
 
 		page.AddChild(NetworkRow());
 
-		var host = U.Card(10,
+		var host = Tutorial.Mark(U.Card(10,
 			U.Eyebrow("Quizmaster"),
 			U.Heading("Host a quiz night", 30),
-			U.Btn("My quizzes  ▶", "AccentButton", App.I.GoQuizzes, 22).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin));
+			U.Btn("My quizzes  ▶", "AccentButton", App.I.GoQuizzes, 22).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin)), "home.host");
 		// (under it the music player, filling the rest of the column next to "Join a game")
 		var music = U.Card(10, U.Fill(), new MusicPlayer(), U.Fill()).GrowV();
 
@@ -82,7 +82,7 @@ public partial class HomeScreen : Control
 		_joinFields = U.V(10);
 		_error = U.Error();
 		_join = U.Btn("Join!", "TealButton", Join, 22).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin);
-		var join = U.Card(10, U.Eyebrow("Player"), U.Heading("Join a game", 30), _joinFields, _error, _join).Grow();
+		var join = Tutorial.Mark(U.Card(10, U.Eyebrow("Player"), U.Heading("Join a game", 30), _joinFields, _error, _join).Grow(), "home.join");
 
 		var grid = U.H(16, U.V(16, host, music).Grow(), join);
 		page.AddChild(grid);
@@ -249,5 +249,10 @@ public partial class HomeScreen : Control
 		Callable.From(() => App.I.GoHome()).CallDeferred();
 	}
 
-	public override void _Ready() => (_mode == NetMode.Steam && _name.Text != "" ? _target : (Control)_name).CallDeferred(Control.MethodName.GrabFocus);
+	public override void _Ready()
+	{
+		(_mode == NetMode.Steam && _name.Text != "" ? _target : (Control)_name).CallDeferred(Control.MethodName.GrabFocus);
+		// (the guided tour, the first time: once the intro is over)
+		Tutorial.Offer(Tutorial.Guided, this);
+	}
 }

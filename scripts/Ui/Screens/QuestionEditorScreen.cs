@@ -43,7 +43,7 @@ public partial class QuestionEditorScreen : Control
 			new UpdateBadge(),
 			_saved.With(l => l.Modulate = Colors.Transparent),
 			// (the draft as it is, saved or not: how it looks to players in a match)
-			U.Btn("👁 Preview", "", () => QuestionPreview.Open(_quiz, _draft, _maps), 15).With(b => b.TooltipText = "See this question as players see it in a match, and play it yourself."),
+			Tutorial.Mark(U.Btn("👁 Preview", "", () => QuestionPreview.Open(_quiz, _draft, _maps), 15).With(b => b.TooltipText = "See this question as players see it in a match, and play it yourself."), "editor.preview"),
 			Tutorial.Mark(U.Btn("Save question", "AccentButton", Save, 15).With(b => b.TooltipText = "Saves and goes back to the quiz. Ctrl+S saves and stays here."), "editor.save")), "Bar");
 		var body = U.V(12, Tutorial.Mark(_issues, "editor.issues"), _form);
 		var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.GrowV();
@@ -60,9 +60,6 @@ public partial class QuestionEditorScreen : Control
 			BuildForm();
 		});
 	}
-
-	/// <summary>The tour of the editor, the first time it opens.</summary>
-	public override void _Ready() => Tutorial.Offer("editor", this);
 
 	/// <summary>The draft as it is now (dev checks).</summary>
 	public Question Draft => _draft;
@@ -172,11 +169,11 @@ public partial class QuestionEditorScreen : Control
 	Control AfterSection(bool stacked)
 	{
 		if (!_afterOpen && !_draft.HasAfter && _draft.AnswerImage == null)
-			return U.Link("+ Answer as a picture, fun fact or source for the reveal", () =>
+			return Tutorial.Mark(U.Link("+ Answer as a picture, fun fact or source for the reveal", () =>
 			{
 				_afterOpen = true;
 				BuildForm();
-			}, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin);
+			}, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin), "editor.after");
 		_afterOpen = true;
 		var text = U.Field("Fun fact or story (optional)", U.Area(_draft.AfterText, "e.g. The song was written in 20 minutes, on a napkin.", t =>
 		{
@@ -199,8 +196,8 @@ public partial class QuestionEditorScreen : Control
 			_draft.AnswerImage = img;
 			Changed();
 		}, Images.ScreenshotMax, "e.g. the game a Steam review is about"), "Shown big to everyone at the reveal, with the answer.");
-		return U.Card(10, U.Bold("At the reveal", 17), U.Muted("Shown to everyone with the answer, at the reveal.", 13),
-			stacked ? U.V(12, answer, text, source, picture) : U.V(12, answer, Columns((U.V(12, text, source), 1.4f), (picture, 1f))));
+		return Tutorial.Mark(U.Card(10, U.Bold("At the reveal", 17), U.Muted("Shown to everyone with the answer, at the reveal.", 13),
+			stacked ? U.V(12, answer, text, source, picture) : U.V(12, answer, Columns((U.V(12, text, source), 1.4f), (picture, 1f)))), "editor.after");
 	}
 
 	static HBoxContainer Columns(params (Control Col, float Ratio)[] cols)

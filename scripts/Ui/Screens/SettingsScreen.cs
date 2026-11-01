@@ -138,7 +138,7 @@ public partial class SettingsScreen : Control
 			U.Muted("Frame rate is capped at 60 FPS.", 12),
 			new CheckBox { Text = Lang.T("Ask before deleting a quiz"), ButtonPressed = Settings.AskBeforeDeletingQuiz, MouseDefaultCursorShape = CursorShape.PointingHand }
 				.With(b => b.Toggled += on => Settings.AskBeforeDeletingQuiz = on),
-			TutorialsField());
+			TutorialsField(inWindow));
 
 		// (accessibility: both apply and save right away, like the skin)
 		var dyslexic = new CheckBox
@@ -313,17 +313,15 @@ public partial class SettingsScreen : Control
 	}
 
 	/// <summary>Tutorials on or off, and "Show tutorials again" (both save at once, like the microphone).</summary>
-	static Control TutorialsField()
+	static Control TutorialsField(bool inWindow)
 	{
 		var on = new CheckBox { Text = Lang.T("Show tutorials"), ButtonPressed = Settings.TutorialsOn, MouseDefaultCursorShape = CursorShape.PointingHand };
 		on.Toggled += value => Settings.TutorialsOn = value;
-		var note = U.Muted("Short tours the first time you open a screen, like the quiz editor.", 12);
-		var again = U.Small("↺ Show tutorials again", () =>
-		{
-			Tutorial.Reset();
-			on.SetPressedNoSignal(true);
-			note.Text = Lang.T("Done: every tutorial shows again the next time its screen opens.");
-		}).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin);
+		var note = U.Muted("A guided tour through the game, the first time it starts.", 12);
+		// (from the home screen's Settings only: the tour walks through the menus, not over a game)
+		var again = U.Small("▶ Take the tour", () => Callable.From(Tutorial.Start).CallDeferred())
+			.With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin);
+		again.Disabled = inWindow;
 		// (the tick box on its own line, the button under it: Settings' tick boxes wrap their text, so one squeezed into a
 		// row next to the button shrank to nothing and stretched the row)
 		return New.Mark(U.V(6, on, again, note), "settings.tutorials");

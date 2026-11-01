@@ -13,6 +13,13 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.0d6]
+
+### Added
+- **Discord shows what you're doing.** While Discord is open on your PC, your friends see "Playing Quiznight?" with the game's logo and what you're up to: in the menus, making a quiz, looking at the stats, or at a quiz night (hosting or playing: in the lobby with how many players, "Question 3 of 20", at the podium), with how long you've been at it. The room code is never shown. If Discord isn't running nothing happens, and Settings → "Show what I'm doing on Discord" turns it off. (Thanks for the idea, maxlvl01!)
+- **The answer as a picture.** Every question can now have its answer as a big picture, e.g. for "Which game is this Steam review about?" the game's store page. In the editor it's the first field of the "At the reveal" part under the question (which also has the fun fact, source and picture from 0.13.0d1). At the reveal everyone sees it big under the answer, host and players. Like the other pictures it comes to players with the quiz's files from the lobby on, locked until that reveal, so nobody can peek. Quiz files are now format 14; older quizzes open as before. (Thanks for the idea, maxlvl01!)
+- **A guided tour through the game.** The first time the game starts, a tour walks you through it in one go: joining a quiz night, the bug button, your quizzes, a sample quiz (only for the tour, never saved) with its question types, list, sorting and why categories matter, then one of its questions in the editor (blanks, round settings, category, the reveal part with answer picture, fun fact and source, Preview, saving, shortcuts), and back home: "Have fun creating and quizzing!". The screen goes dark except for the thing each step is about, and the tour opens each screen by itself. Esc or Skip ends it any time. It replaces the two short tours of the quiz page and the editor; Settings → "▶ Take the tour" starts it again. (Thanks for the idea, maxlvl01!)
+
 ## [0.13.0d5]
 
 ### Added

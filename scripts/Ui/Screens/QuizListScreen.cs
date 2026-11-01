@@ -18,10 +18,11 @@ public partial class QuizListScreen : Control
 		var head = U.H(10,
 			U.Heading("My quizzes", 34).Grow(),
 			new UpdateBadge(),
-			U.Btn("Open folder", "", () => OS.ShellOpen(QuizStore.Folder)).Tip("Where your quiz files are saved"),
-			U.Btn("Import file", "", Import),
-			U.Btn("Paste share code", "", PasteCode).Tip("Imports the share code you copied"),
-			U.Btn("New quiz", "AccentButton", Create));
+			Tutorial.Mark(U.H(10,
+				U.Btn("Open folder", "", () => OS.ShellOpen(QuizStore.Folder)).Tip("Where your quiz files are saved"),
+				U.Btn("Import file", "", Import),
+				U.Btn("Paste share code", "", PasteCode).Tip("Imports the share code you copied"),
+				U.Btn("New quiz", "AccentButton", Create)), "quizzes.bar"));
 		var page = U.V(14, U.Link("← Home", () => App.I.GoHome()).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin), head, _error, _list);
 		AddChild(U.Page(page, 980, 20));
 		Refresh();
