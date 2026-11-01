@@ -13,6 +13,8 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.2d1]
+
 ### Added
 
 - **A calendar for "Data as of"** in estimation questions. Typing the date was fiddly: the 📅 button next to the field now
