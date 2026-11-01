@@ -276,7 +276,7 @@ public sealed class DevTools
 			// --teams N: the lobby with team mode on (N teams), for screenshots
 			// --lobby-names N: N made-up players sitting in the lobby (no bots: nothing plays), for screenshots
 			if (int.TryParse(Value("--lobby-names"), out var seated) && _app.Host is { } lobbyHost)
-				foreach (var seat in new[] { "Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hal", "Ivy", "Jo", "Kim", "Lou" }.Take(seated))
+				foreach (var seat in new[] { "Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hal", "Ivy", "Jo", "Kim", "Lou", "Max", "Ned", "Oli", "Pia", "Quinn", "Rob", "Sue", "Tom", "Uma", "Vic", "Wes", "Xena" }.Take(seated))
 					lobbyHost.Room.Join("fake-" + seat, seat);
 			// (-1 = "Play in teams" ticked)
 			if (int.TryParse(Value("--teams"), out var teams)) _app.Host?.UpdateSettings(teams: teams);

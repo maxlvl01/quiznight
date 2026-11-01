@@ -33,6 +33,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 - **The host's lobby scrolled again** (reported by Max). 0.13.1b put the new Team mode row under the jokers, which made
   the "Game rules for tonight" card taller than the window, so Start quiz ended up at the very bottom and the lobby had a
   scroll bar. Team mode now sits on the right, under the buzzer and podium sounds, where there was empty space anyway.
+- **A full lobby scrolled too.** From 6 players on, the seat cards wrapped onto a second row and pushed Start below the
+  window. With more than 6 seats they're now small cards on one line (picture, name, a download ring or ✓, and ×; the
+  details are in the tooltips), the quiz's name moves up next to "Lobby" and "how to join" moves into the player count's
+  tooltip. Even 24 players fit on a 21:9 screen now.
+- "players" in the lobby's player count wasn't translated into German.
 
 ## [0.13.1b]
 

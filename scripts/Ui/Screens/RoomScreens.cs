@@ -86,30 +86,43 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 	{
 		_content.Clear();
 		var connected = room.Players.Count(p => p.Connected);
-		_content.AddChild(U.H(8, U.Heading("Lobby", 28, false).Grow(), new RoomCodeButton(room.Code, 32),
-			U.Pill(U.Plural(room.Players.Count, "player", "players")), MediaIcon.SettingsGear()));
-		_content.AddChild(U.Muted($"{room.Quiz.Title} · {U.Plural(room.Quiz.QuestionCount, "question", "questions")}", 15).Raw());
-		if (room.ResumeFrom is { } from)
-			_content.AddChild(U.Text(Lang.F("▶ A saved quiz night goes on at question {0} of {1}. Everyone gets their seat and points back when they join again ({2}).",
-				from, room.Quiz.QuestionCount, Lang.T(_host.Mode == NetMode.Steam ? "with the same Steam account" : "with the same name")), 14, C.Accent, wrap: true));
-
+		// (more than one row of big seat cards pushed Start below the window: from 7 seats on they're small cards, one line
+		// each, and how to join moves into the player count's tooltip; by then everyone knows)
+		var seats = Math.Min(room.Players.Count + 1, Limits.MaxPlayers);
+		var compact = seats > 6;
+		string howToJoin;
 		if (_host.Mode == NetMode.Steam)
-			_content.AddChild(U.Muted(Lang.F("Players open Quiznight, choose Steam on the home screen and enter this code. {0} here so far (up to {1}).", room.Players.Count, Limits.MaxPlayers), 13));
+			howToJoin = Lang.F("Players open Quiznight, choose Steam on the home screen and enter this code. {0} here so far (up to {1}).", room.Players.Count, Limits.MaxPlayers);
 		else
 		{
 			var addresses = LanHostTransport.LanAddresses();
 			var where = addresses.Count > 0 ? string.Join(Lang.T("  or  "), addresses) : Lang.T("this PC's network address");
-			_content.AddChild(U.Muted(Lang.F("LAN mode: players choose \"LAN / same PC\" and enter {0} (same Wi-Fi), or 127.0.0.1 on this PC. Port {1}. {2} here so far (up to {3}).", where, _host.LanPort, room.Players.Count, Limits.MaxPlayers), 13));
+			howToJoin = Lang.F("LAN mode: players choose \"LAN / same PC\" and enter {0} (same Wi-Fi), or 127.0.0.1 on this PC. Port {1}. {2} here so far (up to {3}).", where, _host.LanPort, room.Players.Count, Limits.MaxPlayers);
 		}
+		var quizLine = U.Muted($"{room.Quiz.Title} · {U.Plural(room.Quiz.QuestionCount, "question", "questions")}", 15, !compact).Raw();
+		// (a full lobby: the quiz's name beside "Lobby" instead of on a line of its own)
+		Control title = compact ? U.H(14, U.Heading("Lobby", 28, false), quizLine.With(l => { l.SizeFlagsVertical = SizeFlags.ShrinkCenter; l.ClipText = true; }).Grow()) : U.Heading("Lobby", 28, false);
+		_content.AddChild(U.H(8, title.Grow(), new RoomCodeButton(room.Code, 32),
+			U.Pill(U.Plural(room.Players.Count, "player", "players")).With(pill => { if (compact) pill.Tip(howToJoin); }), MediaIcon.SettingsGear()));
+		if (!compact) _content.AddChild(quizLine);
+		if (room.ResumeFrom is { } from)
+			_content.AddChild(U.Text(Lang.F("▶ A saved quiz night goes on at question {0} of {1}. Everyone gets their seat and points back when they join again ({2}).",
+				from, room.Quiz.QuestionCount, Lang.T(_host.Mode == NetMode.Steam ? "with the same Steam account" : "with the same name")), 14, C.Accent, wrap: true));
+		if (!compact) _content.AddChild(U.Muted(howToJoin, 13).Raw());
 
 		// Seats: everyone who's in (× removes them), plus one open seat while the room isn't full.
 		var grid = new GridContainer { Columns = 6 };
-		grid.AddThemeConstantOverride("h_separation", 10);
-		grid.AddThemeConstantOverride("v_separation", 10);
+		grid.AddThemeConstantOverride("h_separation", compact ? 8 : 10);
+		grid.AddThemeConstantOverride("v_separation", compact ? 6 : 10);
 		var tags = U.AnyClanTag(room.Players.Select(p => p.Name));
 		foreach (var p in room.Players)
 		{
 			var id = p.Id;
+			if (compact)
+			{
+				grid.AddChild(SmallSeat(p, room));
+				continue;
+			}
 			var seat = U.V(4, new Avatar(p, 44).Center(), U.PlayerName(p.Name, 15, HorizontalAlignment.Center, tags));
 			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(team).Center());
 			if (room.ResumeFrom != null) seat.AddChild(U.Muted(room.Score(id) == 1 ? Lang.T("1 point") : Lang.F("{0} points", room.Score(id)), 12, false, HorizontalAlignment.Center));
@@ -123,8 +136,15 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 					.Tip(Lang.F("An older Quiznight than yours ({0}). Ask them to update.", App.Version)));
 			grid.AddChild(U.Panel(seat, "Card2").Grow());
 		}
-		for (var i = room.Players.Count; i < Math.Min(room.Players.Count + 1, Limits.MaxPlayers); i++)
+		for (var i = room.Players.Count; i < seats; i++)
 		{
+			if (compact)
+			{
+				var open = U.H(8, U.Panel(U.Gap(22), "Clear").With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(Colors.Transparent, 999, C.Border, 2, 4, 4))),
+					U.Muted("Open seat", 12, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter));
+				grid.AddChild(U.Panel(U.Pad(open, 0, 2, 0, 2), "Card2").With(p => p.Modulate = new Color(1, 1, 1, 0.5f)).Grow());
+				continue;
+			}
 			var empty = U.V(4, U.Panel(U.Gap(34), "Clear").With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(Colors.Transparent, 999, C.Border, 2, 4, 4))).Center(),
 				U.Muted(room.Players.Count == 0 ? "Send the code to your friends" : "Open seat", 12, true, HorizontalAlignment.Center));
 			grid.AddChild(U.Panel(empty, "Card2").With(p => p.Modulate = new Color(1, 1, 1, 0.5f)).Grow());
@@ -226,6 +246,35 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 			U.Muted(drawn ? Lang.F("{0} teams drawn. Draw again to change the split.", room.Settings.Teams)
 				: "Follows the number of players until you pick a split.", 12, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter)));
 		return col;
+	}
+
+	/// <summary>
+	/// A seat on one line for a full lobby: avatar, a team's colour dot, the name, ⚠ for an older game, a download ring
+	/// (✓ when done, … when away) and ×. What the big card says in words is in the tooltips.
+	/// </summary>
+	Control SmallSeat(PublicPlayer p, RoomState room)
+	{
+		var id = p.Id;
+		var row = U.H(6, new Avatar(p, 26).With(a => a.SizeFlagsVertical = SizeFlags.ShrinkCenter));
+		Control Centered(Control c)
+		{
+			c.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+			c.MouseFilter = MouseFilterEnum.Stop;
+			return c;
+		}
+		if (p.Team is { } team) row.AddChild(Centered(U.Text("●", 12, TeamParts.ColorOf(team), null, false).Raw().Tip(TeamNames.Name(team))));
+		row.AddChild(U.PlayerName(p.Name, 14, HorizontalAlignment.Left).With(n => { n.SizeFlagsHorizontal = SizeFlags.ExpandFill; n.SizeFlagsVertical = SizeFlags.ShrinkCenter; n.CustomMinimumSize = new Vector2(40, 0); }));
+		if (VersionCheck.Older(p.Version, App.Version))
+			row.AddChild(Centered(U.Text("⚠", 12, C.Orange).Raw()
+				.Tip(Lang.F("An older Quiznight than yours ({0}). Ask them to update.", App.Version) + (p.Version != "" ? $" ({p.Version})" : ""))));
+		if (room.ResumeFrom != null) row.AddChild(Centered(U.Muted($"{room.Score(id)}", 12, false).Raw().Tip(Lang.F("{0} points", room.Score(id)))));
+		var percent = room.Downloads.GetValueOrDefault(id, 100);
+		row.AddChild(Centered(!p.Connected ? U.Muted("…", 13, false).Raw().Tip(room.ResumeFrom != null ? "Not back yet" : "Offline")
+			: percent < 100 ? new DownloadRing(percent, 14).Tip(Lang.F("Downloading {0} %", percent))
+			: U.Text("✓", 13, C.Teal).Raw().Tip(room.Downloads.Count > 0 ? "Ready" : "Joined")));
+		row.AddChild(U.Link("×", () => _host.Kick(id), 15).Tip(Lang.F("Remove {0}", p.Name)).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter));
+		// (Card2 with less padding: one line doesn't need its height, and 24 seats are 4 rows)
+		return U.Panel(row, "Card2").With(c => c.AddThemeStyleboxOverride("panel", UiTheme.Chunky(C.Panel2, 14, 10, 3, 3, 3))).Grow();
 	}
 
 	/// <summary>"2 teams of 4", or "3 teams (3/3/2)" when they can't be even.</summary>

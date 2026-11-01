@@ -91,6 +91,7 @@ public static class LangDe
 		["Untitled quiz"] = "Quiz ohne Titel",
 		["question"] = "Frage",
 		["questions"] = "Fragen",
+		["players"] = "Spieler",
 		["{0} · edited {1}"] = "{0} · bearbeitet am {1}",
 		["Not ready yet"] = "Noch nicht fertig",
 		["Open lobby"] = "Lobby öffnen",
