@@ -131,6 +131,7 @@ public partial class HostGameScreen : Control, IRoomScreen
 			if (ia != null) Interactive(box, room, ia, reveal != null);
 			// (the host also sees the bonus's answer, and keeps the line at the reveal, where they give the bonus)
 			if ((reveal == null || game.HostBonusAnswer != null) && GameParts.BonusLine(q, 18, game.HostBonusAnswer) is { } bonusLine) box.AddChild(bonusLine);
+			if (GameParts.InfoLine(q, 18) is { } infoLine) box.AddChild(infoLine);
 			if (q.ImageKey != null && q.Type != QuestionType.Image && !(q.Type == QuestionType.MapPin && reveal != null))
 				box.AddChild(new AssetImage(_assets, q.ImageKey, U.Flexible) { Zoomable = true });
 			if (q is { SlideCount: > 1, Slide: { } slide }) box.AddChild(SlideControls(slide, q.SlideCount.Value));

@@ -179,3 +179,140 @@ public partial class Spotlights : Control
 		Cone(new Vector2(w * 0.88f, -20), new Vector2(w * (0.5f + b), Target), 150, cool);
 	}
 }
+
+/// <summary>
+/// The experimental version (Settings → "Real spotlights"): the same two lamps as real 2D lights that cast shadows. Every
+/// button, card and the logo on the page gets an occluder the size of its box, so the light falls past them and leaves
+/// their shadows on the background. Godot has no ray tracing in 2D; its lights trace shadows per light from the occluders'
+/// edges, which is what this uses. The occluders follow the page a few times a second (it hardly moves).
+/// </summary>
+public partial class LitSpotlights : Control
+{
+	double _t, _sinceOccluders = 1;
+	public float Target = 150;
+	/// <summary>The page whose boxes cast shadows.</summary>
+	public Control? Page;
+	readonly PointLight2D[] _lamps = new PointLight2D[2];
+	readonly Node2D _occluders = new();
+	static Texture2D? _cone;
+
+	public LitSpotlights()
+	{
+		MouseFilter = MouseFilterEnum.Ignore;
+		SetAnchorsPreset(LayoutPreset.FullRect);
+		AddChild(_occluders);
+		var colours = new[] { new Color(C.Gold, 1), new Color(C.Pink, 1) };
+		for (var i = 0; i < 2; i++)
+		{
+			_lamps[i] = new PointLight2D
+			{
+				Texture = _cone ??= ConeTexture(), TextureScale = 4f, Color = colours[i], Energy = 1.4f,
+				BlendMode = Light2D.BlendModeEnum.Add, ShadowEnabled = true, ShadowFilter = Light2D.ShadowFilterEnum.Pcf5,
+				ShadowFilterSmooth = 3, ShadowColor = new Color(0, 0, 0, 0),
+				// (only the background takes shadows, ShadowLayer: the page's boxes are lit, not in their own shadow)
+				ShadowItemCullMask = ShadowLayer,
+				// (the texture's top middle is the lamp)
+				Offset = new Vector2(0, 128),
+			};
+			AddChild(_lamps[i]);
+		}
+	}
+
+	const int ShadowLayer = 2;
+
+	/// <summary>The app's background (everything drawn before the screens) takes the page's shadows.</summary>
+	public override void _Ready() => MarkBackground(true);
+
+	public override void _ExitTree() => MarkBackground(false);
+
+	void MarkBackground(bool on)
+	{
+		Node? screens = this;
+		while (screens?.GetParent() is { } parent && parent != App.I) screens = parent;
+		if (screens == null || App.I == null) return;
+		static void Set(Node n, bool on)
+		{
+			if (n is CanvasItem item) item.LightMask = on ? item.LightMask | ShadowLayer : item.LightMask & ~ShadowLayer;
+			foreach (var child in n.GetChildren()) Set(child, on);
+		}
+		foreach (var child in App.I.GetChildren())
+		{
+			if (child == screens) break;
+			Set(child, on);
+		}
+	}
+
+	/// <summary>A 256×256 cone of light pointing down from the top middle, bright near the lamp, soft at its edges.</summary>
+	static ImageTexture ConeTexture()
+	{
+		const int n = 256;
+		var img = Image.CreateEmpty(n, n, false, Image.Format.Rgba8);
+		for (var y = 0; y < n; y++)
+			for (var x = 0; x < n; x++)
+			{
+				var dx = (x - n / 2f) / n;
+				var dy = (y + 1f) / n;
+				var angle = Math.Abs(Math.Atan2(dx, dy));
+				var edge = Math.Clamp((0.42 - angle) / 0.12, 0, 1);
+				var fall = Math.Clamp(1 - dy * 0.85, 0, 1);
+				var v = (float)(edge * edge * fall);
+				img.SetPixel(x, y, new Color(v, v, v, 1));
+			}
+		return ImageTexture.CreateFromImage(img);
+	}
+
+	public override void _Process(double delta)
+	{
+		if (!Announcer.ReduceMotion) _t += delta;
+		var w = Size.X;
+		var a = (float)Math.Sin(_t * 0.45) * 0.22f;
+		var b = (float)Math.Sin(_t * 0.37 + 1.7) * 0.22f;
+		Aim(_lamps[0], new Vector2(w * 0.12f, -20), new Vector2(w * (0.5f + a), Target));
+		Aim(_lamps[1], new Vector2(w * 0.88f, -20), new Vector2(w * (0.5f + b), Target));
+		_sinceOccluders += delta;
+		if (_sinceOccluders >= 0.25)
+		{
+			_sinceOccluders = 0;
+			PlaceOccluders();
+		}
+	}
+
+	static void Aim(PointLight2D lamp, Vector2 from, Vector2 to)
+	{
+		lamp.Position = from;
+		lamp.Rotation = (to - from).Angle() - Mathf.Pi / 2;
+	}
+
+	/// <summary>An occluder per visible button, card and the logo (in this control's coordinates), reusing the ones there.</summary>
+	void PlaceOccluders()
+	{
+		var rects = new List<Rect2>();
+		void Walk(Node n)
+		{
+			if (n is Control { Visible: false }) return;
+			// (not the page's own background panel: a box over most of the screen would put everything in its shadow)
+			if (n is BaseButton or PanelContainer or LineEdit && n is Control c && c.Size.X > 8 && c.Size.Y > 8 && c.Size.X * c.Size.Y < Size.X * Size.Y * 0.35f)
+			{
+				rects.Add(new Rect2(c.GlobalPosition - GlobalPosition, c.Size * c.GetGlobalTransform().Scale));
+				// (a card's own buttons are inside its shadow already)
+				if (n is PanelContainer) return;
+			}
+			foreach (var child in n.GetChildren()) Walk(child);
+		}
+		if (Page != null && IsInstanceValid(Page)) Walk(Page);
+		var have = _occluders.GetChildCount();
+		for (var i = 0; i < Math.Max(have, rects.Count); i++)
+		{
+			if (i >= rects.Count)
+			{
+				_occluders.GetChild<LightOccluder2D>(i).Visible = false;
+				continue;
+			}
+			var r = rects[i];
+			var occ = i < have ? _occluders.GetChild<LightOccluder2D>(i) : new LightOccluder2D { Occluder = new OccluderPolygon2D() };
+			if (i >= have) _occluders.AddChild(occ);
+			occ.Visible = true;
+			occ.Occluder.Polygon = new[] { r.Position, new Vector2(r.End.X, r.Position.Y), r.End, new Vector2(r.Position.X, r.End.Y) };
+		}
+	}
+}

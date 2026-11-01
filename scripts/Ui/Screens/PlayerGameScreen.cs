@@ -117,6 +117,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 				U.Text(game.Shown || game.Stage == Stage.Reveal ? q.Prompt : "", 30, C.Text, Fonts.Black, true).Raw(),
 				game.Stage == Stage.Open && game.Shown ? new Countdown(game.EndsAt, null, 30) { Follow = () => _room.Game?.EndsAt } : U.Gap(0)));
 			if (game.Stage == Stage.Open && game.Shown && GameParts.BonusLine(q) is { } bonusLine) box.AddChild(bonusLine);
+			if ((game.Shown || game.Stage == Stage.Reveal) && GameParts.InfoLine(q) is { } infoLine) box.AddChild(infoLine);
 			if (q.HintCount != null && (game.Shown || game.Stage == Stage.Reveal))
 			{
 				box.AddChild(StepsParts.Cards(q, flipHint, 16));

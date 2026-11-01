@@ -115,9 +115,12 @@ public partial class HomeScreen : Control
 		TreeExiting += () => UpdatePrompt.Changed -= ShowUpdate;
 
 		// (two spotlights sweep over the logo, behind the page)
-		AddChild(new Spotlights { Target = 120 });
+		// (or, switched on in Settings, real lights that cast the page's shadows: experimental)
+		var pageScroll = U.Page(page, 960, 56, 0);
+		// (--real-spotlights: on for this run only, for screenshots)
+		AddChild(Settings.RealSpotlights || System.Array.IndexOf(OS.GetCmdlineUserArgs(), "--real-spotlights") >= 0 ? new LitSpotlights { Target = 120, Page = pageScroll } : new Spotlights { Target = 120 });
 		// (it all fits in the window: 720 high at the base size, no scrolling)
-		AddChild(U.Page(page, 960, 56, 0));
+		AddChild(pageScroll);
 		var corner = U.H(8, U.Small("☀ Light mode", LightMode), New.Mark(U.Small("Settings", App.I.GoSettings), "settings."), U.Small("Quit", () => App.I.AskQuit()));
 		// (developer mode: a small badge in the corner, so the page doesn't get longer; double-clicking it leaves developer
 		// mode until the game restarts or the code is typed again)

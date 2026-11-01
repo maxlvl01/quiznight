@@ -382,6 +382,16 @@ public static class MapPacks
 		return list == null ? 0 : need.Sum(p => list.TryGetValue(PackOf(p), out var pack) ? pack.Size : 0);
 	}
 
+	/// <summary>Every pack's download size (bytes) by map id, for Settings' map packs card; null offline.</summary>
+	public static async Task<Dictionary<string, long>?> PackSizes()
+	{
+		if (!Optional) return MapPresets.All.ToDictionary(p => p.Id, _ => 0L);
+		_list ??= Task.Run(FetchList);
+		var list = await _list;
+		if (list == null) _list = null;
+		return list?.ToDictionary(kv => kv.Key, kv => kv.Value.Size);
+	}
+
 	/// <summary>
 	/// Makes sure these maps are on this PC and up to date (a pack whose zip changed on GitHub comes again). Downloads in
 	/// the background; progress 0–1 comes on the main thread. Offline, maps already here count as fine.

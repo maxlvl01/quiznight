@@ -135,6 +135,10 @@ public partial class SettingsScreen : Control
 			U.Field("Intro when the game starts", U.Segmented(Settings.IntroChoices, Settings.Intro, id => Settings.Intro = id)).With(f => New.Mark(f, "settings.intro")),
 			U.Muted("The joke parts are the anti-cheat window, the World Premiere video, the publisher and the sponsor. \"Skip it all\" goes straight to the title screen.", 12),
 			U.Field("Theme", U.Small("☀ Switch to light mode", HomeScreen.LightMode).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin)),
+			// (saved at once, like the seasonal skins; the home screen picks it up when it's built again)
+			new CheckBox { Text = Lang.T("Real spotlights with shadows (experimental)"), ButtonPressed = Settings.RealSpotlights, MouseDefaultCursorShape = CursorShape.PointingHand }
+				.With(b => b.Toggled += on => Settings.RealSpotlights = on),
+			U.Muted("The home screen's two spotlights as real lights: the buttons and the logo throw shadows. May cost frame rate on older PCs.", 12),
 			U.Muted("Frame rate is capped at 60 FPS.", 12),
 			new CheckBox { Text = Lang.T("Ask before deleting a quiz"), ButtonPressed = Settings.AskBeforeDeletingQuiz, MouseDefaultCursorShape = CursorShape.PointingHand }
 				.With(b => b.Toggled += on => Settings.AskBeforeDeletingQuiz = on),
@@ -202,7 +206,9 @@ public partial class SettingsScreen : Control
 		var top = inWindow
 			? U.H(16, U.Heading("Settings", 34).Grow(), U.Small("Close", () => Leave()).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter))
 			: U.H(16, U.Link("← Home", () => Leave()).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter), U.Heading("Settings", 34));
-		var columns = U.H(14, U.V(14, audio, accessibility).Grow(), U.V(14, video, language).Grow());
+		// (map packs from the home screen's Settings only: deleting a map a running night uses would pull it away)
+		var right = inWindow ? U.V(14, video, language) : U.V(14, video, language, MapPacksCard.Make());
+		var columns = U.H(14, U.V(14, audio, accessibility).Grow(), right.Grow());
 		// The buttons stay at the bottom of the screen; the settings scroll above them. In the window over a lobby or game
 		// the title and Close stay at the top too, outside the scrolling page, so nothing can push Close out of sight; and
 		// if the page is ever wider than the window, it scrolls sideways instead of being cut off.

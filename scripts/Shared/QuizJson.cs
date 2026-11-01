@@ -148,6 +148,8 @@ public static class QuizJson
 				o["image"] = WriteImage(q.Image);
 				o["answer"] = q.AnswerNumber;
 				o["unit"] = q.Unit;
+				if (q.Info != "") o["info"] = q.Info;
+				if (q.DataAsOf != "") o["dataAsOf"] = q.DataAsOf;
 				WriteCloseness(o, q);
 				break;
 			case QuestionType.Steps:
@@ -224,6 +226,8 @@ public static class QuizJson
 		}
 		q.StartSec = Num(o, "startSec", 0);
 		q.Unit = Str(o, "unit");
+		q.Info = Cut(Str(o, "info"), QuestionLimits.InfoMaxLength);
+		q.DataAsOf = Cut(Str(o, "dataAsOf"), QuestionLimits.DataAsOfMaxLength);
 		q.TieRule = Str(o, "tieRule", TieRule.AllScore) is var tie && TieRule.All.Any(t => t.Id == tie) ? tie : TieRule.AllScore;
 		q.WrongCosts = o["wrongCosts"] is JsonValue wc && wc.TryGetValue<bool>(out var costs) && costs;
 		// (missing = a file from before format 12: the whole question's points for exactly the right set, as then)

@@ -365,6 +365,10 @@ public sealed class Question
 	// estimation
 	public double? AnswerNumber;
 	public string Unit = "";
+	/// <summary>Estimation: a line shown with the question, e.g. "Hours played per game, from Steam" (format 16).</summary>
+	public string Info = "";
+	/// <summary>Estimation: when the data ends, e.g. "1 November 2026", so later play doesn't change the answer (format 16).</summary>
+	public string DataAsOf = "";
 
 	// estimation + map pin
 	public string TieRule = Shared.TieRule.AllScore;
@@ -494,6 +498,8 @@ public static class QuestionLimits
 	public const int BonusAnswerMaxLength = 120;
 	public const int AfterTextMaxLength = 800;
 	public const int SourceMaxLength = 300;
+	public const int InfoMaxLength = 160;
+	public const int DataAsOfMaxLength = 40;
 	/// <summary>Picture questions: at most this many pictures in a slideshow.</summary>
 	public const int SlidesMax = 12;
 	/// <summary>Interactive questions: how long one recording can be, and the default time to do the task.</summary>
@@ -530,8 +536,9 @@ public static class QuizRules
 	///     answer for the host (bonusAnswer); interactive questions can be a typed list (judging "list").
 	/// 14: every question can have its answer as a picture (answerImage), shown at the reveal.
 	/// 15: quizzes remember the order of their categories (categoryOrder), for the overview's "By category".
+	/// 16: estimation questions can have an info line and the date their data ends (info, dataAsOf).
 	/// </summary>
-	public const int FormatVersion = 15;
+	public const int FormatVersion = 16;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 

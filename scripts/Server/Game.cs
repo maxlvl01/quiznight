@@ -1383,6 +1383,8 @@ public sealed class Game
 		if (q.Type == QuestionType.Estimation)
 		{
 			pq.Unit = q.Unit;
+			pq.Info = q.Info.Trim() is { Length: > 0 } info ? info : null;
+			pq.DataAsOf = q.DataAsOf.Trim() is { Length: > 0 } asOf ? asOf : null;
 			pq.TimeLimitSec = q.TimeLimitSec;
 		}
 		if (q.Type == QuestionType.MapPin)

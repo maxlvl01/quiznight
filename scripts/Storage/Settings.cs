@@ -273,6 +273,13 @@ public static class Settings
 		set => Set("ask_delete_quiz", value ? "on" : "off");
 	}
 
+	/// <summary>Experimental: the home screen's spotlights as real lights with shadows (LitSpotlights); off unless switched on.</summary>
+	public static bool RealSpotlights
+	{
+		get => Get("real_spotlights", "off") == "on";
+		set => Set("real_spotlights", value ? "on" : "off");
+	}
+
 	/// <summary>Friends on Discord see what you're doing in Quiznight (Net/DiscordPresence); on unless switched off.</summary>
 	public static bool DiscordPresence
 	{

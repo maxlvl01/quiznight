@@ -535,6 +535,15 @@ public static class SelfTest
 		Check(reread != null && reread.CategoryOrder.SequenceEqual(ordered.CategoryOrder) && QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.CategoryOrder.Count == 0,
 			"a quiz keeps its categories' order (and one without stays without)");
 
+		var informed = SampleQuiz.Build();
+		var est = informed.Questions.First(q => q.Type == QuestionType.Estimation);
+		est.Info = "Steam hours";
+		est.DataAsOf = "1 November 2026";
+		var estBack = QuizJson.Parse(QuizJson.Write(informed), out _)!.Questions.First(q => q.Id == est.Id);
+		Check(estBack.Info == "Steam hours" && estBack.DataAsOf == "1 November 2026"
+			&& QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.Questions.All(q => q.Info == "" && q.DataAsOf == ""),
+			"estimation questions keep their info line and data date (format 16)");
+
 		var tie = new Room("TEST", SampleQuiz.Build());
 		tie.Join("a", "Ann");
 		tie.Join("b", "Bob");

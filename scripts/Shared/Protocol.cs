@@ -303,6 +303,9 @@ public sealed class PublicQuestion
 	/// <summary>Put in order: "all" or "timeline".</summary>
 	public string? OrderMode;
 	public string? Unit;
+	/// <summary>Estimation: the quiz maker's info line and when the data ends (null if none).</summary>
+	public string? Info;
+	public string? DataAsOf;
 	public PublicMap? Map;
 	public int? TimeLimitSec;
 	public double? StartSec;

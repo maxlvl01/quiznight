@@ -490,6 +490,17 @@ public partial class QuestionEditorScreen : Control
 					_draft.Unit = t;
 					Changed();
 				}))),
+			U.H(12,
+				U.Field("Info for players (optional)", U.Input(_draft.Info, "e.g. Hours played per game, from Steam", t =>
+				{
+					_draft.Info = t;
+					Changed();
+				}, QuestionLimits.InfoMaxLength), "Shown with the question.").Grow(1.6f),
+				U.Field("Data as of (optional)", U.Input(_draft.DataAsOf, "e.g. 1 November 2026", t =>
+				{
+					_draft.DataAsOf = t;
+					Changed();
+				}, QuestionLimits.DataAsOfMaxLength), "So playing later doesn't change the answer.").Grow()),
 			U.Field("Image (optional)", OptionalImage()));
 		return Columns((left, 1.6f), (RoundSettings.Closeness(_draft, () => Changed()), 1));
 	}
