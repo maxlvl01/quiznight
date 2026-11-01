@@ -13,6 +13,13 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+### Added
+
+- **A calendar for "Data as of"** in estimation questions. Typing the date was fiddly: the 📅 button next to the field now
+  opens a month calendar, and picking a day writes it in for you ("1 November 2026", in German "1. November 2026"); today
+  is marked, and if the field already holds a date the calendar opens on it. You can still type anything yourself, like
+  "2024" or "March 2025". Thanks to Max for the idea (sent twice, so it clearly mattered 🙂).
+
 ## [0.13.1b]
 
 ### Before we start

@@ -580,6 +580,9 @@ public static class SelfTest
 		Check(estBack.Info == "Steam hours" && estBack.DataAsOf == "1 November 2026"
 			&& QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.Questions.All(q => q.Info == "" && q.DataAsOf == ""),
 			"estimation questions keep their info line and data date (format 16)");
+		Check(Ui.DatePicker.Parse("1 November 2026") == new DateTime(2026, 11, 1) && Ui.DatePicker.Parse("1. November 2026") == new DateTime(2026, 11, 1)
+			&& Ui.DatePicker.Parse(Ui.DatePicker.Format(new DateTime(2024, 2, 29))) == new DateTime(2024, 2, 29) && Ui.DatePicker.Parse("March 2025") == null,
+			"the calendar reads back the dates it writes, in both languages, and leaves free text alone");
 
 		var tie = new Room("TEST", SampleQuiz.Build());
 		tie.Join("a", "Ann");

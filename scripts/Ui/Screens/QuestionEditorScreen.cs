@@ -496,13 +496,20 @@ public partial class QuestionEditorScreen : Control
 					_draft.Info = t;
 					Changed();
 				}, QuestionLimits.InfoMaxLength), "Shown with the question.").Grow(1.6f),
-				U.Field("Data as of (optional)", U.Input(_draft.DataAsOf, "e.g. 1 November 2026", t =>
-				{
-					_draft.DataAsOf = t;
-					Changed();
-				}, QuestionLimits.DataAsOfMaxLength), "So playing later doesn't change the answer.").Grow()),
+				U.Field("Data as of (optional)", DataAsOfField(), "So playing later doesn't change the answer.").Grow()),
 			U.Field("Image (optional)", OptionalImage()));
 		return Columns((left, 1.6f), (RoundSettings.Closeness(_draft, () => Changed()), 1));
+	}
+
+	/// <summary>Free text ("2024", "March 2025") with a 📅 calendar that writes a day ("1 November 2026").</summary>
+	Control DataAsOfField()
+	{
+		var field = U.Input(_draft.DataAsOf, Lang.F("e.g. {0}", DatePicker.Format(DateTime.Today)), t =>
+		{
+			_draft.DataAsOf = t;
+			Changed();
+		}, QuestionLimits.DataAsOfMaxLength);
+		return U.H(6, field, DatePicker.For(field));
 	}
 
 	// ---------- sound / video ----------
