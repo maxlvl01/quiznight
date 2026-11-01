@@ -27,7 +27,12 @@ public static class Awards
 			if (scored.Count == 0) return;
 			var best = most ? scored.Max(v => v.Value) : scored.Min(v => v.Value);
 			if (most && best <= 0) return;
-			awards.Add(new NightAward { Kind = kind, Value = best, Players = scored.Where(v => Math.Abs(v.Value - best) < 1e-9).Select(v => v.Id).ToList() });
+			var winners = scored.Where(v => Math.Abs(v.Value - best) < 1e-9).Select(v => v.Id).ToList();
+			// (who came next, for the award pack's cards: the next two)
+			var runners = (most ? scored.OrderByDescending(v => v.Value) : scored.OrderBy(v => v.Value))
+				.Where(v => !winners.Contains(v.Id) && (!most || v.Value > 0)).Take(2)
+				.Select(v => new AwardRunner { Id = v.Id, Value = v.Value }).ToList();
+			awards.Add(new NightAward { Kind = kind, Value = best, Players = winners, Runners = runners });
 		}
 		int CountOf(string id, Func<QuestionStat, bool> where) => perQuestion.Count(q => q.Key.Player == id && where(q.Value));
 

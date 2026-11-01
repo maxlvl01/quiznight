@@ -61,6 +61,14 @@ public sealed class DevTools
 		_app.Quit(0);
 	}
 
+	/// <summary>--night-pack FOLDER (with --screen podium): the made-up night's award pack's pictures in that folder, then quit.</summary>
+	async void SaveNightPack(FinalResults results, string folder)
+	{
+		System.IO.Directory.CreateDirectory(folder);
+		GD.Print("Night pack: " + await SeasonPoster.Save(_app, NightPack.Pack(results), folder));
+		_app.Quit(0);
+	}
+
 	static Ui.WowMapCanvas? FindWowCanvas(Node node) =>
 		node as Ui.WowMapCanvas ?? node.GetChildren().Select(FindWowCanvas).FirstOrDefault(c => c != null);
 	string? _shotPath;
@@ -290,6 +298,8 @@ public sealed class DevTools
 			// --preview: the editor's "Preview" of that question opened straight away
 			Ui.Screens.QuestionPreview.RevealAtOnce = Has("--preview-reveal");
 			if (Has("--preview") || Has("--preview-reveal")) Callable.From(() => Ui.Screens.QuestionPreview.Open(quiz, q, quiz.Maps)).CallDeferred();
+			// --reveal-popup: the "At the reveal" fields' pop-up opened
+			if (Has("--reveal-popup")) Callable.From(() => (_app.CurrentScreen as QuestionEditorScreen)?.AfterPopup()).CallDeferred();
 		}
 		else if (Has("--whats-new"))
 		{
@@ -385,9 +395,13 @@ public sealed class DevTools
 					break;
 				// (a made-up night's podium with its show and credits; --shot … --after SEC for a moment of it)
 				case "podium":
-					_app.GoPodium(SampleQuiz.Podium());
-					// (--skip-show: straight to the end, the podium small with everything below it)
+				{
+					var podium = SampleQuiz.Podium(int.TryParse(Value("--players"), out var pn) ? pn : 6, Has("--tie"));
+					_app.GoPodium(podium);
+					// (--skip-show: past the podium's show, the credits rolling on the left)
 					if (Has("--skip-show")) Callable.From(() => (_app.CurrentScreen as PodiumScreen)?.GoBack()).CallDeferred();
+					if (Value("--night-pack") is { } packTo) Callable.From(() => SaveNightPack(podium, packTo)).CallDeferred();
+				}
 					break;
 				// (the newest night on its own screen, with its graphs: --graph points for the other one)
 				case "night":

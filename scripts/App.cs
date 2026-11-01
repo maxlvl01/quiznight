@@ -609,7 +609,8 @@ public partial class App : Control
 	}
 	public void GoMatchNight(Storage.Results.Night night) => Show(new MatchNightScreen(night), () => GoMatchNight(night));
 	/// <summary>A podium kept on this PC, with its show and credits again (from the match history).</summary>
-	public void GoPodium(FinalResults results) => Show(new PodiumScreen(results), () => GoPodium(results));
+	public void GoPodium(FinalResults results, bool fromTestLab = false) =>
+		Show(fromTestLab ? new PodiumScreen(results, "← Test lab", GoTestLab) : new PodiumScreen(results, "← Match history", GoMatchHistory), () => GoPodium(results, fromTestLab));
 
 	public void GoQuiz(string id)
 	{

@@ -1,7 +1,8 @@
 // The end of a quiz night. The final standings are taken once, from the first finished state (Shared.FinalResults),
-// so nobody drops off it by leaving. It plays like a show: the podium comes in big, 3rd, 2nd, then 1st; it shrinks and
-// everyone else's places and tonight's awards come in below it; then the credits roll (the quizmaster, everyone who
-// played, the awards). Each podium is kept on this PC (Storage.Podiums): the match history shows it again.
+// so nobody drops off it by leaving. It plays like a show: the podium comes in big in the middle, 3rd, 2nd, then 1st,
+// with everyone's score list under it; then podium and list move into the right third of the screen, and the credits
+// roll on the left two thirds (the quizmaster, everyone who played, tonight's awards), which end on the awards. Each
+// podium is kept on this PC (Storage.Podiums), and the night's award pack is drawn in the background (NightPack).
 
 using System;
 using System.Collections.Generic;
@@ -18,19 +19,22 @@ public partial class PodiumScreen : Control, IRoomScreen
 	readonly bool _isHost;
 	readonly string? _myId;
 	readonly Action? _backToLobby;
-	/// <summary>A kept podium from the match history (no room behind it).</summary>
-	readonly FinalResults? _replay;
-	readonly VBoxContainer _content = U.V(14);
+	/// <summary>A kept podium played again (match history, Test lab): where its back button goes.</summary>
+	readonly (string Label, Action Go)? _replayBack;
 	FinalResults? _results;
 
-	ScaledBox? _podium;
-	Control? _after, _buttons;
+	/// <summary>Header, podium and score list: one picture that zooms as it moves into the right third.</summary>
+	readonly ScaledBox _side = new() { CenterV = true };
+	/// <summary>The left two thirds: the credits, then the awards, with the buttons under them.</summary>
+	readonly Control _left = new() { MouseFilter = MouseFilterEnum.Ignore };
+	readonly Control _stage = new() { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ExpandFill };
+	Control? _awards, _bar, _list;
 	CreditsRoll? _credits;
+	Button? _packButton;
+	Label? _note;
 	Tween? _show;
-	Label? _saved;
-
-	/// <summary>When the podium is shown big, how long until it shrinks, and how long after that the credits start.</summary>
-	const float BigScale = 1.3f, SmallScale = 0.8f, ShrinkAt = 4.6f, CreditsAfter = 2.5f;
+	/// <summary>0: everything in the middle; 1: podium and list in the right third.</summary>
+	float _t;
 
 	public PodiumScreen() : this(false, null, null) { }
 
@@ -43,25 +47,26 @@ public partial class PodiumScreen : Control, IRoomScreen
 		_myId = myId;
 		_backToLobby = backToLobby;
 		SetAnchorsPreset(LayoutPreset.FullRect);
-		_content.Alignment = BoxContainer.AlignmentMode.Center;
-		AddChild(U.Page(_content, 860, 40));
+		AddChild(_side);
+		AddChild(_left);
+		Resized += Layout;
 	}
 
-	/// <summary>A kept podium, played again (from the match history).</summary>
-	public PodiumScreen(FinalResults saved) : this(false, saved.Me, null)
+	/// <summary>A kept podium, played again.</summary>
+	public PodiumScreen(FinalResults saved, string backLabel, Action back) : this(false, saved.Me, null)
 	{
-		_replay = saved;
+		_replayBack = (backLabel, back);
 		Ready += () => Build(saved);
 	}
 
 	/// <summary>
-	/// Escape: first it skips the show (the credits, or the podium coming in); then the host goes back to the lobby, a
-	/// player leaves, a kept podium goes back to the match history.
+	/// Escape: first it skips the show (the podium coming in, then the credits); then the host goes back to the lobby, a
+	/// player leaves, a kept podium goes back where it came from.
 	/// </summary>
 	public void GoBack()
 	{
 		if (Skip()) return;
-		if (_replay != null) App.I.GoMatchHistory();
+		if (_replayBack is { } back) back.Go();
 		else if (_isHost) _backToLobby?.Invoke();
 		else App.I.LeaveRoom();
 	}
@@ -72,8 +77,12 @@ public partial class PodiumScreen : Control, IRoomScreen
 		if (_results != null) return;
 		var results = FinalResults.From(room);
 		results.Me = _myId;
-		// (dev runs with arguments are tests: they don't fill the match history)
-		if (OS.GetCmdlineUserArgs().Length == 0) Podiums.Save(results);
+		// (dev runs with arguments are tests: they don't fill the match history or Pictures)
+		if (OS.GetCmdlineUserArgs().Length == 0)
+		{
+			Podiums.Save(results);
+			NightPack.Make(results);
+		}
 		Build(results);
 	}
 
@@ -81,19 +90,20 @@ public partial class PodiumScreen : Control, IRoomScreen
 	{
 		_results = r;
 		Sfx.PlayRoomPodium(r.PodiumSound, _isHost);
-		_content.Clear();
 		var top = r.Players.Where(p => p.Place <= 3).ToList();
-		var rest = r.Players.Where(p => p.Place > 3).ToList();
 		var me = _myId != null ? r.Player(_myId) : null;
 
+		// ---- the right side: header, podium, score list ----
+		var side = U.V(12);
 		// (everything has a sponsor's name, like in American sports)
-		_content.AddChild(U.H(10, U.Eyebrow("The"), new TrackGlowLogo(0.55f) { SizeFlagsVertical = SizeFlags.ShrinkCenter }, U.Eyebrow("Podium")).Center());
-		_content.AddChild(U.Eyebrow(Lang.F("{0} · final results", r.QuizTitle)).Center());
-		_content.AddChild(U.H(0, U.Heading(top.Count(p => p.Place == 1) > 1 ? "It's a tie at the top" : "And the winner is", 44, false), U.Text("…", 44, C.Accent, Fonts.Black)).Center());
+		side.AddChild(U.H(10, U.Eyebrow("The"), new TrackGlowLogo(0.55f) { SizeFlagsVertical = SizeFlags.ShrinkCenter }, U.Eyebrow("Podium")).Center());
+		side.AddChild(U.Eyebrow(Lang.F("{0} · final results", r.QuizTitle)).Center());
+		side.AddChild(U.H(0, U.Heading(top.Count(p => p.Place == 1) > 1 ? "It's a tie at the top" : "And the winner is", 40, false), U.Text("…", 40, C.Accent, Fonts.Black)).Center());
+		side.AddChild(U.Gap(6));
 
 		// Classic podium order: 2nd, 1st, 3rd. Each step comes in on its own (3rd first), so they start hidden.
 		var row = U.H(14);
-		row.Alignment = BoxContainer.AlignmentMode.End;
+		row.Alignment = BoxContainer.AlignmentMode.Center;
 		var steps = new List<(int Place, Control Step, Control Block)>();
 		var tags = U.AnyClanTag(top.Select(t => t.Name));
 		foreach (var place in new[] { 2, 1, 3 })
@@ -103,40 +113,71 @@ public partial class PodiumScreen : Control, IRoomScreen
 			row.AddChild(step);
 			steps.Add((place, step, block));
 		}
-		_podium = new ScaledBox { Zoom = Math.Min(BigScale, 820f / Math.Max(1, steps.Count * 184)) };
-		_podium.AddChild(row);
-		_content.AddChild(_podium);
+		side.AddChild(row);
 
-		// Below it once it's small: you, everyone else, the awards, the buttons.
-		var after = U.V(14);
-		if (me != null) after.AddChild(U.H(4, U.Muted("You finished", 16, false), U.Text(Lang.Ordinal(me.Place), 16, C.Accent, Fonts.Bold).Raw(), U.Muted(Lang.F("with {0} points.", me.Score), 16, false)).Center());
-		if (rest.Count > 0) after.AddChild(Standings(rest, r));
-		if (r.Awards.Count > 0) after.AddChild(AwardsCard(r));
-		after.AddChild(U.Gap(4));
-		after.AddChild(_buttons = Buttons());
-		_after = after;
-		_content.AddChild(after);
+		var list = U.V(10);
+		if (me != null) list.AddChild(U.H(4, U.Muted("You finished", 16, false), U.Text(Lang.Ordinal(me.Place), 16, C.Accent, Fonts.Bold).Raw(), U.Muted(Lang.F("with {0} points.", me.Score), 16, false)).Center());
+		list.AddChild(Standings(r));
+		side.AddChild(_list = list);
+		foreach (var child in _side.GetChildren()) child.QueueFree();
+		_side.AddChild(side);
 
-		// The show: hidden steps and standings, then 3rd, 2nd, 1st, the shrink, the rest, and the credits.
+		// ---- the left side: the credits' and awards' stage, the buttons under it ----
+		foreach (var child in _left.GetChildren()) child.QueueFree();
+		_awards = AwardsPanel(r);
+		_awards.Visible = false;
+		_stage.AddChild(_awards);
+		_bar = Buttons();
+		var column = U.V(14, _stage, _bar);
+		// (clear of the bug and music buttons in the bottom left corner)
+		var margin = U.Pad(column, 84, 28, 24, 24);
+		margin.SetAnchorsPreset(LayoutPreset.FullRect);
+		margin.MouseFilter = MouseFilterEnum.Ignore;
+		_left.AddChild(margin);
+
+		// The show: 3rd, 2nd, 1st, the list, a moment to take it in, the move to the right, the credits.
 		foreach (var s in steps) s.Step.Modulate = Colors.Transparent;
-		after.Modulate = Colors.Transparent;
-		after.MouseFilter = MouseFilterEnum.Ignore;
+		list.Modulate = Colors.Transparent;
+		_t = 0;
+		Layout();
 		_show = CreateTween();
-		var at = 0.5f;
+		var wait = 0.5f;
 		foreach (var place in new[] { 3, 2, 1 })
 		{
 			var these = steps.Where(s => s.Place == place).ToList();
 			if (these.Count == 0) continue;
-			_show.TweenInterval(at);
+			_show.TweenInterval(wait);
 			for (var i = 0; i < these.Count; i++) Rise(_show, these[i].Step, these[i].Block, place == 1, i == 0);
-			at = place == 1 ? 0 : 1.0f;
+			wait = 1.0f;
 		}
-		_show.TweenInterval(Math.Max(0.5f, ShrinkAt - 0.5f - 2.0f));
-		_show.TweenMethod(Callable.From<float>(z => _podium.Zoom = z), _podium.Zoom, SmallScale, 0.7f).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
-		_show.TweenProperty(after, "modulate", Colors.White, 0.5f);
-		_show.TweenCallback(Callable.From(() => after.MouseFilter = MouseFilterEnum.Pass));
-		_show.TweenInterval(CreditsAfter);
+		_show.TweenInterval(0.7f);
+		_show.TweenProperty(list, "modulate", Colors.White, 0.5f);
+		_show.TweenInterval(3.2f);
+		_show.TweenMethod(Callable.From<float>(t =>
+		{
+			_t = t;
+			Layout();
+		}), 0f, 1f, 0.9f).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
 		_show.TweenCallback(Callable.From(RollCredits));
+	}
+
+	/// <summary>Where everything goes for the move (_t): the side from the whole width to the right third, zoomed to fit.</summary>
+	void Layout()
+	{
+		if (_side.GetChildCount() == 0 || _side.GetChild(0) is not Control content) return;
+		var size = Size;
+		var third = size.X / 3;
+		var nat = content.GetCombinedMinimumSize();
+		if (nat.X <= 0 || nat.Y <= 0) return;
+		var big = Mathf.Min(1.1f, Mathf.Min((size.X - 80) / nat.X, (size.Y - 40) / nat.Y));
+		var small = Mathf.Min(0.9f, Mathf.Min((third - 40) / nat.X, (size.Y - 40) / nat.Y));
+		_side.Zoom = Mathf.Lerp(big, small, _t);
+		_side.Position = new Vector2(Mathf.Lerp(0, size.X - third - 8, _t), 0);
+		_side.Size = new Vector2(Mathf.Lerp(size.X, third, _t), size.Y);
+		_left.Position = Vector2.Zero;
+		_left.Size = new Vector2(size.X - third, size.Y);
+		_left.Modulate = new Color(1, 1, 1, _t);
+		_left.Visible = _t > 0.01f;
 	}
 
 	/// <summary>
@@ -154,8 +195,8 @@ public partial class PodiumScreen : Control, IRoomScreen
 
 	static (Control Step, Control Block) Step(FinalPlayer p, FinalResults r, bool tags)
 	{
-		var height = p.Place == 1 ? 190 : p.Place == 2 ? 140 : 100;
-		var block = U.Panel(U.Text(Lang.Ordinal(p.Place), 44, C.OnBright, Fonts.Black, false, HorizontalAlignment.Center).Raw(), "Clear")
+		var height = p.Place == 1 ? 170 : p.Place == 2 ? 125 : 90;
+		var block = U.Panel(U.Text(Lang.Ordinal(p.Place), 40, C.OnBright, Fonts.Black, false, HorizontalAlignment.Center).Raw(), "Clear")
 			.With(x =>
 			{
 				var box = UiTheme.Box(C.Medal(p.Place) ?? C.Accent, 0, null, 0, 0, 10);
@@ -164,7 +205,7 @@ public partial class PodiumScreen : Control, IRoomScreen
 			}).MinSize(170, height);
 		// (a wide name is cut off with "…" instead of widening its step)
 		var name = U.PlayerName(p.Name, 18, HorizontalAlignment.Center, tags);
-		var step = U.V(6, new Avatar(p.ToPublic(), 64).Center(), name, U.Mono(Lang.F("{0} pts", p.Score), 15, C.Muted).Center());
+		var step = U.V(6, new Avatar(p.ToPublic(), 60).Center(), name, U.Mono(Lang.F("{0} pts", p.Score), 15, C.Muted).Center());
 		if (SeatNote(p, r) is { } note) step.AddChild(note.Center());
 		step.AddChild(block);
 		step.Alignment = BoxContainer.AlignmentMode.End;
@@ -177,123 +218,166 @@ public partial class PodiumScreen : Control, IRoomScreen
 		: p.JoinedAt is { } joined ? U.Muted(Lang.F("joined at Q {0}/{1}", joined, r.Questions), 12, false)
 		: null;
 
-	/// <summary>4th place on: "4th  Ann · 12" chips.</summary>
-	Control Standings(List<FinalPlayer> rest, FinalResults r)
+	/// <summary>Everyone's place, picture, name and points, in a card.</summary>
+	Control Standings(FinalResults r)
 	{
-		var chips = U.Flow(8);
-		chips.Alignment = FlowContainer.AlignmentMode.Center;
-		foreach (var p in rest)
+		var rows = U.V(4);
+		foreach (var p in r.Players)
 		{
-			var chip = Chips.Player(p.ToPublic(), $"· {p.Score}", p.Id == _myId);
-			var inside = (HBoxContainer)chip.GetChild(0);
-			var place = U.Mono(Lang.Ordinal(p.Place), 13, C.Muted).Raw();
-			inside.AddChild(place);
-			inside.MoveChild(place, 0);
-			if (SeatNote(p, r) is { } note) inside.AddChild(note);
-			chips.AddChild(chip);
+			var mine = p.Id == _myId;
+			var place = U.Mono(Lang.Ordinal(p.Place), 15, C.Medal(p.Place) ?? C.Muted).Raw().MinSize(44);
+			var name = U.Text(p.Name, 17, mine ? C.Teal : C.Text, p.Place <= 3 || mine ? Fonts.Bold : null).Raw().Clipped(80);
+			var row = GameParts.Row(10, place, new Avatar(p.ToPublic(), 28), name);
+			if (SeatNote(p, r) is { } note) row.AddChild(note);
+			row.AddChild(U.Mono($"{p.Score}", 18, p.Place == 1 ? C.Gold : C.Accent).MinSize(48).With(l => { l.HorizontalAlignment = HorizontalAlignment.Right; l.SizeFlagsVertical = SizeFlags.ShrinkCenter; }));
+			rows.AddChild(row);
 		}
-		return chips;
+		return U.Card(8, rows).MinSize(560, 0);
 	}
 
-	/// <summary>Tonight's awards as tiles: what it's for, who (with their picture), their number.</summary>
-	Control AwardsCard(FinalResults r)
+	/// <summary>Tonight's awards as tiles (what it's for, who, their number), or thanks when nobody won one.</summary>
+	Control AwardsPanel(FinalResults r)
 	{
-		var tiles = U.Flow(10);
-		tiles.Alignment = FlowContainer.AlignmentMode.Center;
+		var body = U.V(14, U.Heading(r.Awards.Count > 0 ? "Tonight's awards" : "Thanks for playing!", 30),
+			U.Muted(Lang.F("{0} · {1}", r.QuizTitle, r.Date.ToString("dd.MM.yyyy", System.Globalization.CultureInfo.InvariantCulture)), 14, false).Raw());
+		var tiles = U.Flow(12);
 		foreach (var a in r.Awards)
 		{
 			if (NightAwards.Of(a.Kind) is not { } info) continue;
 			var who = U.V(4);
 			foreach (var id in a.Players)
 				if (r.Player(id) is { } p)
-					who.AddChild(GameParts.Row(6, new Avatar(p.ToPublic(), 22), U.Text(p.Name, 15, p.Id == _myId ? C.Teal : C.Text, Fonts.Bold).Raw().Clipped(60)));
+					who.AddChild(GameParts.Row(6, new Avatar(p.ToPublic(), 24), U.Text(p.Name, 16, p.Id == _myId ? C.Teal : C.Text, Fonts.Bold).Raw().Clipped(60)));
 			var tile = U.Card(6, U.Text(Lang.T(info.Title).ToUpper(), 12, C.Accent, Fonts.Spaced), who, U.Muted(Lang.F(info.Line, info.Format(a.Value)), 13, false));
-			tile.CustomMinimumSize = new Vector2(250, 0);
+			tile.CustomMinimumSize = new Vector2(228, 0);
 			tiles.AddChild(tile);
 		}
-		return U.V(10, U.Eyebrow("Tonight's awards").Center(), tiles);
+		body.AddChild(tiles);
+		var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+		scroll.SetAnchorsPreset(LayoutPreset.FullRect);
+		body.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		scroll.AddChild(body);
+		return scroll;
 	}
 
 	Control Buttons()
 	{
 		var credits = U.Btn("▶ Credits", "", RollCredits).Tip("The credits again: who hosted, who played, tonight's awards");
 		var picture = U.Btn("📷 Save picture", "", SavePicture).Tip("Saves the podium as a picture in Documents/Quiznight/Pictures");
-		_saved = U.Muted("", 13, false);
-		_saved.Visible = false;
-		Control main = _replay != null ? U.Btn("← Match history", "AccentButton", App.I.GoMatchHistory)
+		_packButton = U.Btn("🗂 Award pack", "", PackPressed).Tip("Pictures of tonight to share: the standings and a card for every award, in one ZIP");
+		_note = U.Muted("", 13, false);
+		Control main = _replayBack is { } back ? U.Btn(back.Label, "AccentButton", back.Go)
 			: _isHost ? U.Btn("Back to lobby — play again", "AccentButton", _backToLobby)
-			: U.H(16, U.Muted("Thanks for playing! The host can start another round.", 14, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter), U.Link("Leave", App.I.LeaveRoom));
-		return U.V(10, main.Center(), U.H(10, credits, picture).Center(), _saved.Center());
+			: U.Btn("Leave", "AccentButton", App.I.LeaveRoom).Tip("Thanks for playing! The host can start another round.");
+		var row = U.Flow(10, main, credits, picture, _packButton);
+		UpdatePack();
+		return U.V(6, row, _note);
 	}
 
-	/// <summary>Jumps to the end of what's playing: the credits close, or the podium is shown small with everything. True if it did.</summary>
+	/// <summary>The award pack's button: open it, wait while it's drawn, or (a kept podium without one) make it.</summary>
+	void UpdatePack()
+	{
+		if (_packButton == null || _results == null) return;
+		var making = NightPack.Making(_results);
+		_packButton.Disabled = making;
+		_packButton.Text = Lang.T(making ? "🗂 Drawing the award pack…" : NightPack.Exists(_results) ? "🗂 Award pack" : "🗂 Make award pack");
+	}
+
+	double _packCheck;
+
+	public override void _Process(double delta)
+	{
+		if ((_packCheck += delta) < 0.5) return;
+		_packCheck = 0;
+		UpdatePack();
+	}
+
+	void PackPressed()
+	{
+		if (_results == null) return;
+		if (NightPack.Exists(_results)) NightPack.Open(_results);
+		else NightPack.Make(_results);
+		UpdatePack();
+	}
+
+	/// <summary>Jumps ahead: the podium's show to its end (and the credits start), or the credits to the awards. True if it did.</summary>
 	bool Skip()
 	{
 		if (_credits is { } c && IsInstanceValid(c) && !c.IsQueuedForDeletion())
 		{
 			c.Close();
-			_credits = null;
 			return true;
 		}
 		if (_show is not { } show || !show.IsValid() || !show.IsRunning()) return false;
 		show.Kill();
 		_show = null;
-		foreach (var step in _podium!.GetChild<Control>(0).GetChildren().OfType<Control>())
-		{
-			step.Modulate = Colors.White;
-			foreach (var block in step.GetChildren().OfType<Control>()) block.Scale = Vector2.One;
-		}
-		_podium.Zoom = SmallScale;
-		_after!.Modulate = Colors.White;
-		_after.MouseFilter = MouseFilterEnum.Pass;
+		if (_side.GetChild(0) is Control content)
+			foreach (var step in content.FindChildren("*", "VBoxContainer", true, false).OfType<Control>())
+			{
+				step.Modulate = Colors.White;
+				foreach (var block in step.GetChildren().OfType<PanelContainer>()) block.Scale = Vector2.One;
+			}
+		_list!.Modulate = Colors.White;
+		_t = 1;
+		Layout();
+		RollCredits();
 		return true;
 	}
 
 	public override void _Input(InputEvent e)
 	{
-		// (a click while the podium comes in shows it all at once; the still hidden buttons don't get it)
+		// (a click while the podium comes in jumps to the credits)
 		if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || _show is not { } s || !s.IsValid() || !s.IsRunning()) return;
-		if (_credits != null && IsInstanceValid(_credits)) return;
 		Skip();
 		GetViewport().SetInputAsHandled();
 	}
 
+	/// <summary>The credits on the left (the awards make way for them, and come back when they end).</summary>
 	void RollCredits()
 	{
-		if (_results == null || (_credits != null && IsInstanceValid(_credits))) return;
-		_credits = new CreditsRoll(_results, _myId, () => _credits = null);
-		AddChild(_credits);
+		if (_results == null || (_credits != null && IsInstanceValid(_credits) && !_credits.IsQueuedForDeletion())) return;
+		_awards!.Visible = false;
+		_credits = new CreditsRoll(_results, _myId, () =>
+		{
+			_credits = null;
+			_awards.Visible = true;
+			_awards.Modulate = Colors.Transparent;
+			CreateTween().TweenProperty(_awards, "modulate", Colors.White, 0.6f);
+		});
+		_stage.AddChild(_credits);
 	}
 
 	/// <summary>The screen as a picture (without its buttons), in Documents/Quiznight/Pictures.</summary>
 	async void SavePicture()
 	{
-		if (_results == null || _buttons == null) return;
-		_buttons.Modulate = Colors.Transparent;
+		if (_results == null || _bar == null) return;
+		_bar.Modulate = Colors.Transparent;
 		await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
 		var image = GetViewport().GetTexture().GetImage();
-		_buttons.Modulate = Colors.White;
+		_bar.Modulate = Colors.White;
 		var safe = new string(_results.QuizTitle.Select(c => char.IsLetterOrDigit(c) ? c : '-').Take(40).ToArray()).Trim('-');
 		var path = System.IO.Path.Combine(SeasonPoster.Folder, $"Podium {(safe == "" ? "quiz" : safe)} {_results.Date:yyyy-MM-dd HH-mm}.png");
 		try
 		{
 			Directory.CreateDirectory(SeasonPoster.Folder);
 			var ok = image.SavePng(path) == Error.Ok;
-			_saved!.Text = ok ? Lang.F("Saved in {0}.", "Documents/Quiznight/Pictures") : Lang.T("The picture couldn't be saved.");
-			if (ok) OS.ShellOpen(SeasonPoster.Folder);
+			_note!.Text = ok ? Lang.F("Saved in {0}.", "Documents/Quiznight/Pictures") : Lang.T("The picture couldn't be saved.");
+			if (ok) OS.ShellShowInFileManager(path);
 		}
 		catch (Exception)
 		{
-			_saved!.Text = Lang.T("The picture couldn't be saved.");
+			_note!.Text = Lang.T("The picture couldn't be saved.");
 		}
-		_saved.Visible = true;
 	}
 }
 
-/// <summary>A container for one child, drawn at a zoom: its room in the layout grows and shrinks with it (centred).</summary>
+/// <summary>A container for one child, drawn at a zoom and centred: its room in the layout grows and shrinks with it.</summary>
 public partial class ScaledBox : Container
 {
 	float _zoom = 1;
+
+	/// <summary>Also centred top to bottom (else at the top).</summary>
+	public bool CenterV;
 
 	public float Zoom
 	{
@@ -316,13 +400,13 @@ public partial class ScaledBox : Container
 		var size = c.GetCombinedMinimumSize();
 		c.Size = size;
 		c.Scale = Vector2.One * _zoom;
-		c.Position = new Vector2((Size.X - size.X * _zoom) / 2, 0);
+		c.Position = new Vector2((Size.X - size.X * _zoom) / 2, CenterV ? Mathf.Max(0, (Size.Y - size.Y * _zoom) / 2) : 0);
 	}
 }
 
 /// <summary>
-/// The credits over the podium, rolling up like at the end of a party game: the quiz, the quizmaster, everyone who
-/// played, tonight's awards, and thanks. Skip (or Escape) closes them; they close by themselves at the end.
+/// The credits, rolling up like at the end of a party game: the quiz, the quizmaster, everyone who played, tonight's
+/// awards, and thanks. Fills its parent; Skip (or Escape) closes them, and they close by themselves at the end.
 /// </summary>
 public partial class CreditsRoll : Control
 {
@@ -338,14 +422,9 @@ public partial class CreditsRoll : Control
 		_closed = closed;
 		SetAnchorsPreset(LayoutPreset.FullRect);
 		ClipContents = true;
-		MouseFilter = MouseFilterEnum.Stop;
-		var dim = new ColorRect { Color = new Color(C.Bg, 0.96f), MouseFilter = MouseFilterEnum.Ignore };
-		dim.SetAnchorsPreset(LayoutPreset.FullRect);
-		AddChild(dim);
+		MouseFilter = MouseFilterEnum.Ignore;
 
 		_roll.Alignment = BoxContainer.AlignmentMode.Center;
-		_roll.AddChild(new TrackGlowLogo(0.9f).Center());
-		_roll.AddChild(U.Gap(10));
 		_roll.AddChild(Centered(U.Heading(r.QuizTitle, 36).Raw()));
 		_roll.AddChild(Centered(U.Muted(r.Date.ToString("dd.MM.yyyy", System.Globalization.CultureInfo.InvariantCulture), 15, false)));
 
@@ -372,6 +451,9 @@ public partial class CreditsRoll : Control
 
 		Section("Played with");
 		_roll.AddChild(Centered(U.Text("Quiznight?", 24, C.Text, Fonts.Black).Raw()));
+		// (the sponsors at the end, like after a film)
+		Section("Sponsored by");
+		_roll.AddChild(new TrackGlowLogo(0.9f).Center());
 		_roll.AddChild(U.Gap(80));
 		_roll.AddChild(Centered(U.Heading("Thanks for playing!", 40, false)));
 		_roll.AddChild(Centered(U.Muted("See you at the next quiz night.", 16, false)));
@@ -380,7 +462,7 @@ public partial class CreditsRoll : Control
 		var skip = U.Btn("Skip ▸", "", Close, 14);
 		skip.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
 		skip.SizeFlagsVertical = SizeFlags.ShrinkEnd;
-		var corner = U.Pad(skip, 0, 0, 24, 24);
+		var corner = U.Pad(skip, 0, 0, 8, 8);
 		corner.SetAnchorsPreset(LayoutPreset.FullRect);
 		corner.MouseFilter = MouseFilterEnum.Ignore;
 		AddChild(corner);
@@ -389,7 +471,7 @@ public partial class CreditsRoll : Control
 		Ready += () => CreateTween().TweenProperty(this, "modulate", Colors.White, 0.5f);
 	}
 
-	/// <summary>Placed below the screen on the first frame (when it's ready, its own size isn't known yet).</summary>
+	/// <summary>Placed below the stage on the first frame (when it's ready, its own size isn't known yet).</summary>
 	bool _placed;
 
 	static Label Centered(Label l)

@@ -47,7 +47,7 @@ public static class Tutorial
 			new("editor", "editor.issues", "Fill in the blanks", "Write the question and its answer. This line says what's still missing; you can save anyway and finish it later."),
 			new("editor", "editor.round", "Round settings", "Points, time limit and how the question is scored. Hover over a setting to learn more about it."),
 			new("editor", "editor.category", "Pick a category", "One of the suggestions, or your own. Players only see it if \"Show categories\" is on in the lobby (it makes questions easier); \"Keep it secret\" hides it even then. It always counts for the statistics."),
-			new("editor", "editor.after", "Sources, fun facts and answer pictures", "Under the question: the answer as a big picture (the game a Steam review is about), a fun fact or a short story, and the source, all shown to everyone at the reveal. A source lets players check it themselves."),
+			new("editor", "editor.after", "Sources, fun facts and answer pictures", "Under the question: the answer as a big picture (the game a Steam review is about), a fun fact or a short story, and the source, all shown to everyone with the answer. This line says what's filled in; Add or Edit opens them. A source lets players check it themselves."),
 			new("editor", "editor.preview", "Try it out", "Preview shows the question exactly as players will see it, and you can play it yourself. Nothing is saved or counted."),
 			new("editor", "editor.save", "Save", "Save question keeps it and goes back to the quiz; Ctrl+S saves and stays on the question. \"← Back to quiz\" (or Esc) leaves without saving, and asks first if you changed something."),
 			new("editor", null, "Shortcuts", "Ctrl+Z takes back a change, Ctrl+Y does it again. Ctrl+V pastes a picture (a screenshot, say), and you can drop picture, sound and video files onto the window. Esc goes back one screen, and so does your mouse's back button."),
@@ -230,16 +230,31 @@ public partial class TutorialOverlay : Control
 		_content.AddChild(U.Gap(2));
 		_content.AddChild(buttons);
 		// (the thing can be scrolled out of sight: bring it in)
-		if (step.Target != null && Tutorial.Find(App.I, step.Target) is { } target)
-			for (var p = target.GetParent(); p != null; p = p.GetParent())
-				if (p is ScrollContainer scroll)
-				{
-					scroll.EnsureControlVisible(target);
-					break;
-				}
+		// (and once more next frame: a screen the tour just opened isn't laid out yet)
+		BringIn(step);
+		GetTree().ProcessFrame += Again;
+		void Again()
+		{
+			GetTree().ProcessFrame -= Again;
+			if (IsInstanceValid(this)) BringIn(step);
+		}
 		_bubble.Modulate = new Color(1, 1, 1, 0);
 		CreateTween().TweenProperty(_bubble, "modulate:a", 1f, 0.18);
 		_bubble.Size = Vector2.Zero;
+	}
+
+	static void BringIn(Tutorial.Step step)
+	{
+		if (step.Target == null || Tutorial.Find(App.I, step.Target) is not { } target) return;
+		for (var p = target.GetParent(); p != null; p = p.GetParent())
+			if (p is ScrollContainer scroll)
+			{
+				// (one taller than the window shows its top: Godot's own scrolling would show its bottom end)
+				if (target.Size.Y > scroll.Size.Y - 40 && scroll.GetChildCount() > 0 && scroll.GetChild(0) is Control content)
+					scroll.ScrollVertical = (int)(target.GlobalPosition.Y - content.GlobalPosition.Y) - 16;
+				else scroll.EnsureControlVisible(target);
+				return;
+			}
 	}
 
 	void Next(int by)

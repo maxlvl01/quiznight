@@ -22,8 +22,12 @@ public partial class ImageField : VBoxContainer
 
 	public ImageField() : this(null, _ => { }, Images.ScreenshotMax, "") { }
 
-	public ImageField(ImageAsset? image, Action<ImageAsset?> changed, int maxSide, string emptyText, bool removable = true)
+	/// <summary>How high the picture's preview may get (0: as high as it likes).</summary>
+	readonly float _previewHeight;
+
+	public ImageField(ImageAsset? image, Action<ImageAsset?> changed, int maxSide, string emptyText, bool removable = true, float previewHeight = 0)
 	{
+		_previewHeight = previewHeight;
 		_image = image;
 		_changed = changed;
 		_maxSide = maxSide;
@@ -42,7 +46,7 @@ public partial class ImageField : VBoxContainer
 		Control preview;
 		if (_image != null && _image.DataUrl != "")
 		{
-			preview = new FitImage { MaxHeight = U.Flexible, Texture = Images.TextureFromDataUrl(_image.DataUrl) };
+			preview = new FitImage { MaxHeight = _previewHeight > 0 ? _previewHeight : U.Flexible, Texture = Images.TextureFromDataUrl(_image.DataUrl) };
 		}
 		else
 		{

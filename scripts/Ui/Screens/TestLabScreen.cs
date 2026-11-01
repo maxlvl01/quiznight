@@ -25,7 +25,7 @@ public partial class TestLabScreen : Control
 		SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(_player);
 		var left = U.V(14, Buzzers(), Microphone(), Questions(), DropDownTests());
-		var right = U.V(14, Sounds(), Maps(), OneOffs());
+		var right = U.V(14, Sounds(), Maps(), Podiums(), OneOffs());
 		var page = U.V(14,
 			U.H(16, U.Link("← Home", () => App.I.GoHome()).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter), U.Heading("Test lab", 34)),
 			U.Muted("Developer mode only. Nothing here changes your quizzes or settings, except where it says so.", 13),
@@ -270,6 +270,17 @@ public partial class TestLabScreen : Control
 		return U.Card(10, U.Eyebrow("Maps"), changed, isNew,
 			U.Muted("Until the game closes. Then open a map pin question (Question screens) to see it.", 12));
 	}
+
+	// ---------- the podium ----------
+
+	/// <summary>The end of a made-up night (Dev.SampleQuiz.Podium): the podium's show, credits and awards, at a few sizes.</summary>
+	Control Podiums() => U.Card(10, U.Eyebrow("Podium"),
+		U.H(8,
+			U.Small("6 players", () => App.I.GoPodium(Dev.SampleQuiz.Podium(), true)),
+			U.Small("2 players", () => App.I.GoPodium(Dev.SampleQuiz.Podium(2), true)),
+			U.Small("16 players", () => App.I.GoPodium(Dev.SampleQuiz.Podium(16), true)),
+			U.Small("Tie at the top", () => App.I.GoPodium(Dev.SampleQuiz.Podium(6, true), true))),
+		U.Muted("A made-up night of the sample quiz, with its awards (one player left at question 5). Nothing is kept; \"Make award pack\" saves a real one in Documents/Quiznight/Pictures.", 12));
 
 	// ---------- screens that only show once ----------
 

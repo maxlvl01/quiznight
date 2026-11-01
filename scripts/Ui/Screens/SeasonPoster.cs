@@ -14,7 +14,7 @@ namespace QuizNight.Ui.Screens;
 
 public static class SeasonPoster
 {
-	public sealed record Standing(string Id, string Name, int Points, int Wins, int Nights);
+	public sealed record Standing(string Id, string Name, int Points, int Wins, int Nights, int Place = 0);
 
 	/// <summary>An award: its file name, title, what it's for, and the top three (id, name, their number as text).</summary>
 	public sealed record Award(string File, string Title, string For, List<(string Id, string Name, string Value)> Top);
@@ -42,8 +42,11 @@ public static class SeasonPoster
 
 	static string Safe(string s) => new string(s.Select(c => char.IsLetterOrDigit(c) ? c : '-').ToArray()).Trim('-');
 
-	/// <summary>Everything an award pack shows: the standings poster's lines and the awards.</summary>
-	public sealed record Pack(string Title, string Ranking, string PointsLabel, List<Standing> Standings, string Footer, List<Award> Awards);
+	/// <summary>
+	/// Everything an award pack shows: the standings poster's lines and the awards. Night: one quiz night's (NightPack),
+	/// so the poster has no wins or nights.
+	/// </summary>
+	public sealed record Pack(string Title, string Ranking, string PointsLabel, List<Standing> Standings, string Footer, List<Award> Awards, bool Night = false);
 
 	/// <summary>
 	/// "Save award pack": a window that says what the pack is, with the real standings poster and first award card as
@@ -100,7 +103,7 @@ public static class SeasonPoster
 	static async System.Threading.Tasks.Task<(Image? Poster, Image? Card)> Examples(Control owner, Pack pack)
 	{
 		if (DisplayServer.GetName() == "headless") return (null, null);
-		var poster = await Render(owner, Build(pack.Title, pack.Ranking, pack.PointsLabel, pack.Standings, pack.Footer), Size);
+		var poster = await Render(owner, Build(pack.Title, pack.Ranking, pack.PointsLabel, pack.Standings, pack.Footer, pack.Night), Size);
 		poster.Resize(Size.X / 3, Size.Y / 3, Image.Interpolation.Lanczos);
 		Image? card = null;
 		if (pack.Awards.Count > 0)
@@ -116,12 +119,14 @@ public static class SeasonPoster
 	/// it couldn't be saved).
 	/// </summary>
 	/// <param name="to">Dev runs: write the pictures into this folder (and the ZIP next to them), open nothing.</param>
-	public static async System.Threading.Tasks.Task<string?> Save(Control owner, Pack pack, string? to = null)
+	/// <param name="zipPath">Where the ZIP goes (a night's pack: NightPack), instead of a new name in Documents/Quiznight/Pictures.</param>
+	/// <param name="show">Show it in the file manager (not for a pack made in the background).</param>
+	public static async System.Threading.Tasks.Task<string?> Save(Control owner, Pack pack, string? to = null, string? zipPath = null, bool show = true)
 	{
 		var (title, awards) = (pack.Title, pack.Awards);
 		var pictures = new List<(string Name, byte[] Png)>
 		{
-			("00 Standings.png", (await Render(owner, Build(title, pack.Ranking, pack.PointsLabel, pack.Standings, pack.Footer), Size)).SavePngToBuffer()),
+			("00 Standings.png", (await Render(owner, Build(title, pack.Ranking, pack.PointsLabel, pack.Standings, pack.Footer, pack.Night), Size)).SavePngToBuffer()),
 		};
 		for (var i = 0; i < awards.Count; i++)
 			pictures.Add(($"{i + 1:00} {Safe(awards[i].File)}.png", (await Render(owner, Card(title, awards[i]), CardSize)).SavePngToBuffer()));
@@ -129,7 +134,12 @@ public static class SeasonPoster
 		{
 			var folder = to ?? Folder;
 			Directory.CreateDirectory(folder);
-			var zip = Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd_HH-mm} {Safe(title)} awards.zip");
+			var zip = zipPath ?? Path.Combine(folder, $"{DateTime.Now:yyyy-MM-dd_HH-mm} {Safe(title)} awards.zip");
+			if (zipPath != null)
+			{
+				Directory.CreateDirectory(Path.GetDirectoryName(zip)!);
+				if (File.Exists(zip)) File.Delete(zip);
+			}
 			using (var archive = System.IO.Compression.ZipFile.Open(zip, System.IO.Compression.ZipArchiveMode.Create))
 				foreach (var (name, png) in pictures)
 				{
@@ -137,7 +147,7 @@ public static class SeasonPoster
 					stream.Write(png);
 				}
 			if (to != null) foreach (var (name, png) in pictures) File.WriteAllBytes(Path.Combine(to, name), png);
-			else OS.ShellShowInFileManager(zip);
+			else if (show) OS.ShellShowInFileManager(zip);
 			return zip;
 		}
 		catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -190,7 +200,7 @@ public static class SeasonPoster
 		return root;
 	}
 
-	static Control Build(string title, string ranking, string pointsLabel, List<Standing> standings, string footer)
+	static Control Build(string title, string ranking, string pointsLabel, List<Standing> standings, string footer, bool night = false)
 	{
 		var root = new Control { Size = Size, CustomMinimumSize = Size };
 		root.AddChild(Background(Size, C.Purple));
@@ -208,10 +218,10 @@ public static class SeasonPoster
 		var left = U.V(10);
 		if (champ != null)
 		{
-			left.AddChild(Centered(U.Text(Lang.T("Champion").ToUpper(), 26, C.Gold, Fonts.Spaced)));
+			left.AddChild(Centered(U.Text(Lang.T(night ? "Winner" : "Champion").ToUpper(), 26, C.Gold, Fonts.Spaced)));
 			left.AddChild(Centered(new Avatar(EternalTableScreen.Who(champ.Id, champ.Name), 170)));
 			left.AddChild(Line(champ.Name, 76, C.Gold, Fonts.Black));
-			left.AddChild(Line(Lang.F("{0} {1} · {2} wins · {3} nights", champ.Points, Lang.T(pointsLabel), champ.Wins, champ.Nights), 26, C.Text));
+			left.AddChild(Line(night ? Lang.F("{0} points", champ.Points) : Lang.F("{0} {1} · {2} wins · {3} nights", champ.Points, Lang.T(pointsLabel), champ.Wins, champ.Nights), 26, C.Text));
 		}
 		left.AddChild(U.Gap(18));
 		var podium = U.H(18);
@@ -237,9 +247,11 @@ public static class SeasonPoster
 		var list = U.V(6, U.Text(Lang.T("Standings").ToUpper(), 22, C.Muted, Fonts.Spaced), U.Gap(6));
 		foreach (var (s, i) in standings.Take(13).Select((s, i) => (s, i)))
 		{
-			var place = U.Mono(Lang.Ordinal(i + 1), 24, C.Medal(i + 1) ?? C.Muted).MinSize(70);
-			var row = U.H(14, place, new Avatar(EternalTableScreen.Who(s.Id, s.Name), 40), U.Text(s.Name, 26, i == 0 ? C.Gold : C.Text, i < 3 ? Fonts.Black : null).Raw().Grow(),
-				U.Mono(Lang.F("{0} W", s.Wins), 20, C.Muted).MinSize(70), U.Mono($"{s.Points}", 28, i == 0 ? C.Gold : C.Accent).MinSize(80).With(l => l.HorizontalAlignment = HorizontalAlignment.Right));
+			// (a night's places can be shared: it says its own)
+			var at = s.Place > 0 ? s.Place : i + 1;
+			var place = U.Mono(Lang.Ordinal(at), 24, C.Medal(at) ?? C.Muted).MinSize(70);
+			var row = U.H(14, place, new Avatar(EternalTableScreen.Who(s.Id, s.Name), 40), U.Text(s.Name, 26, at == 1 ? C.Gold : C.Text, at <= 3 ? Fonts.Black : null).Raw().Grow(),
+				night ? U.Gap(0) : U.Mono(Lang.F("{0} W", s.Wins), 20, C.Muted).MinSize(70), U.Mono($"{s.Points}", 28, at == 1 ? C.Gold : C.Accent).MinSize(80).With(l => l.HorizontalAlignment = HorizontalAlignment.Right));
 			row.CustomMinimumSize = new Vector2(0, 52);
 			list.AddChild(row);
 		}

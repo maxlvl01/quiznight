@@ -19,6 +19,14 @@ public sealed class NightAward
 	public string Kind = "";
 	public List<string> Players = new();
 	public double Value;
+	/// <summary>The next best two (for the award pack's cards).</summary>
+	public List<AwardRunner> Runners = new();
+}
+
+public sealed class AwardRunner
+{
+	public string Id = "";
+	public double Value;
 }
 
 public sealed class FinalPlayer

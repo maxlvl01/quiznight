@@ -15,10 +15,11 @@ namespace QuizNight.Dev;
 public static class SampleQuiz
 {
 	/// <summary>
-	/// A made-up finished night of the sample quiz (--screen podium, the self-test): six players with points, buzzes,
-	/// pins and typos, one who left, through a real Room so its awards are the real ones.
+	/// A made-up finished night of the sample quiz (--screen podium, the Test lab, the self-test): six players with points,
+	/// buzzes, pins and typos, one who left, through a real Room so its awards are the real ones. players: fewer (the
+	/// first ones) or more (made-up ones with a few points); tie: the first two equal in everything (they share 1st).
 	/// </summary>
-	public static FinalResults Podium()
+	public static FinalResults Podium(int players = 6, bool tie = false)
 	{
 		var room = new Room("TEST", Build()) { HostName = "maxlvl01" };
 		var names = new[] { "[OTB] BassGaming", "Ann", "Kirito", "Lena", "Tom", "Sophie" };
@@ -48,6 +49,19 @@ public static class SampleQuiz
 		room.Scores["p4"] += 2;
 		room.Leave("p5");
 		room.GetPlayer("p5")!.LeftAt = 5;
+		var extra = new[] { "Mia", "Jonas", "Ella", "Paul", "Noah", "Lina", "Ben", "Emma", "Finn", "Clara", "Leon", "Hanna", "Luis", "Marie", "Felix", "Ida", "Max", "Nora" };
+		var rng = new Random(7);
+		for (var i = 6; i < Math.Min(players, Limits.MaxPlayers); i++)
+		{
+			room.Join($"p{i}", extra[(i - 6) % extra.Length]);
+			Q(rng.Next(5), $"p{i}", rng.Next(0, 3), answerMs: rng.Next(2000, 9000));
+		}
+		for (var i = Math.Max(players, 1); i < 6; i++) room.Remove($"p{i}");
+		if (tie && players >= 2)
+		{
+			room.Scores["p1"] = room.Score("p0");
+			room.Stats["p1"] = room.StatsOf("p0");
+		}
 		room.Finish();
 		var results = FinalResults.From(room.ToState("host"));
 		results.Host = room.HostName;

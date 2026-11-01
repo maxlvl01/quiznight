@@ -62,11 +62,13 @@ public partial class MatchHistoryScreen : Control
 		{
 			var winners = string.Join(" & ", r.Players.Where(p => p.Place == 1).Select(p => p.Name));
 			var date = r.Date.ToString("dd.MM.yyyy HH:mm", Inv);
-			list.AddChild(GameParts.Row(10,
+			var line = GameParts.Row(10,
 				U.Bold(r.QuizTitle == "" ? Lang.T("Quiz") : r.QuizTitle, 16).Raw().Clipped(120),
 				U.Text("🏆 " + winners, 14, C.Accent).Raw().Clipped(80),
-				U.Mono(date, 13, C.Muted),
-				U.Link("▶ Watch again", () => App.I.GoPodium(r), 13)));
+				U.Mono(date, 13, C.Muted));
+			if (NightPack.Exists(r)) line.AddChild(U.Link("🗂 Award pack", () => NightPack.Open(r), 13).Tip("The night's pictures: the standings and a card for every award, in one ZIP"));
+			line.AddChild(U.Link("▶ Watch again", () => App.I.GoPodium(r), 13));
+			list.AddChild(line);
 		}
 		return U.Card(8, list);
 	}

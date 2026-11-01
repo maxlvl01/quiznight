@@ -524,6 +524,11 @@ public static class SelfTest
 		Check(Won("quickest-answers") == "p3" && Won("host-favourite") == "p4" && Won("trigger-happy") == null && Won("mind-reader") == null,
 			"awards need enough tries (one answer isn't an average, one wrong buzz each isn't trigger-happy)");
 
+		Check(r.Awards.First(a => a.Kind == "map-master").Runners.Select(x => x.Id).SequenceEqual(new[] { "p0" }) && r.Awards.First(a => a.Kind == "most-right").Runners.Count == 2,
+			"awards know who came next (for the award pack's cards), only those who qualified");
+		Check(SampleQuiz.Podium(6, true).Players.Count(p => p.Place == 1) == 2 && SampleQuiz.Podium(2).Players.Count == 2 && SampleQuiz.Podium(16).Players.Count == 16,
+			"the Test lab's podiums: a tie at the top shares 1st, fewer and more players");
+
 		var tie = new Room("TEST", SampleQuiz.Build());
 		tie.Join("a", "Ann");
 		tie.Join("b", "Bob");

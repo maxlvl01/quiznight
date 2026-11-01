@@ -593,6 +593,20 @@ public static class LangDe
 		["Your podiums"] = "Deine Podien",
 		["Every podium you were at on this PC: watch it again with its credits."] = "Jedes Podium, bei dem du an diesem PC warst: noch einmal ansehen, mit Abspann.",
 		["▶ Watch again"] = "▶ Nochmal ansehen",
+		["← Test lab"] = "← Testlabor",
+		["🗂 Award pack"] = "🗂 Preispaket",
+		["🗂 Drawing the award pack…"] = "🗂 Preispaket wird gezeichnet…",
+		["🗂 Make award pack"] = "🗂 Preispaket erstellen",
+		["Pictures of tonight to share: the standings and a card for every award, in one ZIP"] = "Bilder vom Abend zum Teilen: die Tabelle und eine Karte für jeden Preis, in einer ZIP",
+		["The night's pictures: the standings and a card for every award, in one ZIP"] = "Die Bilder des Abends: die Tabelle und eine Karte für jeden Preis, in einer ZIP",
+		["{0} · hosted by {1}"] = "{0} · moderiert von {1}",
+		["{0} players · {1} questions"] = "{0} Spieler · {1} Fragen",
+		["Winner"] = "Sieger",
+		["Podium"] = "Podium",
+		["6 players"] = "6 Spieler",
+		["2 players"] = "2 Spieler",
+		["16 players"] = "16 Spieler",
+		["Tie at the top"] = "Gleichstand an der Spitze",
 
 		// ---------- server and connection messages ----------
 		["Please enter a name."] = "Bitte gib einen Namen ein.",
@@ -1687,8 +1701,17 @@ public static class LangDe
 		["One of the suggestions, or your own. Players only see it if \"Show categories\" is on in the lobby (it makes questions easier); \"Keep it secret\" hides it even then. It always counts for the statistics."] =
 			"Einen der Vorschläge oder deine eigene. Spieler sehen sie nur, wenn „Kategorien zeigen“ in der Lobby an ist (das macht Fragen leichter); „Geheim halten“ versteckt sie auch dann. Für die Statistik zählt sie immer.",
 		["Sources, fun facts and answer pictures"] = "Quellen, Fun Facts und Antwortbilder",
-		["Under the question: the answer as a big picture (the game a Steam review is about), a fun fact or a short story, and the source, all shown to everyone at the reveal. A source lets players check it themselves."] =
-			"Unter der Frage: die Antwort als großes Bild (das Spiel, um das es in einer Steam-Rezension geht), ein Fun Fact oder eine kurze Geschichte und die Quelle, alles wird bei der Auflösung allen gezeigt. Mit einer Quelle können Spieler es selbst nachprüfen.",
+		["Under the question: the answer as a big picture (the game a Steam review is about), a fun fact or a short story, and the source, all shown to everyone with the answer. This line says what's filled in; Add or Edit opens them. A source lets players check it themselves."] =
+			"Unter der Frage: die Antwort als großes Bild (das Spiel, um das es in einer Steam-Rezension geht), ein Fun Fact oder eine kurze Geschichte und die Quelle, alles wird mit der Antwort allen gezeigt. Diese Zeile sagt, was schon drin ist; Hinzufügen oder Bearbeiten öffnet sie. Mit einer Quelle können Spieler es selbst nachprüfen.",
+		["the answer as a picture"] = "die Antwort als Bild",
+		["a fun fact"] = "ein Fun Fact",
+		["the source"] = "die Quelle",
+		["a picture"] = "ein Bild",
+		["Shown with the answer: {0}."] = "Mit der Antwort gezeigt: {0}.",
+		["Nothing yet. Add the answer as a picture, a fun fact or the source, to show everyone with the answer."] = "Noch nichts. Füge die Antwort als Bild, einen Fun Fact oder die Quelle hinzu, um sie allen mit der Antwort zu zeigen.",
+		["✎ Edit"] = "✎ Bearbeiten",
+		["+ Add"] = "+ Hinzufügen",
+		["Shown smaller, next to the fun fact."] = "Kleiner gezeigt, neben dem Fun Fact.",
 		["Try it out"] = "Probier's aus",
 		["Preview shows the question exactly as players will see it, and you can play it yourself. Nothing is saved or counted."] =
 			"Die Vorschau zeigt die Frage genau so, wie Spieler sie sehen werden, und du kannst sie selbst spielen. Nichts wird gespeichert oder gezählt.",
