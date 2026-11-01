@@ -10,7 +10,7 @@ namespace QuizNight.Ui;
 
 public partial class MediaIcon : Control
 {
-	public enum Kind { Play, Pause, Previous, Next, List, Note, Gear, Info, Shuffle, Repeat, Bug, Idea }
+	public enum Kind { Play, Pause, Previous, Next, List, Note, Gear, Info, Shuffle, Repeat, Bug, Idea, Calendar }
 
 	Kind _kind;
 	public Kind Shape
@@ -171,6 +171,21 @@ public partial class MediaIcon : Control
 				DrawLine(P(0.08f, 0.2f), P(0.16f, 0.26f), Color, w);
 				DrawLine(P(0.92f, 0.2f), P(0.84f, 0.26f), Color, w);
 				DrawLine(P(0.5f, 0.0f), P(0.5f, 0.06f), Color, w);
+				break;
+			}
+			case Kind.Calendar:
+			{
+				// (a wall calendar: a solid top band with two rings sticking out, a frame round the page, two rows of days)
+				var w = Mathf.Max(1.2f, 0.09f * m);
+				DrawRect(new Rect2(P(0.08f, 0.14f), new Vector2(0.84f, 0.82f) * m), Color);
+				DrawRect(new Rect2(P(0.17f, 0.4f), new Vector2(0.66f, 0.47f) * m), C.Panel2);
+				for (var row = 0; row < 2; row++)
+					for (var col = 0; col < 3; col++)
+						DrawRect(new Rect2(P(0.23f + col * 0.2f, 0.47f + row * 0.2f), new Vector2(0.14f, 0.13f) * m), Color);
+				DrawLine(P(0.31f, 0.02f), P(0.31f, 0.24f), Color, w);
+				DrawLine(P(0.69f, 0.02f), P(0.69f, 0.24f), Color, w);
+				DrawLine(P(0.31f, 0.18f), P(0.31f, 0.3f), C.Panel2, Mathf.Max(1f, 0.05f * m));
+				DrawLine(P(0.69f, 0.18f), P(0.69f, 0.3f), C.Panel2, Mathf.Max(1f, 0.05f * m));
 				break;
 			}
 			case Kind.Note:

@@ -13,6 +13,15 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.3b]
+
+### Changed
+- **The calendar button next to "Data as of" has a proper icon.** The button that opens the calendar in estimation
+  questions showed a 📅 emoji, which looked like a sticker from another app: a different style and colours from every
+  other button in the game. It now shows a drawn calendar (two rings on top, a row of days) in the same flat style as
+  the bug and music buttons, coloured to fit every skin, and it's as tall as the date field beside it. (Thanks for the
+  report, Max!)
+
 ## [0.13.2b]
 
 ### Added

@@ -6,7 +6,7 @@ using QuizNight.Shared;
 namespace QuizNight.Ui;
 
 /// <summary>
-/// A small month calendar that opens under a 📅 button (the estimation's "Data as of"). Picking a day writes it into the
+/// A small month calendar that opens under a calendar button (the estimation's "Data as of"). Picking a day writes it into the
 /// field as "1 November 2026" ("1. November 2026" in German); the field stays free text, so "2024" or "March 2025" still work.
 /// Esc or a click outside closes it.
 /// </summary>
@@ -28,18 +28,20 @@ public partial class DatePicker : Control
 		return null;
 	}
 
-	/// <summary>A 📅 button for a text field: opens the calendar under itself, and the picked day replaces the field's text.</summary>
+	public const string Tooltip = "Pick the date from a calendar";
+
+	/// <summary>A calendar button for a text field (drawn: MediaIcon.Kind.Calendar): opens the calendar under itself, and the
+	/// picked day replaces the field's text.</summary>
 	public static Button For(LineEdit field)
 	{
-		var button = U.Btn("📅", "SmallButton", null, 16).Raw();
-		button.TooltipText = Lang.T("Pick the date from a calendar");
-		button.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-		button.Pressed += () => App.I.AddChild(new DatePicker(button, Parse(field.Text), day =>
+		Button? button = null;
+		button = MediaIcon.Button(MediaIcon.Kind.Calendar, Tooltip, () => App.I.AddChild(new DatePicker(button!, Parse(field.Text), day =>
 		{
 			field.Text = Format(day);
 			// (setting Text doesn't send TextChanged, which is what saves the draft)
 			field.EmitSignal(LineEdit.SignalName.TextChanged, field.Text);
-		}));
+		})), 38);
+		button.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 		return button;
 	}
 

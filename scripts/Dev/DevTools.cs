@@ -312,7 +312,7 @@ public sealed class DevTools
 			// --date-picker (with --open estimation): the "Data as of" calendar opened
 			if (Has("--date-picker")) _app.GetTree().CreateTimer(0.5).Timeout += () =>
 			{
-				if (_app.FindChildren("*", nameof(Button), true, false).OfType<Button>().FirstOrDefault(b => b.Text == "📅") is { } calendar) calendar.EmitSignal(BaseButton.SignalName.Pressed);
+				if (_app.FindChildren("*", nameof(Button), true, false).OfType<Button>().FirstOrDefault(b => b.TooltipText == Ui.DatePicker.Tooltip) is { } calendar) calendar.EmitSignal(BaseButton.SignalName.Pressed);
 			};
 		}
 		else if (Has("--whats-new"))

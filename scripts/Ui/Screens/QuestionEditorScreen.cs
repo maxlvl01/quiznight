@@ -501,7 +501,7 @@ public partial class QuestionEditorScreen : Control
 		return Columns((left, 1.6f), (RoundSettings.Closeness(_draft, () => Changed()), 1));
 	}
 
-	/// <summary>Free text ("2024", "March 2025") with a 📅 calendar that writes a day ("1 November 2026").</summary>
+	/// <summary>Free text ("2024", "March 2025") with a calendar button that writes a day ("1 November 2026").</summary>
 	Control DataAsOfField()
 	{
 		var field = U.Input(_draft.DataAsOf, Lang.F("e.g. {0}", DatePicker.Format(DateTime.Today)), t =>
