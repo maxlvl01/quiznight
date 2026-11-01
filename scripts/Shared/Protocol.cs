@@ -258,6 +258,10 @@ public sealed class PublicQuestion
 	/// <summary>The bonus the host can give at the reveal (0 = none) and what it's for.</summary>
 	public int BonusPoints;
 	public string? BonusText;
+	/// <summary>At the reveal only: the quiz maker's fun fact or story, where it's from, and a picture to go with it.</summary>
+	public string? AfterText;
+	public string? Source;
+	public string? AfterImageKey;
 	/// <summary>Asset key of the question image, if it has one (picture questions: the slide showing now).</summary>
 	public string? ImageKey;
 	/// <summary>
@@ -477,6 +481,8 @@ public sealed class GameView
 	public AnswerValue? MyAnswer;
 	/// <summary>Only in the host's state: the correct answer, before the reveal.</summary>
 	public string? HostAnswer;
+	/// <summary>Only in the host's state: the bonus's answer, if the quiz maker wrote one down.</summary>
+	public string? HostBonusAnswer;
 	/// <summary>Someone left: answers, buzzers and timers wait until they're back or the host continues.</summary>
 	public bool Paused;
 	/// <summary>Paused: who the game waits for.</summary>

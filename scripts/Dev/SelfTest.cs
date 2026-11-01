@@ -157,6 +157,28 @@ public static class SelfTest
 		room.Next();
 		Eq(room.Game!.View("ann").Question.Category, "", "a secret category is never shown");
 		Check(Storage.Results.Parse(Storage.Results.Make(room).Csv).Any(r => r["question"] == "1" && r["category"] == "Geography"), "the results keep the category");
+
+		// (0.13, format 13: after the answer, and the bonus's answer for the host)
+		var after = Dev.SampleQuiz.Build();
+		var first = after.Questions[0];
+		first.AfterText = "Mars has the tallest volcano.";
+		first.Source = "https://en.wikipedia.org/wiki/Olympus_Mons";
+		first.AfterImage = after.Questions.First(x => x.Image is { DataUrl: not "" }).Image!.Clone();
+		first.BonusPoints = 1;
+		first.BonusText = "Name its moons";
+		first.BonusAnswer = "Phobos and Deimos";
+		var saved = QuizJson.Parse(QuizJson.Write(after), out _)!.Questions[0];
+		Check(saved.AfterText == first.AfterText && saved.Source == first.Source && saved.AfterImage?.DataUrl == first.AfterImage.DataUrl && saved.BonusAnswer == "Phobos and Deimos",
+			"after-the-answer and the bonus answer survive saving");
+		var (r3, _) = NewRoom(after, "ann", "bob");
+		r3.Start();
+		var open = r3.Game!.View("ann");
+		Check(open.Question.AfterText == null && open.Question.AfterImageKey == null && r3.Game.AssetDataUrl(Server.Game.AfterKey(0)) == null, "players get nothing for after the answer before the reveal");
+		Check(open.HostBonusAnswer == null && r3.Game.View("host").HostBonusAnswer == "Phobos and Deimos", "only the host sees the bonus answer");
+		Check(r3.Game.HostReveal(), "host reveals (after the answer)");
+		var shown = r3.Game.View("ann").Question;
+		Check(shown.AfterText == first.AfterText && shown.Source == first.Source && shown.AfterImageKey == Server.Game.AfterKey(0)
+			&& shown.Files?.ContainsKey(Server.Game.AfterKey(0)) == true && r3.Game.AssetDataUrl(Server.Game.AfterKey(0)) != null, "the reveal shows it, picture unlocked");
 	}
 
 	static void TypedAndBonus()
@@ -528,6 +550,15 @@ public static class SelfTest
 			"each built-in map is the file its pack is named after (tools/map_packs.py)");
 		if (MapFilesHere) Check(Storage.MapPacks.Has("skyrim") && Storage.MapPacks.Missing(Dev.SampleQuiz.Build()).Count == 0, "dev runs have every map");
 		Eq(Storage.MapPacks.Used(Dev.SampleQuiz.Build()).Count, 2, "the sample quiz uses two built-in maps");
+		{
+			var quiz = Dev.SampleQuiz.Build();
+			var maps = quiz.Maps.Count;
+			quiz.Maps.Add(new MapAsset { Id = "unused", Name = "Unused" });
+			var pin = quiz.Questions.First(q => q.Type == QuestionType.MapPin);
+			Eq(quiz.DropUnusedMaps().Select(m => m.Id).SingleOrDefault(), "unused", "a map no question uses is dropped");
+			quiz.Questions.Remove(pin);
+			Check(quiz.DropUnusedMaps().Any(m => m.Id == pin.MapId) && quiz.Maps.Count < maps, "a deleted map pin question takes its map with it");
+		}
 		var wowFiles = Storage.MapPacks.FilesOf(MapPresets.Get(WowAtlas.PresetId)!);
 		if (MapFilesHere) Check(wowFiles.Count > 200 && wowFiles.All(f => f.StartsWith("wow/")), "the WoW pack is the wow folder");
 		static byte[] Zip(params string[] names)

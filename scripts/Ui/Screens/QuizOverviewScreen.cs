@@ -224,6 +224,10 @@ public partial class QuizOverviewScreen : Control
 		var sub = U.H(0, U.Muted(QuizRules.Summary(q), 12, false));
 		if (QuizRules.MapNeedsCheck(q, _quiz.Maps)) sub.AddChild(U.Text(" · ⚠ map changed: check the spot", 12, C.Orange));
 		else if (broken) sub.AddChild(U.Text(" · incomplete", 12, C.Accent));
+		// (the category under the name; a quiet yellow note when it has none yet: the stats per category need one)
+		sub.AddChild(q.Category != ""
+			? U.Muted(" · " + Categories.Label(q.Category), 12, false).Raw()
+			: U.Text(" · " + Lang.T("no category yet"), 12, new Color(C.Gold, 0.85f)).Tip("Pick one in the question's round settings: the stats per category need it"));
 		var text = U.V(0, prompt, sub).Grow();
 		var grip = new GripIcon { CustomMinimumSize = new Vector2(12, 20), SizeFlagsVertical = SizeFlags.ShrinkCenter };
 		// (click opens the question; drag it onto another row to move it there)
@@ -238,13 +242,27 @@ public partial class QuizOverviewScreen : Control
 		foreach (var c in text.GetChildren().OfType<Control>()) c.MouseFilter = MouseFilterEnum.Ignore;
 		open.AddChild(content.With(c => c.SetAnchorsPreset(LayoutPreset.FullRect)));
 		open.CustomMinimumSize = new Vector2(0, 46);
-		var del = U.Small("×", () => Dialogs.Confirm(this, "Delete this question?", "Delete", () =>
+		var del = U.Small("×", () =>
 		{
-			_quiz.Questions.RemoveAt(i);
-			Save();
-			_history.Record();
-			RefreshList();
-		})).Tip("Delete");
+			// (its map goes with it: from the quiz if no other question uses it, and its downloaded built-in map from this
+			// PC if asked and no other question or quiz uses that either)
+			var map = q.Type == QuestionType.MapPin ? _quiz.MapById(q.MapId) : null;
+			var preset = MapPresets.Get(map?.PresetId);
+			var onlyHere = preset != null && MapPacks.SizeOnDisk(preset) > 0
+				&& !_quiz.Questions.Any(o => o != q && o.Type == QuestionType.MapPin && _quiz.MapById(o.MapId)?.PresetId == preset.Id)
+				&& !QuizStore.List().Where(o => o.Id != _quiz.Id).SelectMany(MapPacks.Used).Contains(preset);
+			var dropFile = false;
+			Dialogs.Confirm(this, "Delete this question?", "Delete", () =>
+			{
+				_quiz.Questions.RemoveAt(i);
+				_quiz.DropUnusedMaps();
+				Save();
+				_history.Record();
+				if (dropFile && preset != null) MapPacks.Delete(new[] { preset.Id });
+				RefreshList();
+			}, option: onlyHere ? Lang.F("Also delete its map from this PC ({0}, {1} MB)", preset!.Name, System.Math.Max(1, MapPacks.SizeOnDisk(preset) / 1_000_000)) : null,
+				optionChosen: on => dropFile = on);
+		}).Tip("Delete");
 		return U.Panel(U.H(10, num, open, del), "Card2").With(p => p.AddThemeStyleboxOverride("panel", UiTheme.Box(C.Panel2, 10, C.Border, 1, 8, 4)));
 	}
 

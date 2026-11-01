@@ -122,7 +122,7 @@ public partial class ReactionGame : Control
 }
 
 /// <summary>
-/// A high score list like F1 timing: the leader with their time or score, everyone below with the gap to the leader and
+/// A high score list like F1 timing: everyone's own time or score, and below the leader the gap to the leader and
 /// the interval to the one just ahead; purple for the best of all time, green for a personal best.
 /// </summary>
 public static class F1Times
@@ -133,7 +133,7 @@ public static class F1Times
 	/// <param name="record">The best of all time, to mark it purple.</param>
 	public static Control List(IReadOnlyList<Entry> entries, bool lower, Func<int, string> show, Func<int, string> gap, int? record)
 	{
-		var grid = new GridContainer { Columns = 4 };
+		var grid = new GridContainer { Columns = 5 };
 		grid.AddThemeConstantOverride("h_separation", 14);
 		grid.AddThemeConstantOverride("v_separation", 4);
 		if (entries.Count == 0) return U.Muted("Nobody yet.", 13);
@@ -144,7 +144,9 @@ public static class F1Times
 			var colour = record == e.Value ? C.Purple : e.PersonalBest ? C.Lime : C.Text;
 			grid.AddChild(U.Text($"{i + 1}", 14, C.Muted, Fonts.Bold));
 			grid.AddChild(U.Text(e.Name, 14, C.Text, Fonts.Bold).Raw().Grow());
-			grid.AddChild(U.Text(i == 0 ? show(e.Value) : "+" + gap(Math.Abs(e.Value - leader)), 14, colour, Fonts.Bold).Raw());
+			// (everyone's own time too, not only the leader's: the gaps alone didn't say what anyone had done)
+			grid.AddChild(U.Text(show(e.Value), 14, colour, Fonts.Bold).Raw());
+			grid.AddChild(U.Text(i == 0 ? "" : "+" + gap(Math.Abs(e.Value - leader)), 13, C.Muted).Raw());
 			grid.AddChild(U.Text(i == 0 ? "" : "+" + gap(Math.Abs(e.Value - entries[i - 1].Value)), 13, C.Muted).Raw());
 		}
 		return grid;

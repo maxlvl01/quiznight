@@ -173,6 +173,7 @@ public sealed class Game
 			var q = quiz.Questions[i];
 			// (pictures first: they're small and needed the moment a question is shown)
 			if (q.HasImageField && q.Image is { DataUrl: not "" } image) files.Add(Make(i, image.DataUrl, "image/webp", ImageKey(i)));
+			if (q.AfterImage is { DataUrl: not "" } after) files.Add(Make(i, after.DataUrl, "image/webp", AfterKey(i)));
 			if (q.Type == QuestionType.Picture)
 				for (var s = 0; s < q.Slides.Count; s++)
 					if (q.Slides[s].DataUrl != "") files.Add(Make(i, q.Slides[s].DataUrl, "image/webp", SlideKey(i, s)));
@@ -1219,6 +1220,8 @@ public sealed class Game
 	public static string ImageKey(int index) => $"q{index}/image";
 	public static string MapKey(int index) => $"q{index}/map";
 	public static string SlideKey(int index, int slide) => $"q{index}/slide{slide}";
+	/// <summary>The picture for after the answer (players get it only once the answer is revealed).</summary>
+	public static string AfterKey(int index) => $"q{index}/after";
 
 	/// <summary>Picture questions: the picture showing now (the host flips through them).</summary>
 	public int Slide { get; private set; }
@@ -1362,6 +1365,17 @@ public sealed class Game
 		if (q.Type == QuestionType.Picture)
 			for (var s = 0; s < Math.Min(q.Slides.Count, pq.AllSlidesShown ? q.Slides.Count : _slidesSeen); s++) Unlock(SlideKey(Index, s), null);
 		if (pq.Map?.AssetKey is { } mapKey) Unlock(mapKey, MapAsset(q));
+		// (after the answer: a fun fact, the source and a picture, from the reveal on)
+		if (Stage == Shared.Stage.Reveal && q.HasAfter)
+		{
+			pq.AfterText = q.AfterText.Trim() is { Length: > 0 } text ? text : null;
+			pq.Source = q.Source.Trim() is { Length: > 0 } source ? source : null;
+			if (q.AfterImage is { DataUrl: not "" })
+			{
+				pq.AfterImageKey = AfterKey(Index);
+				Unlock(pq.AfterImageKey, null);
+			}
+		}
 		if (files.Count > 0) pq.Files = files;
 		if (CurrentMedia is { } video)
 		{
@@ -1423,7 +1437,11 @@ public sealed class Game
 			// (a joker for a question not shown yet is a secret: only its player sees it, and can take it back)
 			Jokers = _jokers.Where(j => j.PlayerId == viewer || Locked(j)).Select(j => new JokerPlay { PlayerId = j.PlayerId, Kind = j.Kind, Index = j.Index }).ToList(),
 		};
-		if (viewer == "host") view.HostAnswer = HostAnswer();
+		if (viewer == "host")
+		{
+			view.HostAnswer = HostAnswer();
+			if (Question.HasBonus && Question.BonusAnswer.Trim() != "") view.HostBonusAnswer = Question.BonusAnswer.Trim();
+		}
 		else view.MyAnswer = _answers.FirstOrDefault(a => a.PlayerId == viewer).Value;
 		return view;
 	}
@@ -1533,6 +1551,8 @@ public sealed class Game
 		if (!host && index == Index && !Shown && Stage == Shared.Stage.Open) return null;
 		var q = _quiz.Questions[index];
 		if (parts[1] == "image" && q.HasImageField && q.Image != null) return q.Image.DataUrl;
+		// (the picture for after the answer: from its reveal on)
+		if (parts[1] == "after" && q.AfterImage is { DataUrl: not "" } after && (host || index < Index || Stage == Shared.Stage.Reveal)) return after.DataUrl;
 		if (parts[1] == "map" && q.Type == QuestionType.MapPin)
 			return MapPresets.Get(_quiz.MapById(q.MapId)?.PresetId) is { } preset ? Storage.MapPacks.BundleDataUrl(preset) : _quiz.MapById(q.MapId)?.Image.DataUrl;
 		// (recordings: once recording is over, while the question and its reveal are on)

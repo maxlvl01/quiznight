@@ -707,11 +707,14 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		if (!q.Buzzer && q.Type != QuestionType.MapPin && reveal.Entries.Count > 0) box.AddChild(GameParts.RevealPanel(room, heading: false));
 		// Image reveal: everyone gets the whole picture now.
 		if (q.Type == QuestionType.Image && q.ImageKey != null) box.AddChild(new AssetImage(_client.Assets, q.ImageKey, U.Flexible) { Zoomable = true });
+		// (the quiz maker's fun fact, source and picture for after the answer)
+		var after = GameParts.After(q, _client.Assets);
+		if (after != null && q.Type != QuestionType.MapPin) box.AddChild(after);
 		if (q.Type == QuestionType.MapPin && q.Map != null && _client.Assets.MapReady(q.Map))
 		{
 			// The answer on the left, the map with everyone's pins as big as the rest of the card.
 			box.RemoveChild(panel);
-			return U.H(16, U.V(0, panel).MinSize(280), GameMap.Make(q.Map, _client.Assets.Map(q.Map), reveal.Target, null, GameParts.RevealPins(room), U.Flexible).Grow());
+			return U.H(16, U.V(12, panel, after ?? U.Gap(0)).MinSize(280), GameMap.Make(q.Map, _client.Assets.Map(q.Map), reveal.Target, null, GameParts.RevealPins(room), U.Flexible).Grow());
 		}
 		return box;
 	}

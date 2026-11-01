@@ -129,7 +129,8 @@ public partial class HostGameScreen : Control, IRoomScreen
 		{
 			var box = U.V(14);
 			if (ia != null) Interactive(box, room, ia, reveal != null);
-			if (reveal == null && GameParts.BonusLine(q, 18) is { } bonusLine) box.AddChild(bonusLine);
+			// (the host also sees the bonus's answer, and keeps the line at the reveal, where they give the bonus)
+			if ((reveal == null || game.HostBonusAnswer != null) && GameParts.BonusLine(q, 18, game.HostBonusAnswer) is { } bonusLine) box.AddChild(bonusLine);
 			if (q.ImageKey != null && q.Type != QuestionType.Image && !(q.Type == QuestionType.MapPin && reveal != null))
 				box.AddChild(new AssetImage(_assets, q.ImageKey, U.Flexible) { Zoomable = true });
 			if (q is { SlideCount: > 1, Slide: { } slide }) box.AddChild(SlideControls(slide, q.SlideCount.Value));
@@ -183,6 +184,7 @@ public partial class HostGameScreen : Control, IRoomScreen
 				box.AddChild(U.H(20, map, GameParts.RevealPanel(room, null, _host.ToggleBonus).Grow()));
 			}
 			else if (reveal != null) box.AddChild(GameParts.RevealPanel(room, q.Written ? _host.ToggleWritten : null, _host.ToggleBonus));
+			if (reveal != null && GameParts.After(q, _assets) is { } after) box.AddChild(after);
 			return box;
 		});
 

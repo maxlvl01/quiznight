@@ -414,14 +414,18 @@ public static class Backgrounds
 		return GD.Load<Texture2D>(Path(id))?.GetImage();
 	}
 
-	/// <summary>One side's part of a picture: centred on Anchor (0–1 across the picture), Zoom times as tall as the window.</summary>
-	public readonly record struct Side(Vector2 Anchor, float Zoom = 1);
+	/// <summary>
+	/// One side's part of a picture: centred on Anchor (0–1 across the picture), Zoom times as tall as the window, and
+	/// never more than Span of the picture's width (a wider side, on a 32:9 screen, zooms in further instead).
+	/// </summary>
+	public readonly record struct Side(Vector2 Anchor, float Zoom = 1, float Span = 1);
 
 	/// <summary>Pictures with a subject: each side of the screens shows its own part. Others (null) cover the whole window.</summary>
 	public static (Side Left, Side Right)? Sides(string? id) => id switch
 	{
 		// the astronaut on the left; on the right, the ship's top corner (zoomed in, so her suit doesn't peek in at the bottom)
-		"pinke-geilheit" or Animated => (new Side(new Vector2(0.53f, 0.45f)), new Side(new Vector2(0.9f, 0.28f), 1.8f)),
+		// (the right side shows at most its last quarter: on 32:9 screens it was so wide that the astronaut showed on both sides)
+		"pinke-geilheit" or Animated => (new Side(new Vector2(0.53f, 0.45f)), new Side(new Vector2(0.9f, 0.28f), 1.8f, 0.25f)),
 		_ => null,
 	};
 

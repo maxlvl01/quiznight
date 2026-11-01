@@ -13,8 +13,9 @@ public static class Categories
 	public static readonly string[] Presets =
 	{
 		"General knowledge", "Geography", "History", "Science", "Biology", "Chemistry", "Physics", "Space & astronomy",
-		"Human body & medicine", "Maths", "Nature & animals", "Music", "Film & TV", "Games", "Sport", "Food & drink",
-		"Art & literature", "Language", "Technology", "Pop culture", "Politics",
+		"Human body & medicine", "Maths", "Nature & animals", "Music", "Video game music", "Film music", "Film & TV", "Games",
+		"Sport", "Football", "Formula 1", "Race tracks", "Food & drink", "Art & literature", "Books", "Language", "Technology",
+		"Pop culture", "Politics", "Günther Grass",
 	};
 
 	/// <summary>Trimmed, single spaces, at most MaxLength characters.</summary>

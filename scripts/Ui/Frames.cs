@@ -254,7 +254,7 @@ public partial class SpaceBackdrop : Control
 
 			void DrawSide(Rect2 area, Storage.Backgrounds.Side side)
 			{
-				var sideScale = Size.Y * 1.03f * side.Zoom / tex.Y;
+				var sideScale = Mathf.Max(Size.Y * 1.03f * side.Zoom / tex.Y, area.Size.X / (tex.X * side.Span));
 				var size = tex * sideScale;
 				var at = area.GetCenter() - side.Anchor * size + move;
 				// (never past the picture's edge)

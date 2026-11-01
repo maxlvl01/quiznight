@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using QuizNight.Net;
 using QuizNight.Shared;
 
 namespace QuizNight.Ui.Screens;
@@ -265,13 +266,42 @@ public static class GameParts
 			? Lang.F("⏸ Paused: waiting for {0} to come back.", string.Join(", ", game.WaitingFor.Select(id => room.Player(id).Name)))
 			: null;
 
-	/// <summary>"★ Bonus +2 · Also name the game" under the question, if it has a bonus.</summary>
-	public static Control? BonusLine(PublicQuestion q, int size = 16)
+	/// <summary>
+	/// "★ Bonus +2 · Also name the game" under the question, if it has a bonus; on the host's screen with its answer, if
+	/// the quiz maker wrote one down (answer).
+	/// </summary>
+	public static Control? BonusLine(PublicQuestion q, int size = 16, string? answer = null)
 	{
 		if (q.BonusPoints <= 0 || string.IsNullOrWhiteSpace(q.BonusText)) return null;
 		var row = Row(8, U.Text(Lang.F("★ Bonus +{0}", q.BonusPoints), size, C.Accent, Fonts.Black), U.Text(q.BonusText, size, C.Text, null, true).Raw().Grow());
+		if (answer != null) row.AddChild(U.Text(Lang.F("Answer: {0}", answer), size, C.Teal, Fonts.Bold, true).Raw().Grow());
 		var panel = U.Panel(row, "Clear");
 		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(C.Accent, 0.1f), 10, C.Accent, 1, 12, 6));
+		return panel;
+	}
+
+	/// <summary>
+	/// After the answer (the reveal): the quiz maker's fun fact or story, where it's from (a link opens in the browser) and
+	/// a picture to go with it. Null if the question has none.
+	/// </summary>
+	public static Control? After(PublicQuestion q, AssetSource? assets)
+	{
+		if (q.AfterText == null && q.Source == null && q.AfterImageKey == null) return null;
+		var text = U.V(8, U.Eyebrow("Good to know"));
+		if (q.AfterText != null) text.AddChild(U.Text(q.AfterText, 17, C.Text, null, true).Raw());
+		if (q.Source is { } source)
+		{
+			var link = Uri.TryCreate(source, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
+			text.AddChild(link
+				? Row(6, U.Muted("Source:", 14, false), U.Link(source, () => OS.ShellOpen(uri!.AbsoluteUri), 14).Raw().With(b => { b.ClipText = true; b.TooltipText = source; }).Grow())
+				: U.Muted(Lang.F("Source: {0}", source), 14).Raw());
+		}
+		Control content = text;
+		if (q.AfterImageKey != null && assets != null)
+			content = q.AfterText == null ? U.V(10, text, new AssetImage(assets, q.AfterImageKey, 360) { Zoomable = true })
+				: U.H(16, text.Grow(), new AssetImage(assets, q.AfterImageKey, 300) { Zoomable = true }.Grow());
+		var panel = U.Panel(content, "Clear");
+		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(C.Blue, 0.08f), 12, new Color(C.Blue, 0.6f), 1, 16, 12));
 		return panel;
 	}
 

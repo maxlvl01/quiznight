@@ -256,16 +256,13 @@ public partial class MediaField : VBoxContainer
 
 public static class RoundSettings
 {
-	public static VBoxContainer Points(Question q, Action changed)
-	{
-		var field = new NumberField(q.Points, v =>
+	/// <summary>The points field, with − and + beside it in every question type (the big field alone was fiddly to change).</summary>
+	public static VBoxContainer Points(Question q, Action changed, string? label = null) =>
+		U.Field(label ?? (q.ScoresPerPick ? "Points per right answer" : "Points"), new NumberField(q.Points, v =>
 		{
 			q.Points = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.PointsMin), QuestionLimits.PointsMin, QuestionLimits.PointsMax);
 			changed();
-		}, QuestionLimits.PointsMin, QuestionLimits.PointsMax, true);
-		// (multiple choice per right pick: + and − like the bonus points)
-		return q.ScoresPerPick ? U.Field("Points per right answer", field.WithSteps()) : U.Field("Points", field);
-	}
+		}, QuestionLimits.PointsMin, QuestionLimits.PointsMax, true).WithSteps());
 
 	public static VBoxContainer TimeLimit(Question q, Action changed) =>
 		U.Field("Time limit (seconds)", new NumberField(q.TimeLimitSec, v =>
@@ -274,7 +271,10 @@ public static class RoundSettings
 			changed();
 		}, QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax, true));
 
-	/// <summary>An optional bonus the host gives at the reveal: points and what it's for, in one row.</summary>
+	/// <summary>
+	/// An optional bonus the host gives at the reveal: points, what it's for, and its answer for the host (so a quiz
+	/// played weeks later still has it). What it's for has its own line: beside the points it was cut off.
+	/// </summary>
 	public static VBoxContainer Bonus(Question q, Action changed)
 	{
 		var what = U.Input(q.BonusText, "What for? e.g. Also name the game", t =>
@@ -288,7 +288,12 @@ public static class RoundSettings
 			changed();
 		}, 0, QuestionLimits.BonusPointsMax, true).WithSteps();
 		// (every type's round settings have the bonus, so the category comes along with it)
-		return U.V(12, Tutorial.Mark(U.Field("Bonus points (optional)", U.H(8, points, what), "You give the bonus to players at the reveal. 0 = no bonus."), "editor.bonus"),
+		var answer = U.Input(q.BonusAnswer, "Its answer (only you see it)", t =>
+		{
+			q.BonusAnswer = t;
+			changed();
+		}, QuestionLimits.BonusAnswerMaxLength).Grow();
+		return U.V(12, Tutorial.Mark(U.Field("Bonus points (optional)", U.V(6, points, what, answer), "You give the bonus to players at the reveal. 0 = no bonus."), "editor.bonus"),
 			Category(q, changed));
 	}
 
@@ -325,7 +330,7 @@ public static class RoundSettings
 			changed();
 			if (id == own) custom.GrabFocus();
 		});
-		return Tutorial.Mark(U.Field("Category (optional)", U.V(6, select, custom, secret),
+		return Tutorial.Mark(U.Field("Category", U.V(6, select, custom, secret),
 			"Players only see it if you turn on \"Show categories\" in the lobby: it makes questions easier. It always counts for the stats per category."), "editor.category");
 	}
 

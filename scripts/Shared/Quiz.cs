@@ -289,6 +289,14 @@ public sealed class Question
 	/// <summary>Optional bonus the host can give at the reveal, e.g. "Also name the game" (0 = no bonus).</summary>
 	public int BonusPoints;
 	public string BonusText = "";
+	/// <summary>The bonus's answer, for the host only (shown on their screen and in the host notes, never to players).</summary>
+	public string BonusAnswer = "";
+	/// <summary>After the answer (optional): a fun fact or a short story, shown to everyone at the reveal.</summary>
+	public string AfterText = "";
+	/// <summary>After the answer: where it's from, a link or a few words (links open in the browser).</summary>
+	public string Source = "";
+	/// <summary>After the answer: a picture shown with it (a cover, a store page …).</summary>
+	public ImageAsset? AfterImage;
 	/// <summary>Optional category ("Geography", or the quiz maker's own): shown to players only if the lobby allows it.</summary>
 	public string Category = "";
 	/// <summary>Never show this question's category, even when the lobby shows categories (it would give it away).</summary>
@@ -412,6 +420,8 @@ public sealed class Question
 	public bool IsWritten => Type == QuestionType.Write || IsTyped;
 	/// <summary>Has a bonus the host can give at the reveal.</summary>
 	public bool HasBonus => BonusPoints > 0;
+	/// <summary>Whether there's anything to show after the answer.</summary>
+	public bool HasAfter => AfterText.Trim() != "" || Source.Trim() != "" || AfterImage is { DataUrl: not "" };
 	/// <summary>Everyone answers within a time limit (instead of buzzing in).</summary>
 	public bool HasTimeLimit => IsCloseness || IsChoice || IsWritten || (Type == QuestionType.Order && !IsTimeline) || IsInteractive;
 	public bool HasImageField => Type is QuestionType.Classic or QuestionType.Estimation or QuestionType.MapPin or QuestionType.Image or QuestionType.Write;
@@ -432,6 +442,18 @@ public sealed class Quiz
 	public List<Question> Questions = new();
 
 	public MapAsset? MapById(string? id) => id == null ? null : Maps.FirstOrDefault(m => m.Id == id);
+
+	/// <summary>
+	/// Drops the maps no question uses any more (a deleted map pin question took its map with it since 0.13: before, an
+	/// uploaded map stayed in the quiz file and its picker for good). Returns the dropped ones.
+	/// </summary>
+	public List<MapAsset> DropUnusedMaps()
+	{
+		var used = Questions.Where(q => q.Type == QuestionType.MapPin && q.MapId != null).Select(q => q.MapId).ToHashSet();
+		var dropped = Maps.Where(m => !used.Contains(m.Id)).ToList();
+		Maps.RemoveAll(m => !used.Contains(m.Id));
+		return dropped;
+	}
 }
 
 public static class QuestionLimits
@@ -455,6 +477,9 @@ public static class QuestionLimits
 	public const int WrittenMaxLength = 80;
 	public const int BonusPointsMax = 10;
 	public const int BonusTextMaxLength = 60;
+	public const int BonusAnswerMaxLength = 120;
+	public const int AfterTextMaxLength = 800;
+	public const int SourceMaxLength = 300;
 	/// <summary>Picture questions: at most this many pictures in a slideshow.</summary>
 	public const int SlidesMax = 12;
 	/// <summary>Interactive questions: how long one recording can be, and the default time to do the task.</summary>
@@ -480,8 +505,11 @@ public static class QuizRules
 	///    (stepsMode "sentence", its parts in hints).
 	/// 10: map pin questions remember the version their correct spot was checked on (mapCheckedIn).
 	/// 11: questions remember when they were made (createdAt), for sorting the quiz overview's list.
+	/// 12: multiple choice can score per right answer (perCorrect).
+	/// 13: every question can have something for after the answer (afterText, source, afterImage) and the bonus's
+	///     answer for the host (bonusAnswer); interactive questions can be a typed list (judging "list").
 	/// </summary>
-	public const int FormatVersion = 12;
+	public const int FormatVersion = 13;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 

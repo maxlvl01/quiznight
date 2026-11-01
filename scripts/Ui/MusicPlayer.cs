@@ -23,7 +23,23 @@ public partial class MediaIcon : Control
 		}
 	}
 
-	public Color Color = C.Text;
+	/// <summary>The icon's colour: the skin's text colour unless set (read when drawn, so a skin change recolours it:
+	/// the 🐞, which outlives screens, kept a dark skin's white on Daylight before).</summary>
+	public Color Color
+	{
+		get => _color ?? C.Text;
+		set
+		{
+			_color = value;
+			QueueRedraw();
+		}
+	}
+	Color? _color;
+
+	public override void _Notification(int what)
+	{
+		if (what == NotificationThemeChanged) QueueRedraw();
+	}
 
 	public MediaIcon() : this(Kind.Play) { }
 

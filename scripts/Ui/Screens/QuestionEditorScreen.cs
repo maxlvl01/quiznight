@@ -148,9 +148,45 @@ public partial class QuestionEditorScreen : Control
 			QuestionType.Steps => StepsForm(),
 			_ => MediaForm(),
 		});
+		_form.AddChild(AfterSection());
 		// Maps and previews take the height that's left, so the form fits without scrolling.
 		U.PropagateGrow(_form);
 		UpdateIssues();
+	}
+
+	/// <summary>The "After the answer" part is open (it opens by itself when the question has something in it).</summary>
+	bool _afterOpen;
+
+	/// <summary>
+	/// After the answer (every type, optional): a fun fact or short story, the source and a picture, shown to everyone
+	/// at the reveal. Folded away until it's opened, so the form still fits.
+	/// </summary>
+	Control AfterSection()
+	{
+		if (!_afterOpen && !_draft.HasAfter)
+			return U.Link("+ Fun fact, source or picture for after the answer", () =>
+			{
+				_afterOpen = true;
+				BuildForm();
+			}, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin);
+		_afterOpen = true;
+		var text = U.Field("Fun fact or story (optional)", U.Area(_draft.AfterText, "e.g. The song was written in 20 minutes, on a napkin.", t =>
+		{
+			_draft.AfterText = t;
+			Changed();
+		}, 3, QuestionLimits.AfterTextMaxLength));
+		var source = U.Field("Source (optional)", U.Input(_draft.Source, "A link (opens in the browser) or a few words", t =>
+		{
+			_draft.Source = t;
+			Changed();
+		}, QuestionLimits.SourceMaxLength), "So players can check it themselves.");
+		var picture = U.Field("Picture (optional)", new ImageField(_draft.AfterImage, img =>
+		{
+			_draft.AfterImage = img;
+			Changed();
+		}, Images.ScreenshotMax, "e.g. the cover, or the game's store page"));
+		return U.Card(10, U.Bold("After the answer", 17), U.Muted("Shown to everyone with the answer, at the reveal.", 13),
+			Columns((U.V(12, text, source), 1.4f), (picture, 1f)));
 	}
 
 	static HBoxContainer Columns(params (Control Col, float Ratio)[] cols)
@@ -546,11 +582,7 @@ public partial class QuestionEditorScreen : Control
 					_draft.TimeLimitSec = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.TimeLimitMin), QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax);
 					Changed();
 				}, QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax, true)),
-				U.Field("Points per item placed", new NumberField(_draft.Points, v =>
-				{
-					_draft.Points = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.PointsMin), QuestionLimits.PointsMin, QuestionLimits.PointsMax);
-					Changed();
-				}, QuestionLimits.PointsMin, QuestionLimits.PointsMax, true))),
+				RoundSettings.Points(_draft, () => Changed(), "Points per item placed")),
 				keepGoing.Tip("Off: the turn passes on after every item."),
 				RoundSettings.Bonus(_draft, () => Changed()),
 				U.Muted("Players take turns, fewest points first. On your turn you pick where the next item goes on the timeline. Right: it's placed with its label, you score and carry on. Wrong: the next player tries the same item. If nobody gets it, it's placed for free and the next player starts the next item.", 13));
@@ -565,11 +597,7 @@ public partial class QuestionEditorScreen : Control
 			};
 			settings = RoundSettings.Panel(
 				RoundSettings.Row(RoundSettings.TimeLimit(_draft, () => Changed()),
-				U.Field("Points per item in the right place", new NumberField(_draft.Points, v =>
-				{
-					_draft.Points = (int)Math.Clamp(Math.Round(v ?? QuestionLimits.PointsMin), QuestionLimits.PointsMin, QuestionLimits.PointsMax);
-					Changed();
-				}, QuestionLimits.PointsMin, QuestionLimits.PointsMax, true))),
+				RoundSettings.Points(_draft, () => Changed(), "Points per item in the right place")),
 				costs.Tip("Off by default. On: each item in a wrong place takes the same points off again."),
 				RoundSettings.Bonus(_draft, () => Changed()),
 				U.Muted("Everyone puts the items in order on their own screen. Every item in its right place gets the points, so 3 of 4 right is still worth something; the reveal shows how many each player had right.", 13));

@@ -1,7 +1,7 @@
 // Where the corner buttons (the jukebox's note and the 🐞) go. Bottom left, the note at the bottom and the 🐞 above it; on
 // a window wider than 16:9 that's in the space beside the screen, where they cover nothing. A screen whose own things sit
-// in that corner gives them a spot instead (ButtonDock.Spot(): in its top bar, or a free corner), and on a window without
-// that side space they're drawn over it, side by side.
+// in that corner gives them a spot instead (ButtonDock.Spot(): in its top bar, or a free corner), on every window shape
+// (since 0.13 also on ultrawide ones, so they never jump between places), side by side.
 
 using System.Collections.Generic;
 using System.Linq;
@@ -37,16 +37,13 @@ public static class ButtonDock
 	public static Control Spot(float height = 36) => new ButtonSpot(height);
 
 	/// <summary>
-	/// The screen's spot if the buttons go there now: it has one (shown), and the window has no room for them beside the
-	/// 16:9 screen.
+	/// The screen's spot if it has one (shown): the buttons sit there on every screen shape, also on ultrawide monitors
+	/// with room beside the 16:9 picture, so they're always in the same place (they used to go to the corner there).
 	/// </summary>
 	static ButtonSpot? Active()
 	{
 		var app = App.I;
 		if (app == null) return null;
-		var size = app.Size;
-		var side = (size.X - size.Y * ScreenFrame.MaxAspect) / 2;
-		if (side >= Margin * 2 + Note) return null;
 		return Spots.FirstOrDefault(s => GodotObject.IsInstanceValid(s) && s.IsVisibleInTree());
 	}
 

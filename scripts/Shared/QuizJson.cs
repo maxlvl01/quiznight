@@ -75,7 +75,11 @@ public static class QuizJson
 		{
 			o["bonusPoints"] = q.BonusPoints;
 			o["bonusText"] = q.BonusText;
+			if (q.BonusAnswer != "") o["bonusAnswer"] = q.BonusAnswer;
 		}
+		if (q.AfterText != "") o["afterText"] = q.AfterText;
+		if (q.Source != "") o["source"] = q.Source;
+		if (q.AfterImage is { DataUrl: not "" }) o["afterImage"] = WriteImage(q.AfterImage);
 		if (q.Category != "")
 		{
 			o["category"] = q.Category;
@@ -237,6 +241,10 @@ public static class QuizJson
 		q.BonusPoints = Math.Clamp((int)Num(o, "bonusPoints", 0), 0, QuestionLimits.BonusPointsMax);
 		q.BonusText = Str(o, "bonusText");
 		if (q.BonusText.Length > QuestionLimits.BonusTextMaxLength) q.BonusText = q.BonusText[..QuestionLimits.BonusTextMaxLength];
+		q.BonusAnswer = Cut(Str(o, "bonusAnswer"), QuestionLimits.BonusAnswerMaxLength);
+		q.AfterText = Cut(Str(o, "afterText"), QuestionLimits.AfterTextMaxLength);
+		q.Source = Cut(Str(o, "source"), QuestionLimits.SourceMaxLength);
+		q.AfterImage = ReadImage(o["afterImage"]) is { DataUrl: not "" } after ? after : null;
 		q.Category = Categories.Clean(Str(o, "category"));
 		// "Write the answer" was its own type until 0.10.3b; it's the classic question's "Everyone types" now
 		if (q.Type == QuestionType.Write)
@@ -294,6 +302,8 @@ public static class QuizJson
 
 	static ImageAsset? ReadImage(JsonNode? node) =>
 		node is JsonObject o ? new ImageAsset { DataUrl = Str(o, "dataUrl"), Width = (int)Num(o, "width", 0), Height = (int)Num(o, "height", 0) } : null;
+
+	static string Cut(string s, int max) => s.Length > max ? s[..max] : s;
 
 	static string Str(JsonObject o, string key, string fallback = "") =>
 		o[key] is JsonValue v && v.TryGetValue<string>(out var s) ? s : fallback;
