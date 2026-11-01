@@ -13,6 +13,8 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.1d4]
+
 ### Added
 - **A new podium song: the Throne Room from Star Wars.** Pick "Throne Room (Star Wars)" as the podium sound in the lobby (or as your own in Settings): the medal ceremony from the end of A New Hope plays while the podium rises and the credits roll. It's levelled to the same loudness as the F1 podium. (Thanks for the idea, maxlvl01!)
 
