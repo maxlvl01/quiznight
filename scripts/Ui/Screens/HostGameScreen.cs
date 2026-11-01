@@ -43,8 +43,9 @@ public partial class HostGameScreen : Control, IRoomScreen
 		var stage = U.V(12, stageCard, _controls).Grow(3).GrowV();
 		var stageScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.Grow(3).GrowV();
 		stageScroll.AddChild(stage);
-		var side = U.Panel(_side).MinSize(330).GrowV();
-		var sideScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.MinSize(340).GrowV();
+		var side = U.Panel(_side).MinSize(380).GrowV();
+		// (wider than the players' column: the host's score rows also hold the − and + keys)
+		var sideScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.MinSize(390).GrowV();
 		sideScroll.AddChild(side.Grow());
 		var body = U.Pad(U.H(16, stageScroll, sideScroll), 16, 16, 16, 16).GrowV();
 		var layout = U.V(0, _bar, body);
@@ -201,7 +202,8 @@ public partial class HostGameScreen : Control, IRoomScreen
 			if (game.Stage == Stage.Open && q.Buzzer && answering != null)
 			{
 				var p = room.Player(answering.PlayerId);
-				row.AddChild(GameParts.Row(8, new Avatar(p, 28), U.Bold(Lang.F("{0} is answering", p.Name), 17), new Countdown(game.AnswerEndsAt, null, 22)));
+				// (the name is capped: a long one pushed the whole screen sideways; who it is also shows in the buzz order)
+				row.AddChild(GameParts.Row(8, new Avatar(p, 28), U.Bold(Lang.F("{0} is answering", p.Name), 17).Raw().Capped(240), new Countdown(game.AnswerEndsAt, null, 22)));
 				row.AddChild(U.Fill());
 				row.AddChild(U.Btn("Correct", "TealButton", () => _host.Judge(true), 20));
 				row.AddChild(U.Btn("Wrong", "CoralButton", () => _host.Judge(false), 20));

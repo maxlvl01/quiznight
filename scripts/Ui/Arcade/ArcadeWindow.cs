@@ -97,7 +97,7 @@ public partial class ArcadeWindow : Control
 		if (_matchId != null) _link.Send(new ArcadeRequest { Kind = ArcadeRequest.Leave });
 	}
 
-	void Close()
+	public void Close()
 	{
 		if (_game is TetrisGame tetris) tetris.Finish();
 		QueueFree();

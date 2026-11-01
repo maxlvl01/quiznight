@@ -720,6 +720,19 @@ public static class SelfTest
 		Eq(v.Buzzes[0].Status, BuzzStatus.Answering, "first buzz answers");
 		Eq(v.Buzzes[1].Status, BuzzStatus.Waiting, "second waits");
 		Eq(v.Buzzes[0].AtSec, 1.5, "buzz time");
+		{
+			// (0.13: buzz times count from the last unlock, not from when the question appeared)
+			var (r2, c2) = NewRoom(quiz, "ann", "bob");
+			Check(r2.Start().Ok, "start (unlock timing)");
+			var g2 = r2.Game!;
+			Check(g2.SetBuzzers(false), "host locks the buzzers");
+			c2.Now += 20000;
+			Check(g2.SetBuzzers(true), "host unlocks them again");
+			c2.Now += 700;
+			Check(g2.BuzzIn("bob"), "bob buzzes after the unlock");
+			Eq(g2.View("host").Buzzes[0].AtSec, 0.7, "buzz time counts from the unlock");
+			Eq(r2.StatsOf("bob").BuzzMs, 700L, "stats' buzz time counts from the unlock");
+		}
 		Check(v.HostAnswer == null, "players never see the host answer");
 		Check(room.ToState("host").Game!.HostAnswer == "Mars", "host sees the answer");
 		g.Judge(false);

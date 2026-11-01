@@ -452,7 +452,8 @@ public partial class EternalTableScreen : Control
 				grid.AddChild(c.Id == main ? Num(text, 16, C.Accent) : c.Id == "points" ? Num(text, 15) : Num(text, 15, C.Muted));
 			}
 		}
-		page.AddChild(U.Card(0, grid));
+		// (scrolls sideways when the columns are wider than the page: before, the table pushed the page past the window)
+		page.AddChild(U.Card(0, U.SideScroll(grid)));
 		AddChild(U.Page(page, 1180, 20));
 	}
 }

@@ -87,7 +87,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 			row.AddChild(ButtonDock.Spot());
 			row.AddChild(new RoomCodeButton(room.Code));
 			row.AddChild(new Avatar(me, 28));
-			row.AddChild(U.Bold(me.Name, 17).Raw());
+			row.AddChild(U.Bold(me.Name, 17).Raw().Capped(170));
 			row.AddChild(U.Pill(Lang.F("{0} pts", room.Score(MyId)), C.Accent));
 			row.AddChild(MediaIcon.SettingsGear());
 			return U.Panel(row, "Bar");
@@ -170,7 +170,7 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 					Refresh(_room);
 				}).With(s => s.SizeFlagsHorizontal = SizeFlags.ShrinkCenter),
 				_readyTab == "stats"
-					? U.Panel(NightStatsView.Table(room, MyId), "Card2")
+					? U.Panel(U.SideScroll(NightStatsView.Table(room, MyId)), "Card2")
 					: U.Panel(U.V(8, GameParts.Row(10, new TypeIcon(q.Type, 26), U.Bold(Chips.TypeLabel(q), 20).Raw(),
 							q.Category != "" ? GameParts.CategoryPill(q.Category) : U.Gap(0)),
 						U.Text(NightStatsView.HowItWorks(q), 17, C.Text, null, true).Raw()), "Card2")));

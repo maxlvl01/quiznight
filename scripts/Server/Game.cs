@@ -385,15 +385,18 @@ public sealed class Game
 		if (Stage != Shared.Stage.Open || !q.IsBuzzer || !Shown || !BuzzersOpen || Paused || _late.Contains(playerId) || _buzzes.Any(b => b.PlayerId == playerId)) return false;
 		var now = _hooks.Now();
 		var seen = Math.Max(0, now - _buzzOpenAt);
+		var reaction = timing is { } t && t.Round == _buzzRound && t.ReactionMs >= 0
+			? Math.Clamp(t.ReactionMs, Math.Max(0, seen - Limits.BuzzPingCreditMs), seen)
+			: seen;
 		var buzz = new Buzz
 		{
 			PlayerId = playerId,
 			Status = BuzzStatus.Waiting,
-			AtMs = q.HasPlayClock ? PlayTimeMs(now) : now - _openedAt,
+			// (the time in the buzz order: since the buzzers last opened, not since the question appeared, so a buzz after
+			// the host unlocked them again or after "Let everyone buzz again" doesn't count as 20 s slow)
+			AtMs = q.HasPlayClock ? PlayTimeMs(now) : reaction,
 			FastPass = Played(playerId, Joker.FastPass, Index),
-			ReactionMs = timing is { } t && t.Round == _buzzRound && t.ReactionMs >= 0
-				? Math.Clamp(t.ReactionMs, Math.Max(0, seen - Limits.BuzzPingCreditMs), seen)
-				: seen,
+			ReactionMs = reaction,
 		};
 		var answering = _buzzes.FirstOrDefault(b => b.Status == BuzzStatus.Answering);
 		if (answering == null && _hooks.BuzzWindowMs() > 0)
@@ -423,7 +426,8 @@ public sealed class Game
 			if (at >= 0) _buzzes.Insert(at, buzz);
 			else _buzzes.Add(buzz);
 		}
-		_hooks.NoteBuzzTime(playerId, buzz.AtMs);
+		// (the stats' buzz time too, also on sound and video questions: the reaction since this unlock)
+		_hooks.NoteBuzzTime(playerId, buzz.ReactionMs);
 		return true;
 	}
 

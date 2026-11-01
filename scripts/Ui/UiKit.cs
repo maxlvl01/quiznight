@@ -883,6 +883,52 @@ public static class U
 	}
 
 	/// <summary>
+	/// A wide table that scrolls sideways when there isn't room. A plain container would hand its width on to the
+	/// screen, which then grows past the window's edge (a ScrollContainer that doesn't scroll sideways takes its
+	/// child's width as its own).
+	/// </summary>
+	public static ScrollContainer SideScroll(Control content)
+	{
+		var scroll = new ScrollContainer { VerticalScrollMode = ScrollContainer.ScrollMode.Disabled, HorizontalScrollMode = ScrollContainer.ScrollMode.Auto };
+		scroll.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		scroll.AddChild(content);
+		return scroll;
+	}
+
+	/// <summary>Cuts a label off with "…" at the room it gets (the full text in its tooltip), so a long name can't widen the screen.</summary>
+	public static T Clipped<T>(this T label, float minWidth = 40) where T : Label
+	{
+		label.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+		label.ClipText = true;
+		label.CustomMinimumSize = new Vector2(minWidth, label.CustomMinimumSize.Y);
+		label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		if (label.TooltipText == "") label.TooltipText = label.Text;
+		label.MouseFilter = Control.MouseFilterEnum.Pass;
+		return label;
+	}
+
+	/// <summary>
+	/// A label as wide as its text, but never wider than maxWidth: longer text ends in "…" (full text in the tooltip).
+	/// Measured once it's on screen, where its font (also the dyslexia-friendly one) is known.
+	/// </summary>
+	public static T Capped<T>(this T label, float maxWidth) where T : Label
+	{
+		label.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+		if (label.TooltipText == "") label.TooltipText = label.Text;
+		label.MouseFilter = Control.MouseFilterEnum.Pass;
+		label.CustomMinimumSize = new Vector2(Mathf.Min(maxWidth, 40), label.CustomMinimumSize.Y);
+		label.ClipText = true;
+		label.Ready += () =>
+		{
+			label.ClipText = false;
+			var w = label.GetMinimumSize().X;
+			label.ClipText = true;
+			label.CustomMinimumSize = new Vector2(Mathf.Min(w, maxWidth), label.CustomMinimumSize.Y);
+		};
+		return label;
+	}
+
+	/// <summary>
 	/// A player's name for seats and the podium: a clan tag ("[OTB] maxlvl") on its own small line above the name, so
 	/// long tags don't crowd the name. reserveTag: keep that line's room even without a tag, so names (and what's under
 	/// them) line up with seats that have one.

@@ -26,7 +26,7 @@ public static class NightStatsView
 		{
 			var s = room.Stats.GetValueOrDefault(p.Id) ?? new NightStats();
 			grid.AddChild(GameParts.PlaceBox(room.Place(p.Id)));
-			grid.AddChild(GameParts.Row(6, new Avatar(p, 22), U.Text(p.Name, 15, p.Id == me ? C.Teal : C.Text, p.Id == me ? Fonts.Bold : null).Raw()));
+			grid.AddChild(GameParts.Row(6, new Avatar(p, 22), U.Text(p.Name, 15, p.Id == me ? C.Teal : C.Text, p.Id == me ? Fonts.Bold : null).Raw().Capped(170)));
 			grid.AddChild(U.Mono($"{room.Score(p.Id)}", 15, C.Accent));
 			grid.AddChild(U.Mono($"{s.Scored}", 14));
 			grid.AddChild(U.Mono(Seconds(s.AvgAnswerS), 14, C.Muted));

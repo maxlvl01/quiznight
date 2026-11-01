@@ -976,7 +976,12 @@ public partial class QuestionEditorScreen : Control
 		label.AutowrapMode = TextServer.AutowrapMode.WordSmart;
 		label.MaxLinesVisible = 2;
 		label.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-		var content = U.V(3, image, label, U.Muted(detail, 11, false));
+		// (the detail wraps too: on one line "12 km wide · ⬇ downloads when picked" was wider than the card, and as a
+		// button doesn't grow with what's in it, the picture and the text ran out of it on the right)
+		var info = U.Muted(detail, 11);
+		info.MaxLinesVisible = 2;
+		info.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+		var content = U.V(3, image, label, info);
 		content.MouseFilter = MouseFilterEnum.Ignore;
 		foreach (var c in content.GetChildren().OfType<Control>()) c.MouseFilter = MouseFilterEnum.Ignore;
 		var pad = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore };
@@ -987,7 +992,7 @@ public partial class QuestionEditorScreen : Control
 		pad.SetAnchorsPreset(LayoutPreset.FullRect);
 		pad.AddChild(content);
 		button.AddChild(pad);
-		button.CustomMinimumSize = new Vector2(0, 150);
+		button.CustomMinimumSize = new Vector2(0, 168);
 		return button;
 	}
 

@@ -112,6 +112,7 @@ public partial class App : Control
 		// Saved window size/mode would fight --resolution (screenshots) and means nothing headless.
 		// (Godot keeps its own arguments like --resolution out of GetCmdlineArgs: screenshot runs skip the saved window too)
 		var ownWindow = window && !OS.GetCmdlineArgs().Contains("--resolution") && !args.Contains("--shot") && !args.Contains("--shots");
+		_followScreen = ownWindow;
 		Prefs.ApplyAll(ownWindow && !antiCheat);
 		if (args.Contains("--selftest")) Lang.Use("en");
 		// (shows the exported game's home screen, LAN hidden, when run from the editor)
@@ -214,6 +215,9 @@ public partial class App : Control
 
 	/// <summary>Seconds until the next quiet update check (every minute while the game is open).</summary>
 	double _updateCheckIn = 60;
+	/// <summary>Whether the monitor the window is on is saved when it moves (not in screenshot or headless runs).</summary>
+	bool _followScreen;
+	double _screenCheckIn = 1;
 
 	public override void _Process(double delta)
 	{
@@ -227,6 +231,21 @@ public partial class App : Control
 		Host?.Poll();
 		Client?.Poll();
 		_dev?.Process(delta);
+		FollowScreen(delta);
+	}
+
+	/// <summary>
+	/// The monitor the window is on, saved once a second when it changed: dragging the window (or Win+Shift+arrow) to
+	/// another monitor is remembered for the next start, not only the monitor picked in Settings. Not while the intro's
+	/// small splash window is up, which Windows may place anywhere.
+	/// </summary>
+	void FollowScreen(double delta)
+	{
+		if (!_followScreen || (_screenCheckIn -= delta) > 0) return;
+		_screenCheckIn = 1;
+		if (GetChildren().OfType<IntroSequence>().Any() || GetWindow().Borderless && GetWindow().Mode == Window.ModeEnum.Windowed) return;
+		var now = GetWindow().CurrentScreen;
+		if (now >= 0 && now != Settings.Screen) Settings.Screen = now;
 	}
 
 	public override void _Notification(int what)
@@ -373,6 +392,12 @@ public partial class App : Control
 			GetViewport().SetInputAsHandled();
 			return;
 		}
+		// (a right-click in a lobby mini game is part of playing it, never a way out of the room)
+		if (rightClick && OpenArcade() != null)
+		{
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (back ? _screen is not HomeScreen && Back() : Forward()) GetViewport().SetInputAsHandled();
 	}
 
@@ -422,6 +447,10 @@ public partial class App : Control
 				return true;
 			case HomeScreen or WelcomeScreen:
 				return false;
+			// (a mini game open over the lobby closes first, like a window)
+			case HostLobbyScreen or WaitingRoomScreen when OpenArcade() is { } arcade:
+				arcade.Close();
+				return true;
 			case HostLobbyScreen:
 				Dialogs.Confirm(screen, "Close the room? Everyone in it is sent back to the home screen.", "Close room", CloseRoom);
 				return true;
@@ -432,7 +461,7 @@ public partial class App : Control
 				Dialogs.Confirm(screen, "Leave the game? Your seat and points are kept, and you can come back with the room code.", "Leave", LeaveRoom);
 				return true;
 			case WaitingRoomScreen:
-				LeaveRoom();
+				Dialogs.Confirm(screen, "Leave the lobby? You can join again with the room code.", "Leave", LeaveRoom);
 				return true;
 			case PodiumScreen podium:
 				podium.GoBack();
@@ -451,6 +480,10 @@ public partial class App : Control
 		GoHome();
 		return true;
 	}
+
+	/// <summary>The lobby's mini games window, when it's open.</summary>
+	Ui.Arcade.ArcadeWindow? OpenArcade() =>
+		_screen?.FindChildren("*", nameof(Ui.Arcade.ArcadeWindow), true, false).OfType<Ui.Arcade.ArcadeWindow>().FirstOrDefault(w => !w.IsQueuedForDeletion());
 
 	static BaseButton? BackLink(Node node)
 	{
