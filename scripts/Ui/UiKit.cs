@@ -522,8 +522,8 @@ public static class UiTheme
 		{
 			static string Hex(Color c) => "#" + c.ToHtml(false);
 			static string N(float v) => v.ToString(System.Globalization.CultureInfo.InvariantCulture);
-			// (like the buttons: the ink outline, a darker side under the face; ticked, a blue key with a dark tick, else an
-			// inked hollow)
+			// (like the buttons: the ink outline, a darker side under the face; ticked, a blue key with a dark tick, else a
+			// hollow with a light rim: a plain dark hollow vanished on the dark panels, e.g. the lobby's game rules)
 			string Box(bool on, float alpha) =>
 				$"<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' opacity='{N(alpha)}'>" +
 				$"<rect x='0' y='0' width='20' height='20' rx='6' fill='{Hex(C.Ink)}'/>" +
@@ -531,8 +531,9 @@ public static class UiTheme
 					? $"<rect x='2' y='2' width='16' height='16' rx='4.5' fill='{Hex(C.Blue.Darkened(0.42f))}'/>" +
 					  $"<rect x='2' y='2' width='16' height='13.5' rx='4.5' fill='{Hex(C.Blue)}'/>" +
 					  $"<path d='M5.6 9.4 8.5 12.2 14.4 5.8' fill='none' stroke='{Hex(C.Ink)}' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/>"
-					: $"<rect x='2' y='2' width='16' height='16' rx='4.5' fill='{Hex(C.Light ? C.Border : C.Well)}'/>" +
-					  $"<rect x='2' y='2' width='16' height='3' rx='1.5' fill='#000000' opacity='0.25'/>") +
+					: $"<rect x='2' y='2' width='16' height='16' rx='4.5' fill='{Hex(C.Muted)}' opacity='0.8'/>" +
+					  $"<rect x='4' y='4' width='12' height='12' rx='3' fill='{Hex(C.Light ? C.Panel2 : C.Well)}'/>" +
+					  $"<rect x='4' y='4' width='12' height='3' rx='1.5' fill='#000000' opacity='0.22'/>") +
 				"</svg>";
 			t.SetIcon("checked", "CheckBox", DpiTexture.CreateFromString(Box(true, 1)));
 			t.SetIcon("unchecked", "CheckBox", DpiTexture.CreateFromString(Box(false, 1)));

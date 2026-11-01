@@ -13,6 +13,12 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+### Changed
+
+- **Unticked tick boxes are easy to see now** (Max found them ugly). An unticked box was a dark hollow that all but
+  vanished on dark panels like the lobby's game rules, so "Play in teams" looked like plain text. It now has a light rim,
+  the same rounded shape as a ticked one, in every skin.
+
 ## [0.13.2d2]
 
 ### Fixed
