@@ -129,6 +129,16 @@ the original design decisions; most still apply.
 - **Quiz page** (`QuizOverviewScreen`): Ctrl/Shift+click pick rows (`_picked`, by question), a picked row's drag moves all
   of them (`QuestionRowButton.Dragged` → `MoveMany`). "By category" groups by `Quiz.CategoryOrder` (format 15), ▲ ▼ per
   category. `--screen quiz [--tour-quiz] [--list category] [--category-order a,b]`.
+- **Team mode** (0.13.1d1, `RoomSettings.Teams`, 0 = off, 2–6): the host draws teams at random in the lobby
+  (`Room.DrawTeams`, `Player.Team`; `RoomState.TeamDraw` counts draws so every lobby plays `Ui/Screens/TeamDraw.cs`'s show
+  once; newcomers join the smallest team). The game only knows `IGameHooks.TeamOf`: `Game.Mates` makes one answer per team
+  (any member replaces it; `GameView.MyAnswerBy`), one buzz per team per round and jokers once per team. Scores stay per
+  player; a team's is its members' sum (`Room.Teams()`, `RoomState.Teams`). Podium: `FinalResults.Teams`/`Ranked`. Team
+  nights aren't uploaded (no Ewige Tabelle). Test lab → Team draw; `--screen testlab --team-draw 8,3`.
+- **Music pack** (0.13.1d1): exports leave the songs out of Quiznight.pck; they're `music.pck` next to the exe (export
+  preset "Music pack", file list by `tools/music_preset.py`), mounted by `App.LoadMusicPack`. `release.sh` keeps it in
+  `~/.quiznight/music-<hash of the songs>.pck` so it stays byte-identical (every .pck carries the version) and isn't
+  downloaded again. `manifest.py` also gives each engine/.NET file ≥ 1 MB its own update pack.
 - **Question preview** (`Ui/Screens/QuestionPreview`, the editor's 👁 Preview): a real game over the editor, a `Room`
   (`Preview = true`: one player starts it) with only the draft question, its `HostSession` and a `ClientSession` joined
   through `Net/LoopbackTransport` (in memory), showing the player's own `PlayerGameScreen` plus host buttons on top.

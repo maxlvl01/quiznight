@@ -13,6 +13,25 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.1d1]
+
+### Before we start
+- Your mom is so fat that when she sat on the buzzer, it stayed locked for everyone.
+
+### Added
+- **Team mode, like a pub quiz.** In the lobby's rules the host picks how many teams (2 to 6, or Off) and presses "🎲 Draw teams": everyone is put in a team at random, and every screen in the lobby plays the draw as a show. A reel spins through everyone's names, slows down and lands on one, who pops into their team, a bit faster each time, until "The teams are set!" with confetti. Click to skip it. "🎲 Draw again" draws new teams as often as you like until the start; someone who joins later goes into the smallest team. The teams are The Quizzly Bears, Smarty Pints, Know-It-Owls, Trivia Newton-John, Les Quizérables and The Brainy Bunch. During the quiz a team answers together: whoever locks in first gives the team's answer, and anyone in the team can change it with "✎ Change our answer" until time is up. Everyone sees who answered for them. On buzzer questions the first of a team to buzz answers for it, and teammates can't buzz in that round. Jokers count once per team, whoever plays them. The side column shows the teams with their points (their members' together) above everyone's own, and the podium, the credits and the award pack show the teams with their members; the night's awards still go to players. Team nights don't count for the Ewige Tabelle, so the solo standings stay fair. (Thanks for the idea, maxlvl01!)
+- **The team draw in the Test lab**, to watch the show without a lobby: 8 players in 3 teams, 5 in 2, or 16 in 6.
+- **Estimation questions can say more.** Two new fields in the editor: "Info for players" (e.g. "Hours played per game, from Steam") and "Data as of" (e.g. "1 November 2026"), so a quiz played months later doesn't count a number that has moved on since. Both show under the question for host and players. Quiz files are now format 16; older quizzes open as before. (Thanks for the idea, maxlvl01!)
+- **Map packs in Settings.** A new "Map packs" card lists every built-in map with its size on your PC or its download size, with "⬇ Download" or "Delete" for each and "⬇ Download all". The maps still download by themselves when a quiz needs one; this is for getting them ahead of time (say before a night with a slow connection) or freeing the space. (Thanks for the idea, maxlvl01!)
+- **Real spotlights (experimental).** Settings → Video → "Real spotlights with shadows" turns the home screen's two spotlights into real lights: the logo catches the light, and the buttons and cards throw shadows onto the background as the lamps sweep. Off by default; it may cost frame rate on older PCs. Godot has no ray tracing for 2D, so these are its 2D lights with shadow casters, which look the part. (Thanks for the idea, maxlvl01!)
+- **New category: Pinke Geilheit**, for insiders and in-jokes. (Thanks for the idea, maxlvl01!)
+
+### Changed
+- **Smaller updates** (issue #3: "the last two updates were slow"). Every update downloaded the whole game file again, 42 MB, mostly the music, which hardly ever changes; 0.13 also sent the whole engine again (31 MB) because a few of .NET's files had changed. Now the songs are a file of their own (music.pck) that only downloads again when the music changes, and every big engine or .NET file is its own small download, so an update fetches only what really changed. The first update after this one fetches the music file once. (Thanks for reporting it, maxlvl01!)
+
+### Removed
+- Herobrine.
+
 ## [0.13.0b] — "Sauce Please": the podium as a show with credits and awards, a preview for every question, answer pictures and fun facts, a guided tour and Discord status
 
 ### Added
