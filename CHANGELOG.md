@@ -15,31 +15,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [0.13.1b]
 
-## [0.13.1d4]
-
-### Added
-- **A new podium song: the Throne Room from Star Wars.** Pick "Throne Room (Star Wars)" as the podium sound in the lobby (or as your own in Settings): the medal ceremony from the end of A New Hope plays while the podium rises and the credits roll. It's levelled to the same loudness as the F1 podium. (Thanks for the idea, maxlvl01!)
-
-## [0.13.1d3]
-
-### Changed
-- **The spotlights shine on the logo now**, on the home screen and (new) on the title screen: two beams from the top corners that sway a little around the logo and end in a round pool of light on it, instead of sweeping across the whole top of the screen. The pool was always meant to be there but sat behind the logo's box, so you never saw it; it's on the logo now. With Settings → "Real spotlights" on, the real lights also only light the logo and the background behind it (not the buttons any more), and only the logo throws a shadow. (Thanks for the idea, maxlvl01!)
-- **The lines over the podium are easier to read.** "THE TrackGlow PODIUM" and "… · FINAL RESULTS" were thin, small letters that looked scuffed once the podium was zoomed up (text doesn't get sharper when it's scaled); they're bigger and heavier now. (Thanks for reporting it, maxlvl01!)
-
-### Fixed
-- **Pop-up pages like "What's new" can't get wider than they're meant to be any more.** Besides the long line in 0.13.1d2's fix, the page itself grew as wide as its widest line, so on 21:9 it reached past the game's 16:9 frame under the buttons at the top. It now stays at its width whatever is in it. (Thanks for reporting it, maxlvl01!)
-
-## [0.13.1d2]
-
-### Fixed
-- **"What's new" ran off the right edge of the screen** (on 16:9 and other screens not much wider). The line with the update's name ("0.13 — "Sauce Please": the podium as a show…") was written in one line without wrapping, and that line alone was wider than the window, so the whole page got as wide as it and every line was cut off on the right. It wraps now, and the page fits the window. (Thanks for reporting it, maxlvl01!)
-
-## [0.13.1d1]
-
 ### Before we start
 - Your mom is so fat that when she sat on the buzzer, it stayed locked for everyone.
 
 ### Added
+- **A new podium song: the Throne Room from Star Wars.** Pick "Throne Room (Star Wars)" as the podium sound in the lobby (or as your own in Settings): the medal ceremony from the end of A New Hope plays while the podium rises and the credits roll. It's levelled to the same loudness as the F1 podium. (Thanks for the idea, maxlvl01!)
 - **Team mode, like a pub quiz.** In the lobby's rules the host picks how many teams (2 to 6, or Off) and presses "🎲 Draw teams": everyone is put in a team at random, and every screen in the lobby plays the draw as a show. A reel spins through everyone's names, slows down and lands on one, who pops into their team, a bit faster each time, until "The teams are set!" with confetti. Click to skip it. "🎲 Draw again" draws new teams as often as you like until the start; someone who joins later goes into the smallest team. The teams are The Quizzly Bears, Smarty Pints, Know-It-Owls, Trivia Newton-John, Les Quizérables and The Brainy Bunch. During the quiz a team answers together: whoever locks in first gives the team's answer, and anyone in the team can change it with "✎ Change our answer" until time is up. Everyone sees who answered for them. On buzzer questions the first of a team to buzz answers for it, and teammates can't buzz in that round. Jokers count once per team, whoever plays them. The side column shows the teams with their points (their members' together) above everyone's own, and the podium, the credits and the award pack show the teams with their members; the night's awards still go to players. Team nights don't count for the Ewige Tabelle, so the solo standings stay fair. (Thanks for the idea, maxlvl01!)
 - **The team draw in the Test lab**, to watch the show without a lobby: 8 players in 3 teams, 5 in 2, or 16 in 6.
 - **Estimation questions can say more.** Two new fields in the editor: "Info for players" (e.g. "Hours played per game, from Steam") and "Data as of" (e.g. "1 November 2026"), so a quiz played months later doesn't count a number that has moved on since. Both show under the question for host and players. Quiz files are now format 16; older quizzes open as before. (Thanks for the idea, maxlvl01!)
@@ -48,7 +28,13 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 - **New category: Pinke Geilheit**, for insiders and in-jokes. (Thanks for the idea, maxlvl01!)
 
 ### Changed
+- **The spotlights shine on the logo now**, on the home screen and (new) on the title screen: two beams from the top corners that sway a little around the logo and end in a round pool of light on it, instead of sweeping across the whole top of the screen. The pool was always meant to be there but sat behind the logo's box, so you never saw it; it's on the logo now. With Settings → "Real spotlights" on, the real lights also only light the logo and the background behind it (not the buttons any more), and only the logo throws a shadow. (Thanks for the idea, maxlvl01!)
+- **The lines over the podium are easier to read.** "THE TrackGlow PODIUM" and "… · FINAL RESULTS" were thin, small letters that looked scuffed once the podium was zoomed up (text doesn't get sharper when it's scaled); they're bigger and heavier now. (Thanks for reporting it, maxlvl01!)
 - **Smaller updates** (issue #3: "the last two updates were slow"). Every update downloaded the whole game file again, 42 MB, mostly the music, which hardly ever changes; 0.13 also sent the whole engine again (31 MB) because a few of .NET's files had changed. Now the songs are a file of their own (music.pck) that only downloads again when the music changes, and every big engine or .NET file is its own small download, so an update fetches only what really changed. The first update after this one fetches the music file once. (Thanks for reporting it, maxlvl01!)
+
+### Fixed
+- **Pop-up pages like "What's new" can't get wider than they're meant to be any more.** Besides the long line in 0.13.1d2's fix, the page itself grew as wide as its widest line, so on 21:9 it reached past the game's 16:9 frame under the buttons at the top. It now stays at its width whatever is in it. (Thanks for reporting it, maxlvl01!)
+- **"What's new" ran off the right edge of the screen** (on 16:9 and other screens not much wider). The line with the update's name ("0.13 — "Sauce Please": the podium as a show…") was written in one line without wrapping, and that line alone was wider than the window, so the whole page got as wide as it and every line was cut off on the right. It wraps now, and the page fits the window. (Thanks for reporting it, maxlvl01!)
 
 ### Removed
 - Herobrine.
