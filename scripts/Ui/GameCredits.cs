@@ -97,7 +97,9 @@ public partial class CreditsWindow : Control
 	static Control Build()
 	{
 		var songs = GameCredits.Songs().Select(s => Line(s.Title, s.Artist)).ToArray();
-		var maps = MapPresets.All.Select(m => Line(m.Name, m.Credit)).ToArray();
+		// (the race tracks share one credit: one line for all of them)
+		var maps = MapPresets.All.Where(m => m.Category == null).Select(m => Line(m.Name, m.Credit))
+			.Append(Line(Lang.T(MapPresets.RaceTracks), MapPresets.TrackCredit)).ToArray();
 		var body = U.V(26,
 			U.H(12, U.Heading("Credits", 34).Grow(), U.Btn("Close", "", Close)),
 			U.Muted("Quiznight? by maxlvl01 — made with friends, for friends. Published by Pinke Geilheit Publishing.", 15),

@@ -14,6 +14,19 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Added
+- **Race tracks for map questions:** all 22 circuits of the 2026 Formula 1 calendar (Bahrain and Jeddah are off it this
+  year), from Albert Park to Yas Marina, each drawn true to scale so players see how many metres off their pin was. The
+  editor's map list now has three tabs: Game maps, Race tracks and Your maps. Each track is drawn the same way, light
+  and clear so it stands out in every skin: the track in dark grey with the pit lane beside it, a chequered start/finish
+  line, an orange arrow showing which way the race runs, and the land around it (trees, water, buildings, roads). No
+  corner names are written on it, so "Where is Eau Rouge?" stays a real question. Like the game maps, each track
+  downloads the first time it's used. Track lines by Tomislav Bacinger (f1-circuits), map data © OpenStreetMap
+  contributors. Other racing series come next.
+
+### Fixed
+- **The NEW badge on a new map in the editor's map list covered the whole picture** instead of sitting in its corner.
+
 ## [0.14.0d1]
 
 ### Changed

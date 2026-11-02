@@ -26,6 +26,9 @@
 //   3.5131 m in one px of its 6144 px image; we keep a 4900 px wide cut (less sea).
 // - PUBG: official no-text maps (pubg/api-assets, 8192 px); the API gives each map's size in cm (Erangel,
 //   Miramar, Taego, Vikendi, Deston 816000; Sanhok 408000).
+// - Race tracks (0.14): drawn by tools/race_tracks.py from the track line (bacinger/f1-circuits, MIT) and OpenStreetMap
+//   around it, north up, the line's bounding box + 0.3 km a side; WidthKm is what the script prints (local
+//   equirectangular: under 0.1% off over 3 km). The line's own length is within 0.8% of the official one.
 // - WoW Classic: a whole atlas (world → continents → zones) with exact game regions instead of
 //   one scale; see WowAtlas. Its WidthKm is null and MapDistance measures in yards.
 
@@ -39,8 +42,9 @@ namespace QuizNight.Shared;
 /// MAJOR.MINOR (all of 0.9.x). Null for the maps that were there before this existed.</param>
 /// <param name="ChangedIn">The version whose update changed the map's picture or scale (e.g. "0.12.0b"): map pin questions on it
 /// checked before then must be checked again (<see cref="MapPresets.NeedsCheck"/>); <paramref name="ChangeNote"/> says what changed.</param>
+/// <param name="Category">Where the editor's map grid lists it: null = the game maps, <see cref="MapPresets.RaceTracks"/>.</param>
 public sealed record MapPreset(string Id, string Name, double? WidthKm, string ImagePath, string Credit, string? AddedIn = null,
-	string? ChangedIn = null, string? ChangeNote = null);
+	string? ChangedIn = null, string? ChangeNote = null, string? Category = null);
 
 public static class MapPresets
 {
@@ -73,6 +77,13 @@ public static class MapPresets
 
 	/// <summary>Rounded to whole metres so the editor's km field stays readable.</summary>
 	static double Round(double km) => Math.Round(km * 1000) / 1000;
+
+	/// <summary>The race tracks' category (0.14): real circuits, drawn by tools/race_tracks.py.</summary>
+	public const string RaceTracks = "Race tracks";
+	public const string TrackCredit = "Track: f1-circuits by Tomislav Bacinger (MIT). Map data © OpenStreetMap contributors (ODbL).";
+
+	static MapPreset Track(string id, string name, double km) =>
+		new("f1-" + id, name, km, $"res://assets/maps/f1-{id}.webp", TrackCredit, "0.14.0b", Category: RaceTracks);
 
 	public static readonly IReadOnlyList<MapPreset> All = new List<MapPreset>
 	{
@@ -110,6 +121,29 @@ public static class MapPresets
 		new("pubg-sanhok", "PUBG – Sanhok", 4.08, "res://assets/maps/pubg-sanhok.webp", "Official map © KRAFTON (PUBG API assets)."),
 		new(WowAtlas.PresetId, "WoW Forever", null, WowAtlas.ImagePath(WowAtlas.World),
 			"Maps © Blizzard Entertainment; zones stitched by the OpenMap addon (MIT). Distances in game yards, exact per zone."),
+		// The 2026 Formula 1 calendar (Bahrain and Jeddah were cancelled), widths from tools/race_tracks.py
+		Track("melbourne", "Albert Park – Melbourne", 2.047),
+		Track("shanghai", "Shanghai", 1.826),
+		Track("suzuka", "Suzuka", 2.564),
+		Track("miami", "Miami", 2.103),
+		Track("montreal", "Circuit Gilles-Villeneuve – Montréal", 1.224),
+		Track("monaco", "Monaco", 1.336),
+		Track("barcelona", "Barcelona-Catalunya", 1.560),
+		Track("red-bull-ring", "Red Bull Ring", 1.853),
+		Track("silverstone", "Silverstone", 1.628),
+		Track("spa", "Spa-Francorchamps", 1.874),
+		Track("hungaroring", "Hungaroring", 1.672),
+		Track("zandvoort", "Zandvoort", 1.573),
+		Track("monza", "Monza", 1.859),
+		Track("madrid", "Madring – Madrid", 1.731),
+		Track("baku", "Baku", 2.658),
+		Track("singapore", "Marina Bay – Singapore", 2.031),
+		Track("cota", "Circuit of the Americas – Austin", 2.430),
+		Track("mexico-city", "Hermanos Rodríguez – Mexico City", 2.044),
+		Track("interlagos", "Interlagos – São Paulo", 1.263),
+		Track("las-vegas", "Las Vegas", 1.776),
+		Track("lusail", "Lusail – Qatar", 1.852),
+		Track("yas-marina", "Yas Marina – Abu Dhabi", 1.409),
 	};
 
 	public static MapPreset? Get(string? id) => id == null ? null : All.FirstOrDefault(p => p.Id == id);

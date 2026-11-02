@@ -52,6 +52,11 @@ the original design decisions; most still apply.
   and a thumbnail for the editor's map grid: `assets/map-thumbs/<same name>.webp`, 400 px wide (made with Pillow), also
   "keep" — those stay in the .pck via the export `include_filter` (`Images.MapThumb`).
   Give a new map `AddedIn: "x.y.zb"` in `MapPresets.cs`: the grid marks it NEW for that MAJOR.MINOR (`--pretend-new-map ID` to see it).
+  **Race tracks** (0.14, `MapPreset.Category = MapPresets.RaceTracks`, ids `f1-<name>`): drawn by `tools/race_tracks.py DATA_DIR`
+  (track line from bacinger/f1-circuits, MIT; OpenStreetMap around it, ODbL; no corner names, they'd give answers away;
+  a chequered start/finish and a direction arrow). It prints each width for `MapPresets.cs`; `REVERSE`/`START` fix lines the
+  source has backwards or starting off the start line. The editor's map grid shows Game maps / Race tracks / Your maps as tabs
+  (`QuestionEditorScreen.MapTab`, dev `--map-grid --map-tab "Race tracks"`).
 - **Picture questions** (`QuestionType.Picture`, format 6): `Question.Slides` (one = a still picture, more = a slideshow);
   answered like classic (`Question.IsClassicLike` covers both). The host flips with `HostSession.SetSlide`
   (`Game.Slide`, ◀ ▶ / arrow keys); `PublicQuestion.ImageKey` is the shown slide's key (`q3/slide1`), and players can
