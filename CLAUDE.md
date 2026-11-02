@@ -282,9 +282,10 @@ Windows shell: use `py` (not `python`) for scripts; `node -e` works for multi-li
   draft on the public repo now (nobody had downloaded it); drafts aren't deleted either.
 - **Releases & updates:** `tools/release.sh` exports, zips and publishes a GitHub release on the public code repo
   `maxlvl01/quiznight` (`Updater.ReleasesRepo`; it was `quiznight-godot` until 0.13.5, the old web version is the archived
-  `quiznight-web`). Games before 0.13.5 check the old downloads-only `maxlvl01/quiznight-releases` (`LegacyReleasesRepo`):
-  release.sh copies each public release there too (zips and signed update lists; the packs stay where they are), so they
-  update to a version that knows the new repo. Never delete or rename it. Exported games check
+  `quiznight-web`). Games before 0.13.5 check the old downloads-only `maxlvl01/quiznight-releases` (`LegacyReleasesRepo`),
+  whose newest release is 0.13.5b (the bridge: it knows the new repo), so they update to that and then follow the new
+  repo; nothing is copied there any more (`release.sh`'s `LEGACY` is off). Never delete or rename it, and no release
+  newer than 0.13.5b goes there (its update lists point into it). Exported games check
   it at startup (`Storage/Updater.cs`) and update themselves; "What's new" is read from the shipped
   CHANGELOG.md, so its `## [version]` / `### Added|Changed|Fixed|Removed` layout matters.
   **Updates are signed:** `release.sh` signs each zip and update list (`<file>.sig`, `openssl dgst -sha256 -sign`) with Max's

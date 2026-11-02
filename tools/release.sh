@@ -7,8 +7,9 @@
 # Each version is a test build first; only the ones Max decides on are released publicly (players shouldn't have to
 # download every hotfix).
 # The release notes are this version's section of CHANGELOG.md. The release goes to the public code repo
-# maxlvl01/quiznight (since 0.13.5; Updater.ReleasesRepo), and a copy to the old downloads-only maxlvl01/quiznight-releases
-# (LEGACY), which games before 0.13.5 check: they update to it and then follow the new repo. Needs `gh` logged in and the
+# maxlvl01/quiznight (since 0.13.5; Updater.ReleasesRepo). Games before 0.13.5 check the old downloads-only
+# maxlvl01/quiznight-releases, whose newest release is 0.13.5b (the bridge: it knows the new repo), so they update to that
+# and then follow the new repo. Nothing is copied to the old repo any more (LEGACY below, off). Needs `gh` logged in and the
 # export templates.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -23,9 +24,12 @@ for arg in "$@"; do
 	esac
 done
 REPO="maxlvl01/quiznight"
-# (the old releases repo: each public release goes there too, zips and signed update lists only (their packs are on REPO);
-# never delete it or its releases, older update lists point into them. Set LEGACY="" to stop once no old game is left.)
-LEGACY="maxlvl01/quiznight-releases"
+# (the old releases repo, maxlvl01/quiznight-releases: its newest release must stay v0.13.5b and it must never be deleted
+# or renamed (old games update from it; update lists point into its releases). Releases were copied there until 0.13.5b;
+# set LEGACY to it again only to copy a release there (zips and signed lists, the packs stay on REPO).)
+LEGACY=""
+# (where the last public version comes from when REPO has no release yet)
+FIRST_REPO="maxlvl01/quiznight-releases"
 [ -n "$TEST" ] && REPO="maxlvl01/quiznight-test-releases" && LEGACY=""
 ANYCONVERTER="${ANYCONVERTER:-/c/Users/Xbox3/Desktop/AnyConverter/dist/AnyConverter.exe}"
 ANYCONVERTER_LINUX="${ANYCONVERTER_LINUX:-/c/Users/Xbox3/Desktop/AnyConverter/dist/linux/AnyConverter-linux-x86_64.tar.gz}"
@@ -48,7 +52,7 @@ grep -q "^## \[$VERSION\]" CHANGELOG.md || { echo "CHANGELOG.md has no section '
 if [ -z "$TEST" ] && [ -z "$DRY" ]; then
 	# (the first release on the new repo: the last public one is still the old repo's)
 	# (gh api prints GitHub's error to stdout too: only a successful answer counts)
-	LAST_PUBLIC=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null) || LAST_PUBLIC=$(gh api "repos/$LEGACY/releases/latest" --jq .tag_name)
+	LAST_PUBLIC=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null) || LAST_PUBLIC=$(gh api "repos/$FIRST_REPO/releases/latest" --jq .tag_name)
 	LAST_PUBLIC=${LAST_PUBLIC#v}
 	py -I tools/fold_changelog.py CHANGELOG.md "$VERSION" "$LAST_PUBLIC"
 fi
