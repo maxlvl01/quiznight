@@ -213,6 +213,7 @@ dotnet build "QuizNight!.csproj"                              # compile — run 
 monitor's fullscreen resolutions: Windows switches the monitor itself in fullscreen, `Storage/DisplayModes.cs`), `--screen settings --window-mode fullscreen` (the settings as if that mode were picked), `--shot FILE --after SEC` (screenshot runs ignore the saved window, so `--resolution` and `--fullscreen --screen N` apply)
 (see `DevTools.cs`). Full solo test: host with `--autopilot --players 2` plus two `--bot` instances.
 Screenshots need a window (no `--headless`); the window opens briefly on the user's screen.
+Windows shell: use `py` (not `python`) for scripts; `node -e` works for multi-line scripted edits. `--start-at N` is 1-based.
 
 ## Gotchas learned so far
 
@@ -238,6 +239,8 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
   credits closed, so the AVI is finalized; a killed process leaves a broken file), bots `--bot NAME` (windowed ones get their own
   movie; they quit by themselves when the room closes, `--headless` ones need no video). A 30-question night is ~6 min; convert
   with ffmpeg (`-c:v libx264 -crf 26`, the AVIs are ~800 MB each).
+- **My quizzes list:** `QuizStore.List()` caches; `Rescan()` re-reads only new or changed files (`Stamps`) and runs each time the
+  screen opens (plus a Refresh button), so quiz files dropped into the folder show up without a restart.
 - **Custom cursors** (`assets/cursors`, `tools/make_cursors.py`) are set in `App.UseCursors`, cleared in `App._ExitTree`
   (else Godot reports their textures as leaked at exit).
 
@@ -333,6 +336,8 @@ The roadmap lives in **one Claude Doc, "Quiznight? Roadmap"**: https://claude.ai
 skill first), so it never needs merging between worktrees. **Don't keep or edit a ROADMAP.md in the repo**; the file
 only points to the doc. When an item is done, tick it in the doc with its version. The public, player-friendly copy is
 ROADMAP.md in `maxlvl01/quiznight-releases`, refreshed from the doc only when Max says so.
+Doc ids in reads and edits are full (`m81rec0vxb3.45279`, not the relative `.45279` a view prints); a search read takes `text`,
+not `query`; add an item with `insert` after a list item's id.
 
 ## Next up
 
