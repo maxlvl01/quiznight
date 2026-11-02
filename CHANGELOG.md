@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.14.0b] — "Lights Out": Formula 1 race tracks, team names, deleted quizzes you can bring back and grouping by question type
+
 ## [0.14.0d3]
 
 ### Added
