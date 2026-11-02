@@ -14,7 +14,7 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
-## [0.14.1d1]
+## [0.14.1b]
 
 ### Changed
 - **Race tracks show more of what's around them:** lakes, rivers, bays and parks that were missing are now drawn, like
