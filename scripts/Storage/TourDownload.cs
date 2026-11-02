@@ -1,4 +1,4 @@
-// The guided tour's sample quiz (from 0.13.5): "Test Night", one of every question type with pictures, sound and video, is
+// The guided tour's sample quiz (from 0.13.6): "Test Night", one of every question type with pictures, sound and video, is
 // too big to ship with the game (13 MB), so it's downloaded in the background while the tour's first steps are on home and
 // the quiz list. It sits on the "maps" release next to the map packs (tour.quiznight.zip, signed with Max's release key
 // like them; tools/tour_quiz.sh puts it there), and comes the same way: the public releases repo, test builds the private

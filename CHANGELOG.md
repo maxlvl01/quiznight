@@ -13,13 +13,19 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
-## [0.13.5d3]
+## [0.13.6d4]
+
+### Changed
+- The test builds are renumbered: 0.13.5d1 to d3 are 0.13.6d1 to d3 now, because 0.13.5b went out on its own with only
+  the move of the downloads to github.com/maxlvl01/quiznight. This build has that too.
+
+## [0.13.6d3]
 
 ### Changed
 
 - The guided tour now walks through a real quiz: "Test Night", 30 questions with one of every question type, pictures, sound and video (Max's idea). It's too big to ship with the game (13 MB), so it downloads in the background while the tour's first steps are on the home screen and the quiz list, and it's deleted again when the tour ends. It only lives in memory: it never shows up in My quizzes, and saving during the tour (Ctrl+S) writes nothing. If it hasn't arrived by the time the tour opens the quiz (slow internet, offline), the tour uses the small built-in sample quiz as before.
 
-## [0.13.5d2]
+## [0.13.6d2]
 
 ### Added
 - **Arrows in the question editor to go to the previous or next question.** Top right, next to "Preview": the left
@@ -28,7 +34,7 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
   haven't saved, it asks first, with "Save them first" ticked (untick it to leave them behind). Before, you had to
   go back to the quiz page for every question. (Thanks for the idea, Max!)
 
-## [0.13.5d1]
+## [0.13.6d1]
 
 ### Fixed
 - **The host's buttons no longer slip off the bottom of the screen.** On a long question with a picture and four
@@ -55,6 +61,14 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
   New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
 - **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
   is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
+
+## [0.13.5b]
+
+### Changed
+- **Updates now come from one place: github.com/maxlvl01/quiznight.** The game's code and its downloads used to be two
+  separate pages on GitHub (quiznight-godot and quiznight-releases), which was confusing. They're one now, called Quiznight.
+  Nothing changes for you: this version updates itself as always and from now on asks the new page for updates. The old
+  page stays and gets every new version too, so a game that hasn't updated in a while still finds its way.
 
 ## [0.13.4b]
 
