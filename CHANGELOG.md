@@ -13,6 +13,34 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.5d1]
+
+### Fixed
+- **The host's buttons no longer slip off the bottom of the screen.** On a long question with a picture and four
+  answers (found in a test night with the paella question), "Reveal answer", "Hold to peek" and "+5 s" were pushed below
+  the window, so the host saw only their top edges and had to scroll down to reveal. The question card and the buttons
+  under it scrolled as one block. Now only the card scrolls and the buttons stay pinned underneath, always in view.
+  Pictures in a question also give way a bit more before anything has to scroll (they can still be clicked to see
+  them big), which helps players on the same questions too. (Thanks for asking for the test run, Max!)
+- **"Data as of" on estimation questions gets its own line.** With an explanation next to it, the date note sat
+  beside it without wrapping, so a longer note ran off the edge of its box. It now sits under the explanation and wraps,
+  and the little "i" in front is a drawn icon instead of Windows' blue emoji.
+- **Drop-down lists don't flash a scrollbar any more.** A short list that doesn't need scrolling showed its scrollbar
+  for a few frames while it rolled open: during the animation the list is briefly smaller than its items, so the
+  scrollbar popped up and vanished again. It now stays hidden while the list opens and only shows for lists that
+  really scroll. (Thanks for the report, Max!)
+- **Mini games: one line per rivalry.** In the lobby's mini games, each rivalry ("Ann 3 – 1 Ben · Pong · Ann ×2 in a
+  row") was one long sentence that wrapped over two or three lines in the narrow column, so you couldn't tell where
+  one rivalry ended and the next began. Each is now one row: the names and score, the game small on the right and a
+  streak as "×2" (hover for the whole line). (Thanks for the report, Max!)
+
+### Changed
+- **My quizzes reads the folder again every time you open it**, and has a "Refresh" button. The list used to be read
+  once per run, so a quiz file you copied into the quizzes folder yourself only showed up after restarting the game.
+  New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
+- **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
+  is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
+
 ## [0.13.4b]
 
 ### Changed

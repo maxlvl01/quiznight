@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 
 namespace QuizNight.Ui;
@@ -79,14 +80,25 @@ public static class DropDowns
 			popup.SetMeta(Shown, new Rect2(popup.Position, popup.Size));
 			popup.SetMeta(Up, upwards);
 		}
+		// (while it unfolds the list is shorter than its items, so Godot showed its scrollbar for a few frames even on
+		// short lists: hidden until the list is open, then back only for lists that really scroll)
+		var scroll = popup.GetChildren(true).OfType<ScrollContainer>().FirstOrDefault();
+		void ScrollBar()
+		{
+			if (scroll != null && GodotObject.IsInstanceValid(scroll))
+				scroll.VerticalScrollMode = natural.Y > full.Y + 1 ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.ShowNever;
+		}
 		if (Announcer.ReduceMotion)
 		{
 			Height(full.Y);
+			ScrollBar();
 			return;
 		}
+		if (scroll != null) scroll.VerticalScrollMode = ScrollContainer.ScrollMode.ShowNever;
 		Height(0);
 		var tween = o.CreateTween();
 		tween.TweenMethod(Callable.From<float>(Height), 0f, (float)full.Y, UnfoldSec).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
+		tween.TweenCallback(Callable.From(ScrollBar));
 	}
 
 	const string Shown = "dropdown_rect", Up = "dropdown_up";

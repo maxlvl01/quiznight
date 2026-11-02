@@ -250,6 +250,8 @@ public partial class FitImage : Control
 			UpdateHeight();
 		}
 	}
+	/// <summary>The least a flexible picture shrinks to (maps keep U.FlexMinHeight: they need room to pin).</summary>
+	public const float PictureMinHeight = 100;
 	/// <summary>Aspect (height / width) to reserve space with while the texture is still loading.</summary>
 	public float PlaceholderAspect = 0.5625f;
 
@@ -271,7 +273,9 @@ public partial class FitImage : Control
 	void UpdateHeight()
 	{
 		if (MaxHeight <= 0) this.MarkFlexible();
-		var h = U.FitHeight(MaxHeight, Size.X * Aspect);
+		// (a flexible picture gives way down to PictureMinHeight, so a long question with four answers still fits
+		// without scrolling; a click shows it big anyway)
+		var h = MaxHeight > 0 ? U.FitHeight(MaxHeight, Size.X * Aspect) : Mathf.Min(PictureMinHeight, Size.X * Aspect);
 		if (Mathf.Abs(CustomMinimumSize.Y - h) > 0.5f) CustomMinimumSize = new Vector2(0, h);
 	}
 
@@ -642,7 +646,7 @@ public static class Bolt
 /// </summary>
 public static class Glyph
 {
-	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play }
+	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh }
 
 	// (24 × 24, white; holes by even-odd, so one path can carry the details)
 	static string Body(Kind kind) => kind switch
@@ -660,6 +664,8 @@ public static class Glyph
 		Kind.Warning => "<path fill-rule='evenodd' stroke='#fff' stroke-width='2' stroke-linejoin='round' d='M12 3.2 21.8 20.2H2.2zM10.9 9h2.2l-.4 6.2h-1.4zM12 16.4a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6z'/>",
 		Kind.Pause => "<rect x='5' y='3' width='5' height='18' rx='1.6'/><rect x='14' y='3' width='5' height='18' rx='1.6'/>",
 		Kind.Play => "<path stroke='#fff' stroke-width='2.4' stroke-linejoin='round' d='M6.5 3.8 19.5 12 6.5 20.2z'/>",
+		Kind.Info => "<path fill-rule='evenodd' d='M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21zM12 5.4a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM10.2 10.2h3.1v6.6h1.5v2h-4.6v-2h1.1v-4.6h-1.1z'/>",
+		Kind.Refresh => "<path fill='none' stroke='#fff' stroke-width='2.6' stroke-linecap='round' d='M19.4 13.2A7.6 7.6 0 1 1 17 6.3'/><path d='M14.2 2.6h7.2v7.2z'/>",
 		_ => "",
 	};
 

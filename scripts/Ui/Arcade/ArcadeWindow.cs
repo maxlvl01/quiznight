@@ -238,7 +238,7 @@ public partial class ArcadeWindow : Control
 		}
 
 		var records = U.V(4, U.Eyebrow("Rivalries"));
-		foreach (var line in Rivalries(view, _link.Name)) records.AddChild(U.Text(line, 13, C.Text, null, true).Raw());
+		foreach (var r in TopRecords(view)) records.AddChild(RivalryRow(r, _link.Name));
 		if (records.GetChildCount() == 1) records.AddChild(U.Muted("Who beat whom how often shows here.", 13));
 
 		var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.GrowV();
@@ -319,9 +319,29 @@ public partial class ArcadeWindow : Control
 		return strip;
 	}
 
+	static IEnumerable<ArcadeRecord> TopRecords(ArcadeView? view) =>
+		view?.Records.OrderByDescending(r => r.WinsA + r.WinsB).Take(6) ?? Enumerable.Empty<ArcadeRecord>();
+
+	/// <summary>
+	/// One rivalry on one line: "Ann 3 – 1 Ben", the game small on the right and a streak as "×2" (the whole line as the
+	/// tooltip). As one wrapping sentence each, they ran over two or three lines in the narrow column and blurred together.
+	/// </summary>
+	static Control RivalryRow(ArcadeRecord r, Func<string, string> name)
+	{
+		var row = U.H(6, U.Text(Lang.F("{0} {1} – {2} {3}", name(r.A), r.WinsA, r.WinsB, name(r.B)), 13, C.Text, Fonts.Bold).Raw()
+				.With(l => l.ClipText = true).Grow(),
+			U.Muted(Lang.T(ArcadeGame.Label(r.Game)), 12, false));
+		if (r.Streak >= 2) row.AddChild(U.Text(Lang.F("×{0}", r.Streak), 12, C.Gold, Fonts.Bold).Raw());
+		row.TooltipText = Line(r, name);
+		row.MouseFilter = Control.MouseFilterEnum.Pass;
+		return row;
+	}
+
+	static string Line(ArcadeRecord r, Func<string, string> name) =>
+		Lang.F("{0} {1} – {2} {3} · {4}", name(r.A), r.WinsA, r.WinsB, name(r.B), Lang.T(ArcadeGame.Label(r.Game)))
+		+ (r.Streak >= 2 ? " · " + Lang.F("{0} ×{1} in a row", name(r.StreakBy), r.Streak) : "");
+
 	/// <summary>"Ann 3 – 1 Ben · Pong · Ann ×2 in a row", the closest rivalries first.</summary>
 	public static IEnumerable<string> Rivalries(ArcadeView? view, Func<string, string> name) =>
-		view?.Records.OrderByDescending(r => r.WinsA + r.WinsB).Take(6).Select(r =>
-			Lang.F("{0} {1} – {2} {3} · {4}", name(r.A), r.WinsA, r.WinsB, name(r.B), Lang.T(ArcadeGame.Label(r.Game)))
-			+ (r.Streak >= 2 ? " · " + Lang.F("{0} ×{1} in a row", name(r.StreakBy), r.Streak) : "")) ?? Enumerable.Empty<string>();
+		TopRecords(view).Select(r => Line(r, name));
 }

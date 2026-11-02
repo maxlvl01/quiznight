@@ -41,7 +41,7 @@ public static class QuestionKinds
 		_ => System.Array.Empty<string>(),
 	};
 
-	/// <summary>The type's name, as the editor calls it ("Map pin").</summary>
+	/// <summary>The type's name, as the editor calls it ("Map").</summary>
 	public static string TypeLabel(string type) => QuestionType.Infos.TryGetValue(type, out var info) ? info.Label : type;
 
 	/// <summary>A subtype's name (English: the translation key).</summary>
