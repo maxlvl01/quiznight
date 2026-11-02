@@ -133,6 +133,8 @@ public partial class App : Control
 		if (args.Contains("--lan-locked")) LanUnlocked = false;
 		// (built-in maps like an export: from user://maps/, downloaded when missing; QUIZNIGHT_MAPS_FEED for a local list)
 		if (args.Contains("--map-packs")) MapPacks.Simulate = true;
+		// (dev: map packs and the tour's sample quiz from the private test repo, like a test build)
+		if (args.Contains("--maps-from-test-repo")) MapPacks.FromTestRepo = true;
 		if (!args.Contains("--no-steam") && !args.Contains("--selftest") && !args.Contains("--bot")) SteamService.Init();
 		_dev = DevTools.FromArgs(this, args);
 		if (_dev?.TakesOver == true) return;
