@@ -13,6 +13,14 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.5b]
+
+### Changed
+- **Updates now come from one place: github.com/maxlvl01/quiznight.** The game's code and its downloads used to be two
+  separate pages on GitHub (quiznight-godot and quiznight-releases), which was confusing. They're one now, called Quiznight.
+  Nothing changes for you: this version updates itself as always and from now on asks the new page for updates. The old
+  page stays and gets every new version too, so a game that hasn't updated in a while still finds its way.
+
 ## [0.13.4b]
 
 ### Changed
