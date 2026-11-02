@@ -65,11 +65,11 @@ public partial class QuizOverviewScreen : Control
 		var types = Tutorial.Mark(new GridContainer { Columns = 3 }, "overview.types");
 		types.AddThemeConstantOverride("h_separation", 12);
 		types.AddThemeConstantOverride("v_separation", 12);
-		// (alphabetical by the name shown, so also in German)
+		// (alphabetical by the name shown)
 		foreach (var type in QuestionType.All.OrderBy(t => Lang.T(QuestionType.Infos[t].Label), System.StringComparer.CurrentCultureIgnoreCase))
 		{
 			var info = QuestionType.Infos[type];
-			// Layers: the clickable card, the name on top (it sets the height: long names wrap, e.g. in German), and the "?"
+			// Layers: the clickable card, the name on top (it sets the height: long names wrap), and the "?"
 			// on the right, level with the name, which tells what the type does (hover) and its variants (click).
 			var card = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore }.Grow();
 			var button = new Button { ThemeTypeVariation = "", MouseDefaultCursorShape = CursorShape.PointingHand, CustomMinimumSize = new Vector2(0, 76) };

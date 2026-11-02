@@ -399,9 +399,9 @@ public partial class NumberField : LineEdit
 		TextSubmitted += _ => Clamp();
 	}
 
-	// (every digit typed after the point; a comma in German, though both a dot and a comma are read)
+	// (every digit typed after the point; both a dot and a comma are read)
 	static string Format(double? v) => v is { } n
-		? n.ToString("0.###############", TranslationServer.GetLocale() == "de" ? CultureInfo.GetCultureInfo("de-DE") : CultureInfo.InvariantCulture)
+		? n.ToString("0.###############", CultureInfo.InvariantCulture)
 		: "";
 
 	public static double? Parse(string raw)

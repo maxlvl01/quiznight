@@ -73,7 +73,7 @@ public partial class App : Control
 		CrashReports.Start();
 		BugReports.SendWaiting();
 		DesktopShortcut.MakeOnFirstStart(firstStart);
-		Trace.Log("start", $"Quiznight {Version} test build · {OS.GetName()} {OS.GetVersion()} · {DisplayServer.ScreenGetSize()} · skin {Settings.Skin} · {Settings.Language} · {Settings.WindowMode} {Settings.WindowSize}");
+		Trace.Log("start", $"Quiznight {Version} test build · {OS.GetName()} {OS.GetVersion()} · {DisplayServer.ScreenGetSize()} · skin {Settings.Skin} · {Settings.WindowMode} {Settings.WindowSize}");
 		// (dev runs: --skin ID, --dyslexic and --colour-vision MODE try them without saving)
 		var devArgs = OS.GetCmdlineUserArgs();
 		var skinArg = Array.IndexOf(devArgs, "--skin");
@@ -128,7 +128,6 @@ public partial class App : Control
 		var ownWindow = window && !OS.GetCmdlineArgs().Contains("--resolution") && !args.Contains("--shot") && !args.Contains("--shots");
 		_followScreen = ownWindow;
 		Prefs.ApplyAll(ownWindow && !antiCheat);
-		if (args.Contains("--selftest")) Lang.Use("en");
 		// (shows the exported game's home screen, LAN hidden, when run from the editor)
 		if (args.Contains("--lan-locked")) LanUnlocked = false;
 		// (built-in maps like an export: from user://maps/, downloaded when missing; QUIZNIGHT_MAPS_FEED for a local list)

@@ -39,6 +39,12 @@ On GitHub, each version heading links to its release, where the download is.
   no scrollbar while a short list unfolds, and long lists still scroll.
 - **The NEW badge on a new map in the editor's map list covered the whole picture** instead of sitting in its corner.
 
+### Removed
+- **German menus:** Quiznight is English only now, so the Language choice is gone from the welcome screen and the
+  settings. Keeping every screen in two languages took a lot of work for each new feature. Your quizzes can still be in
+  German (or any language): questions, answers and names are shown exactly as you wrote them, and units like "Tage" or
+  dates like "1. November 2026" in older quizzes still work.
+
 ## [0.14.0d1]
 
 ### Changed

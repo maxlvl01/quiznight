@@ -58,7 +58,6 @@ public static class Prefs
 	/// <summary>At startup. Leaves the window alone when it can't or shouldn't be changed (headless, --resolution).</summary>
 	public static void ApplyAll(bool window)
 	{
-		Lang.Use(Settings.Language);
 		EnsureBuses();
 		ApplyAudio();
 		if (window) ApplyWindow();

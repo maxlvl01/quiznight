@@ -9,7 +9,6 @@
 //   --bot NAME [--address IP]      join a LAN room and answer on its own
 //   --open TYPE                    open the editor on the sample quiz's question of that type
 //   --screen home|quizzes|quiz|settings|eternal|history|podium|delete  open that screen (delete: the delete question, deleting nothing; podium: a made-up night's)
-//   --lang en|de                   use that language this run (not saved)
 //   --video-guide [FILE]           open a new video question with the MP4 → .ogv guide
 //   --whats-new                    the home screen with this version's What's new open
 //   --settings-window              with --host-sample: Settings open as a window over the lobby
@@ -171,7 +170,6 @@ public sealed class DevTools
 		_quitAtEnd = Has("--quit-at-end");
 		if (int.TryParse(Value("--players"), out var n)) _players = n;
 		if (int.TryParse(Value("--start-at"), out var first)) _startAt = first - 1;
-		if (Value("--lang") is { } lang) Lang.Use(lang);
 		// --net-lag MS: this copy's LAN connection to the host is as slow as the internet (MS each way, unevenly)
 		if (double.TryParse(Value("--net-lag"), System.Globalization.CultureInfo.InvariantCulture, out var lagMs)) Net.LanClientTransport.Lag = lagMs;
 		// (the fullscreen picture's shape, not saved: e.g. --fullscreen-shape 16:9 with Godot's --fullscreen)

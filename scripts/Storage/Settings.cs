@@ -127,15 +127,14 @@ public static class Settings
 	// ---------- settings screen ----------
 
 	/// <summary>Everything on the settings screen as one value: the screen edits a copy and saves it with Apply.</summary>
-	public sealed record Values(string Language, int Master, int Music, int GameMusic, int Sfx, string Buzzer, string WindowMode, Vector2I WindowSize, string FullscreenShape, Vector2I FullscreenResolution, int Screen, bool BackgroundMotion, string Background, string Podium, bool PodiumFollowHost);
+	public sealed record Values(int Master, int Music, int GameMusic, int Sfx, string Buzzer, string WindowMode, Vector2I WindowSize, string FullscreenShape, Vector2I FullscreenResolution, int Screen, bool BackgroundMotion, string Background, string Podium, bool PodiumFollowHost);
 
-	public static Values Defaults => new(Lang.SystemDefault, 50, 50, 50, 50, Storage.Sfx.DefaultBuzzer, "windowed", new Vector2I(1600, 900), "", Vector2I.Zero, DisplayServer.GetPrimaryScreen(), true, Backgrounds.Default, Sfx.DefaultPodium, true);
+	public static Values Defaults => new(50, 50, 50, 50, Storage.Sfx.DefaultBuzzer, "windowed", new Vector2I(1600, 900), "", Vector2I.Zero, DisplayServer.GetPrimaryScreen(), true, Backgrounds.Default, Sfx.DefaultPodium, true);
 
-	public static Values Current => new(Language, MasterVolume, MusicVolume, GameMusicVolume, SfxVolume, BuzzerSound, WindowMode, WindowSize, FullscreenShape, FullscreenResolution, Screen, BackgroundMotion, Background, PodiumSound, PodiumFollowHost);
+	public static Values Current => new(MasterVolume, MusicVolume, GameMusicVolume, SfxVolume, BuzzerSound, WindowMode, WindowSize, FullscreenShape, FullscreenResolution, Screen, BackgroundMotion, Background, PodiumSound, PodiumFollowHost);
 
 	public static void Save(Values v)
 	{
-		Language = v.Language;
 		MasterVolume = v.Master;
 		MusicVolume = v.Music;
 		GameMusicVolume = v.GameMusic;
@@ -153,12 +152,6 @@ public static class Settings
 	}
 
 	static int GetPercent(string key, int fallback) => int.TryParse(Get(key, ""), out var v) ? Mathf.Clamp(v, 0, 100) : fallback;
-
-	public static string Language
-	{
-		get => Get("language", Lang.SystemDefault);
-		set => Set("language", value);
-	}
 
 	public static int MasterVolume
 	{

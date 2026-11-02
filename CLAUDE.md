@@ -130,7 +130,7 @@ the original design decisions; most still apply.
   again, so leaving can't change it (and `Room.Leave` keeps the seat in `Finished` too). Podium + score list big in the
   middle (one `ScaledBox`), then they move into the right third (`_t`, `Layout()`) and `CreditsRoll` plays in the left
   two thirds, ending on the awards. Awards are made on the host (`Server/Awards.cs`, with the next two as `Runners`, sent as
-  `RoomState.Awards`, kinds/texts in `Shared.NightAwards`; each screen words them in its own language). Every podium is
+  `RoomState.Awards`, kinds/texts in `Shared.NightAwards`). Every podium is
   kept in `user://podiums` (`Storage/Podiums`) and its award pack drawn in the background (`NightPack`, the season pack's
   `SeasonPoster` with `Night: true`; neither in dev runs with arguments). Test lab → Podium; `--screen podium
   [--players N] [--tie] [--skip-show] [--night-pack FOLDER]`; `--screen history --pretend-podium`.
@@ -217,7 +217,7 @@ dotnet build "QuizNight!.csproj"                              # compile — run 
 "$G" --path . --resolution 1600x900 -- --no-steam --open mapPin --shot out.png    # screenshot a screen
 ```
 
-`--sound FILE` / `--video FILE` (with `--host-sample` or `--open`: the sound question plays that file / a video question follows it), `--screen home|quizzes|quiz|settings|testlab|dialog` (dialog: a pop-up over home), `--open classic|choice|multi|picture|estimation|mapPin|wow|sound|image|order|timeline|write` (`--map-preset ID` with mapPin), `--start-at N` (with `--autopilot`), `--bot-drag` (a windowed bot drags the timeline item with real mouse events), `--map-zoom Z [--map-at X,Y]` (WoW map), `--lang en|de` (this run only), `--skin ID --space-time T --space-check` (space scene at second T; prints any shape Godot can't fill, which would log an error every frame; add Godot's `--time-scale 8` before `--` to run through its visits), `--screen testlab --dropdown-check` (does the long drop-down scroll on its first open), `--fullscreen-shape 16:9` (with Godot's `--fullscreen`: the picture in that shape, not saved), `--display-modes` (prints each
+`--sound FILE` / `--video FILE` (with `--host-sample` or `--open`: the sound question plays that file / a video question follows it), `--screen home|quizzes|quiz|settings|testlab|dialog` (dialog: a pop-up over home), `--open classic|choice|multi|picture|estimation|mapPin|wow|sound|image|order|timeline|write` (`--map-preset ID` with mapPin), `--start-at N` (with `--autopilot`), `--bot-drag` (a windowed bot drags the timeline item with real mouse events), `--map-zoom Z [--map-at X,Y]` (WoW map), `--skin ID --space-time T --space-check` (space scene at second T; prints any shape Godot can't fill, which would log an error every frame; add Godot's `--time-scale 8` before `--` to run through its visits), `--screen testlab --dropdown-check` (does the long drop-down scroll on its first open), `--fullscreen-shape 16:9` (with Godot's `--fullscreen`: the picture in that shape, not saved), `--display-modes` (prints each
 monitor's fullscreen resolutions: Windows switches the monitor itself in fullscreen, `Storage/DisplayModes.cs`), `--screen settings --window-mode fullscreen` (the settings as if that mode were picked), `--shot FILE --after SEC` (screenshot runs ignore the saved window, so `--resolution` and `--fullscreen --screen N` apply)
 (see `DevTools.cs`). Full solo test: host with `--autopilot --players 2` plus two `--bot` instances.
 Screenshots need a window (no `--headless`); the window opens briefly on the user's screen.
@@ -257,11 +257,10 @@ Windows shell: use `py` (not `python`) for scripts; `node -e` works for multi-li
 - **Headless runs (bots, self-test) have a dummy renderer**: don't build textures there (`WowMapCanvas` skips drawing).
 - **Sounds must be Ogg Vorbis, MP3 or WAV.** Ogg *Opus* files (common from browser/Discord downloads) fail to
   import (`valid=false` in the .import file). The self-test loads every built-in sound to catch this.
-- **Translations:** the English text is the key (`Shared/Lang.cs`, German in `Shared/LangDe.cs`). Godot
-  auto-translates Label/Button/tooltip text that matches a key exactly, so plain strings just need a
-  LangDe entry. Text built from parts must use `Lang.F("… {0} …", x)` (never `$"…"` in UI text), and
-  player-written text (names, prompts, answers) gets `.Raw()` so it's never translated. Reveal texts are
-  made on the host, in the host's language.
+- **English only (since 0.14, Max's call):** the German UI (`LangDe.cs`, the language setting, `--lang`) was removed to
+  save work; quizzes can still be written in any language. `Lang.T`/`Lang.F` stay as pass-throughs (text built from parts
+  still uses `Lang.F("… {0} …", x)`, and player text keeps `.Raw()`), so a language could come back without hunting
+  strings. `Units.Find` and `DatePicker.Parse` still read the German words/dates old quizzes stored.
 
 - `GetCmdlineUserArgs()` only sees arguments after `--`.
 - `RandomNumberGenerator` is ambiguous between Godot and System.Security.Cryptography — qualify it.
