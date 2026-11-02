@@ -42,6 +42,7 @@ public partial class QuestionEditorScreen : Control
 			U.Heading(title, 22, false).Grow().With(l => l.HorizontalAlignment = HorizontalAlignment.Center),
 			new UpdateBadge(),
 			_saved.With(l => l.Modulate = Colors.Transparent),
+			Stepper(),
 			// (the draft as it is, saved or not: how it looks to players in a match)
 			Tutorial.Mark(U.Btn("Preview", "", () => QuestionPreview.Open(_quiz, _draft, _maps), 15).On(Glyph.Kind.Eye, 18).With(b => b.TooltipText = "See this question as players see it in a match, and play it yourself."), "editor.preview"),
 			Tutorial.Mark(U.Btn("Save question", "AccentButton", Save, 15).With(b => b.TooltipText = "Saves and goes back to the quiz. Ctrl+S saves and stays here."), "editor.save")), "Bar");
@@ -1166,6 +1167,52 @@ public partial class QuestionEditorScreen : Control
 
 	// ---------- save / back / paste / drop ----------
 
+	/// <summary>Where the question is in the play order (a new one isn't in the quiz yet: it sits after the last).</summary>
+	int Place => _quiz.Questions.FindIndex(q => q.Id == _draft.Id) is var i and >= 0 ? i : _quiz.Questions.Count;
+
+	/// <summary>The arrows top right: the question before or after this one in the play order, and where it is ("3 / 30").</summary>
+	Control Stepper()
+	{
+		var count = _quiz.Questions.Count;
+		var at = Place;
+		var prev = U.Btn("", "", () => Step(-1), 15).On(Glyph.Kind.Left, 16).Tip("Previous question in the play order (Ctrl+Page Up)");
+		var next = U.Btn("", "", () => Step(1), 15).On(Glyph.Kind.Right, 16).Tip("Next question in the play order (Ctrl+Page Down)");
+		foreach (var b in new[] { prev, next })
+		{
+			b.IconAlignment = HorizontalAlignment.Center;
+			b.VerticalIconAlignment = VerticalAlignment.Center;
+			b.CustomMinimumSize = new Vector2(40, 0);
+			b.AddThemeConstantOverride("h_separation", 0);
+		}
+		prev.Disabled = at <= 0;
+		next.Disabled = at >= count - 1;
+		var where = U.Muted(at < count ? Lang.F("{0} / {1}", at + 1, count) : Lang.T("New"), 13, false).Raw()
+			.With(l => { l.SizeFlagsVertical = SizeFlags.ShrinkCenter; l.CustomMinimumSize = new Vector2(44, 0); l.HorizontalAlignment = HorizontalAlignment.Center; });
+		return U.H(4, prev, where, next);
+	}
+
+	/// <summary>
+	/// Opens the question before (-1) or after (+1) this one in the play order. Unsaved changes ask first: saved
+	/// (ticked to start with) or left behind.
+	/// </summary>
+	void Step(int by)
+	{
+		var to = Place + by;
+		if (to < 0 || to >= _quiz.Questions.Count) return;
+		var id = _quiz.Questions[to].Id;
+		void Go() => App.I.GoQuestion(_quiz.Id, id, null);
+		if (!_dirty)
+		{
+			Go();
+			return;
+		}
+		var save = true;
+		Dialogs.Confirm(this, "This question has changes that aren't saved yet.", "Switch", () =>
+		{
+			if (!save || Store()) Go();
+		}, "Switch question?", option: "Save them first", optionChosen: s => save = s);
+	}
+
 	void Back()
 	{
 		if (!_dirty)
@@ -1221,6 +1268,12 @@ public partial class QuestionEditorScreen : Control
 
 	public override void _Input(InputEvent e)
 	{
+		if (e is InputEventKey { Pressed: true, Echo: false, CtrlPressed: true, Keycode: Key.Pageup or Key.Pagedown } step)
+		{
+			Step(step.Keycode == Key.Pageup ? -1 : 1);
+			GetViewport().SetInputAsHandled();
+			return;
+		}
 		if (e is InputEventKey { Pressed: true, Echo: false, Keycode: Key.V, CtrlPressed: true } && DisplayServer.ClipboardHasImage() && _primaryImage != null)
 		{
 			// (picture questions: a pasted screenshot is a new picture, so pasting several in a row builds a slideshow)

@@ -13,6 +13,15 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.5d2]
+
+### Added
+- **Arrows in the question editor to go to the previous or next question.** Top right, next to "Preview": the left
+  arrow opens the question before this one in the play order, the right arrow the one after it, and between them
+  you see where you are ("3 / 15"). Ctrl+Page Up and Ctrl+Page Down do the same. If the question has changes you
+  haven't saved, it asks first, with "Save them first" ticked (untick it to leave them behind). Before, you had to
+  go back to the quiz page for every question. (Thanks for the idea, Max!)
+
 ## [0.13.5d1]
 
 ### Fixed

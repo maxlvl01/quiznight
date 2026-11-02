@@ -646,7 +646,7 @@ public static class Bolt
 /// </summary>
 public static class Glyph
 {
-	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh }
+	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right }
 
 	// (24 × 24, white; holes by even-odd, so one path can carry the details)
 	static string Body(Kind kind) => kind switch
@@ -666,6 +666,8 @@ public static class Glyph
 		Kind.Play => "<path stroke='#fff' stroke-width='2.4' stroke-linejoin='round' d='M6.5 3.8 19.5 12 6.5 20.2z'/>",
 		Kind.Info => "<path fill-rule='evenodd' d='M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21zM12 5.4a1.6 1.6 0 1 1 0 3.2 1.6 1.6 0 0 1 0-3.2zM10.2 10.2h3.1v6.6h1.5v2h-4.6v-2h1.1v-4.6h-1.1z'/>",
 		Kind.Refresh => "<path fill='none' stroke='#fff' stroke-width='2.6' stroke-linecap='round' d='M19.4 13.2A7.6 7.6 0 1 1 17 6.3'/><path d='M14.2 2.6h7.2v7.2z'/>",
+		Kind.Left => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M15 4.5 7.5 12l7.5 7.5'/>",
+		Kind.Right => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M9 4.5 16.5 12 9 19.5'/>",
 		_ => "",
 	};
 
