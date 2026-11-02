@@ -16,21 +16,10 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [0.14.0b] — "Lights Out": Formula 1 race tracks, team names, deleted quizzes you can bring back and grouping by question type
 
-## [0.14.0d3]
-
 ### Added
 - **Group your quiz by question type:** on the quiz page, "By type" now shows a heading for each type with ▲ ▼, just
   like "By category", so you can move all the map questions before the music ones and then press "Play in this order".
   The quiz remembers the order. Asked for by Max.
-
-### Fixed
-- **"My quizzes" broke onto two lines when an update was out** (reported by Max). The "Update to …" button sat in the
-  same row as the heading and the five buttons, squeezing the heading and stretching the buttons. It now sits above
-  them, next to "← Home".
-
-## [0.14.0d2]
-
-### Added
 - **Race tracks for map questions:** all 22 circuits of the 2026 Formula 1 calendar (Bahrain and Jeddah are off it this
   year), from Albert Park to Yas Marina, each drawn true to scale so players see how many metres off their pin was. The
   editor's map list now has three tabs: Game maps, Race tracks and Your maps. Each track is drawn the same way, light
@@ -45,8 +34,30 @@ On GitHub, each version heading links to its release, where the download is.
   any team. Names stay when a saved night continues; a new draw starts over with the drawn names. Asked for by Max.
 - **Deleted quizzes can come back:** deleting a quiz in My quizzes now keeps it for 30 days. Right after deleting there
   is an Undo, and "Recently deleted" (under the buttons) lists them with a Restore button each.
+- **Arrows in the question editor to go to the previous or next question.** Top right, next to "Preview": the left
+  arrow opens the question before this one in the play order, the right arrow the one after it, and between them
+  you see where you are ("3 / 15"). Ctrl+Page Up and Ctrl+Page Down do the same. If the question has changes you
+  haven't saved, it asks first, with "Save them first" ticked (untick it to leave them behind). Before, you had to
+  go back to the quiz page for every question. (Thanks for the idea, Max!)
+
+### Changed
+- **Ewige Tabelle:** the yellow column (the one the table is ranked by) now stays next to the place and the name while
+  the other numbers scroll sideways, so you can always see who has what. Asked for by Max.
+- **My quizzes:** the delete button is a small red key with a trash can, like the other buttons on the card, instead
+  of a loose can that said "Delete?" under the mouse. Hold the mouse on it to read what it does. Asked for by Max.
+- The test builds are renumbered: 0.13.5d1 to d3 are 0.13.6d1 to d3 now, because 0.13.5b went out on its own with only
+  the move of the downloads to github.com/maxlvl01/quiznight. This build has that too.
+- The guided tour now walks through a real quiz: "Test Night", 30 questions with one of every question type, pictures, sound and video (Max's idea). It's too big to ship with the game (13 MB), so it downloads in the background while the tour's first steps are on the home screen and the quiz list, and it's deleted again when the tour ends. It only lives in memory: it never shows up in My quizzes, and saving during the tour (Ctrl+S) writes nothing. If it hasn't arrived by the time the tour opens the quiz (slow internet, offline), the tour uses the small built-in sample quiz as before.
+- **My quizzes reads the folder again every time you open it**, and has a "Refresh" button. The list used to be read
+  once per run, so a quiz file you copied into the quizzes folder yourself only showed up after restarting the game.
+  New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
+- **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
+  is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
 
 ### Fixed
+- **"My quizzes" broke onto two lines when an update was out** (reported by Max). The "Update to …" button sat in the
+  same row as the heading and the five buttons, squeezing the heading and stretching the buttons. It now sits above
+  them, next to "← Home".
 - **Deleting a quiz could lose it for good without asking** (reported by Max). Once "Don't ask me again" was ticked on
   the delete question, one click on the red trash key deleted the quiz straight away, and the file was gone. Now a
   deleted quiz is kept for 30 days and can be restored (see above), and the question says so.
@@ -54,53 +65,12 @@ On GitHub, each version heading links to its release, where the download is.
   for the list's scroll area in the wrong place (it sits one level deeper), so it never hid the bar. Now it finds it:
   no scrollbar while a short list unfolds, and long lists still scroll.
 - **The NEW badge on a new map in the editor's map list covered the whole picture** instead of sitting in its corner.
-
-### Removed
-- **German menus:** Quiznight is English only now, so the Language choice is gone from the welcome screen and the
-  settings. Keeping every screen in two languages took a lot of work for each new feature. Your quizzes can still be in
-  German (or any language): questions, answers and names are shown exactly as you wrote them, and units like "Tage" or
-  dates like "1. November 2026" in older quizzes still work.
-
-## [0.14.0d1]
-
-### Changed
-- **Ewige Tabelle:** the yellow column (the one the table is ranked by) now stays next to the place and the name while
-  the other numbers scroll sideways, so you can always see who has what. Asked for by Max.
-- **My quizzes:** the delete button is a small red key with a trash can, like the other buttons on the card, instead
-  of a loose can that said "Delete?" under the mouse. Hold the mouse on it to read what it does. Asked for by Max.
-
-### Fixed
 - **The question editor froze when stepping through the questions with the arrows** past a video question (reported by
   Max). Every time a video question was shown, the editor unpacked the whole video and wrote it to the disk again, before
   you had even pressed Play. Now the video is only loaded when you press Play, and the same video isn't unpacked twice.
 - **My quizzes sat off to the right**, with a wide empty strip on the left (spotted by Max). The two columns of quiz cards
   needed a little more room than the page gives them, and the extra width all went to the right side. The page is
   centred again (this fixes every page that is wider than usual).
-
-## [0.13.6d4]
-
-### Changed
-- The test builds are renumbered: 0.13.5d1 to d3 are 0.13.6d1 to d3 now, because 0.13.5b went out on its own with only
-  the move of the downloads to github.com/maxlvl01/quiznight. This build has that too.
-
-## [0.13.6d3]
-
-### Changed
-
-- The guided tour now walks through a real quiz: "Test Night", 30 questions with one of every question type, pictures, sound and video (Max's idea). It's too big to ship with the game (13 MB), so it downloads in the background while the tour's first steps are on the home screen and the quiz list, and it's deleted again when the tour ends. It only lives in memory: it never shows up in My quizzes, and saving during the tour (Ctrl+S) writes nothing. If it hasn't arrived by the time the tour opens the quiz (slow internet, offline), the tour uses the small built-in sample quiz as before.
-
-## [0.13.6d2]
-
-### Added
-- **Arrows in the question editor to go to the previous or next question.** Top right, next to "Preview": the left
-  arrow opens the question before this one in the play order, the right arrow the one after it, and between them
-  you see where you are ("3 / 15"). Ctrl+Page Up and Ctrl+Page Down do the same. If the question has changes you
-  haven't saved, it asks first, with "Save them first" ticked (untick it to leave them behind). Before, you had to
-  go back to the quiz page for every question. (Thanks for the idea, Max!)
-
-## [0.13.6d1]
-
-### Fixed
 - **The host's buttons no longer slip off the bottom of the screen.** On a long question with a picture and four
   answers (found in a test night with the paella question), "Reveal answer", "Hold to peek" and "+5 s" were pushed below
   the window, so the host saw only their top edges and had to scroll down to reveal. The question card and the buttons
@@ -119,12 +89,11 @@ On GitHub, each version heading links to its release, where the download is.
   one rivalry ended and the next began. Each is now one row: the names and score, the game small on the right and a
   streak as "×2" (hover for the whole line). (Thanks for the report, Max!)
 
-### Changed
-- **My quizzes reads the folder again every time you open it**, and has a "Refresh" button. The list used to be read
-  once per run, so a quiz file you copied into the quizzes folder yourself only showed up after restarting the game.
-  New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
-- **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
-  is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
+### Removed
+- **German menus:** Quiznight is English only now, so the Language choice is gone from the welcome screen and the
+  settings. Keeping every screen in two languages took a lot of work for each new feature. Your quizzes can still be in
+  German (or any language): questions, answers and names are shown exactly as you wrote them, and units like "Tage" or
+  dates like "1. November 2026" in older quizzes still work.
 
 ## [0.13.5b]
 
@@ -1077,6 +1046,7 @@ On GitHub, each version heading links to its release, where the download is.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
 
+[0.14.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.0b
 [0.13.5b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.13.5b
 [0.13.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.4b
 [0.13.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.3b
