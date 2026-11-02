@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.14.0d3]
+
 ### Added
 - **Group your quiz by question type:** on the quiz page, "By type" now shows a heading for each type with ▲ ▼, just
   like "By category", so you can move all the map questions before the music ones and then press "Play in this order".
