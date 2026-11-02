@@ -268,8 +268,11 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
   (`override.cfg` in test zips), and send each run's whole log to the results repo's `test-logs/` on the next start
   (`Storage/CrashReports`; public builds send crash/error logs to `crashes/` only). 0.10.3b was public for a few minutes and is a
   draft on the public repo now (nobody had downloaded it); drafts aren't deleted either.
-- **Releases & updates:** `tools/release.sh` exports, zips and publishes a GitHub release on the public
-  `maxlvl01/quiznight-releases` repo (code lives in `maxlvl01/quiznight-godot`, which is public on GitHub; `maxlvl01/quiznight` is the web version). Exported games check
+- **Releases & updates:** `tools/release.sh` exports, zips and publishes a GitHub release on the public code repo
+  `maxlvl01/quiznight` (`Updater.ReleasesRepo`; it was `quiznight-godot` until 0.13.5, the old web version is the archived
+  `quiznight-web`). Games before 0.13.5 check the old downloads-only `maxlvl01/quiznight-releases` (`LegacyReleasesRepo`):
+  release.sh copies each public release there too (zips and signed update lists; the packs stay where they are), so they
+  update to a version that knows the new repo. Never delete or rename it. Exported games check
   it at startup (`Storage/Updater.cs`) and update themselves; "What's new" is read from the shipped
   CHANGELOG.md, so its `## [version]` / `### Added|Changed|Fixed|Removed` layout matters.
   **Updates are signed:** `release.sh` signs each zip and update list (`<file>.sig`, `openssl dgst -sha256 -sign`) with Max's
@@ -326,7 +329,9 @@ The roadmap lives in **one Claude Doc, "Quiznight? Roadmap"**: https://claude.ai
 (doc id `1b7a51b6-3f58-4416-96b8-41b7e6af835e`). Every chat reads and edits that doc with the docs tools (load the docs
 skill first), so it never needs merging between worktrees. **Don't keep or edit a ROADMAP.md in the repo**; the file
 only points to the doc. When an item is done, tick it in the doc with its version. The public, player-friendly copy is
-ROADMAP.md in `maxlvl01/quiznight-releases`, refreshed from the doc only when Max says so.
+ROADMAP.md in `maxlvl01/quiznight-releases` (move it to `maxlvl01/quiznight` when it's next refreshed), refreshed from the doc only when Max says so.
+Doc ids in reads and edits are full (`m81rec0vxb3.45279`, not the relative `.45279` a view prints); a search read takes `text`,
+not `query`; add an item with `insert` after a list item's id.
 
 ## Next up
 

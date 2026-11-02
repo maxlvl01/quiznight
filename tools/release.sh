@@ -6,8 +6,10 @@
 #   tools/release.sh --dry-run  everything except publishing
 # Each version is a test build first; only the ones Max decides on are released publicly (players shouldn't have to
 # download every hotfix).
-# The release notes are this version's section of CHANGELOG.md. The release goes to the public
-# builds-only repo (the code is in maxlvl01/quiznight-godot). Needs `gh` logged in and the export templates.
+# The release notes are this version's section of CHANGELOG.md. The release goes to the public code repo
+# maxlvl01/quiznight (since 0.13.5; Updater.ReleasesRepo), and a copy to the old downloads-only maxlvl01/quiznight-releases
+# (LEGACY), which games before 0.13.5 check: they update to it and then follow the new repo. Needs `gh` logged in and the
+# export templates.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -20,8 +22,11 @@ for arg in "$@"; do
 		*) echo "Unknown option $arg"; exit 1 ;;
 	esac
 done
-REPO="maxlvl01/quiznight-releases"
-[ -n "$TEST" ] && REPO="maxlvl01/quiznight-test-releases"
+REPO="maxlvl01/quiznight"
+# (the old releases repo: each public release goes there too, zips and signed update lists only (their packs are on REPO);
+# never delete it or its releases, older update lists point into them. Set LEGACY="" to stop once no old game is left.)
+LEGACY="maxlvl01/quiznight-releases"
+[ -n "$TEST" ] && REPO="maxlvl01/quiznight-test-releases" && LEGACY=""
 ANYCONVERTER="${ANYCONVERTER:-/c/Users/Xbox3/Desktop/AnyConverter/dist/AnyConverter.exe}"
 ANYCONVERTER_LINUX="${ANYCONVERTER_LINUX:-/c/Users/Xbox3/Desktop/AnyConverter/dist/linux/AnyConverter-linux-x86_64.tar.gz}"
 VERSION=$(sed -n 's/^config\/version="\(.*\)"/\1/p' project.godot)
@@ -41,7 +46,8 @@ grep -q "^## \[$VERSION\]" CHANGELOG.md || { echo "CHANGELOG.md has no section '
 # Public release: the test versions since the last public one are folded into this version's section, so players see
 # one version with everything (tools/fold_changelog.py; commit CHANGELOG.md afterwards). Test builds keep their own.
 if [ -z "$TEST" ] && [ -z "$DRY" ]; then
-	LAST_PUBLIC=$(gh api "repos/$REPO/releases/latest" --jq .tag_name | sed 's/^v//')
+	# (the first release on the new repo: the last public one is still the old repo's)
+	LAST_PUBLIC=$( (gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || gh api "repos/$LEGACY/releases/latest" --jq .tag_name) | sed 's/^v//')
 	py -I tools/fold_changelog.py CHANGELOG.md "$VERSION" "$LAST_PUBLIC"
 fi
 # Every file the game installs from is signed with Max's release key (ECDSA P-256), which never leaves his PC: the game
@@ -141,7 +147,8 @@ if [ -z "$TEST" ]; then
 	# release that has them (tools/manifest.py). The game downloads only the packs it needs.
 	PACKS="build/packs-$VERSION"; PREV="build/prev-lists"
 	rm -rf "$PACKS" "$PREV" && mkdir -p "$PREV"
-	gh release download --repo "$REPO" --pattern 'update-*.json' -D "$PREV" 2>/dev/null || echo "(no earlier update lists: every pack is new)"
+	# (the first release on the new repo: the old repo's lists, whose packs stay there)
+	gh release download --repo "$REPO" --pattern 'update-*.json' -D "$PREV" 2>/dev/null 		|| { [ -n "$LEGACY" ] && gh release download --repo "$LEGACY" --pattern 'update-*.json' -D "$PREV" 2>/dev/null; } 		|| echo "(no earlier update lists: every pack is new)"
 	BASE="https://github.com/$REPO/releases/download/v$VERSION/"
 	py -I tools/manifest.py "$VERSION" windows "$OUT" build/update-windows.json "$PACKS" "$BASE" "$PREV"/update-*.json
 	py -I tools/manifest.py "$VERSION" linux "$OUT_LINUX" build/update-linux.json "$PACKS" "$BASE" "$PREV"/update-*.json build/update-windows.json
@@ -190,4 +197,18 @@ gh release upload "v$VERSION" build/update-windows.json.sig build/update-linux.j
 gh release upload "v$VERSION" build/update-windows.json build/update-linux.json --repo "$REPO" --clobber
 gh release edit "v$VERSION" --repo "$REPO" --draft=false --latest
 echo "Done: https://github.com/$REPO/releases/tag/v$VERSION"
+if [ -n "$LEGACY" ]; then
+	echo "== Copy for games before 0.13.5: v$VERSION to $LEGACY"
+	# (the same signed zips and update lists; the lists point at the packs on $REPO and older releases, so no packs here)
+	if gh release view "v$VERSION" --repo "$LEGACY" >/dev/null 2>&1; then
+		gh release edit "v$VERSION" --repo "$LEGACY" --title "$TITLE" --notes-file "$NOTES"
+	else
+		gh release create "v$VERSION" --repo "$LEGACY" --title "$TITLE" --notes-file "$NOTES" --draft
+	fi
+	gh release upload "v$VERSION" "$ZIP" "$ZIP_LINUX" "$ZIP.sig" "$ZIP_LINUX.sig" --repo "$LEGACY" --clobber
+	gh release upload "v$VERSION" build/update-windows.json.sig build/update-linux.json.sig --repo "$LEGACY" --clobber
+	gh release upload "v$VERSION" build/update-windows.json build/update-linux.json --repo "$LEGACY" --clobber
+	gh release edit "v$VERSION" --repo "$LEGACY" --draft=false --latest
+	echo "Done: https://github.com/$LEGACY/releases/tag/v$VERSION"
+fi
 git diff --quiet CHANGELOG.md || echo "CHANGELOG.md changed (test versions folded in): commit it."
