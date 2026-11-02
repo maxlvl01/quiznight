@@ -14,6 +14,22 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.14.0d1]
+
+### Changed
+- **Ewige Tabelle:** the yellow column (the one the table is ranked by) now stays next to the place and the name while
+  the other numbers scroll sideways, so you can always see who has what. Asked for by Max.
+- **My quizzes:** the delete button is a small red key with a trash can, like the other buttons on the card, instead
+  of a loose can that said "Delete?" under the mouse. Hold the mouse on it to read what it does. Asked for by Max.
+
+### Fixed
+- **The question editor froze when stepping through the questions with the arrows** past a video question (reported by
+  Max). Every time a video question was shown, the editor unpacked the whole video and wrote it to the disk again, before
+  you had even pressed Play. Now the video is only loaded when you press Play, and the same video isn't unpacked twice.
+- **My quizzes sat off to the right**, with a wide empty strip on the left (spotted by Max). The two columns of quiz cards
+  needed a little more room than the page gives them, and the extra width all went to the right side. The page is
+  centred again (this fixes every page that is wider than usual).
+
 ## [0.13.6d4]
 
 ### Changed
