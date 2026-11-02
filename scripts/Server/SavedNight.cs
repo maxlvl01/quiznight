@@ -29,6 +29,8 @@ public sealed class SavedNight
 	public List<SavedQuestionStat> QuestionStats = new();
 	/// <summary>Jokers used on the questions before Next (each kind once per player and match).</summary>
 	public List<JokerPlay> Jokers = new();
+	/// <summary>Team mode: the names the teams gave themselves (by team), null for the drawn name.</summary>
+	public List<string?>? TeamNames;
 
 	/// <summary>When the file was written (from the file, not stored in it).</summary>
 	[JsonIgnore] public DateTime SavedAt;

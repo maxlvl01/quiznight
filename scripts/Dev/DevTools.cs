@@ -45,6 +45,7 @@ public sealed class DevTools
 	bool _undoChecked;
 	bool _arcadeOpened, _bugOpened;
 	bool _dropdownOpened;
+	int _shortFrames = -1, _shortBarFrames;
 	int _dropdownChecks;
 	bool _scrolled;
 
@@ -283,6 +284,12 @@ public sealed class DevTools
 					lobbyHost.Room.Join("fake-" + seat, seat);
 			// (-1 = "Play in teams" ticked)
 			if (int.TryParse(Value("--teams"), out var teams)) _app.Host?.UpdateSettings(teams: teams);
+			// --drawn (with --teams): the teams drawn straight away (the draw's show skipped), --team-name NAME names the first
+			if (Has("--drawn") && _app.Host is { } drawHost && drawHost.DrawTeams().Ok)
+			{
+				Ui.Screens.TeamDrawShow.Seen(drawHost.State);
+				if (Value("--team-name") is { } teamName) drawHost.RenameTeam(0, teamName);
+			}
 			// --settings-window: Settings open over the lobby (or the game), for screenshots
 			if (Has("--settings-window")) _app.GetTree().CreateTimer(1.5).Timeout += Ui.Screens.SettingsWindow.Open;
 		}
@@ -451,7 +458,7 @@ public sealed class DevTools
 				// (the delete question over My quizzes, to see it; it deletes nothing)
 				case "delete":
 					_app.GoQuizzes();
-					Callable.From(() => Ui.Dialogs.Confirm(_app, Lang.F("Delete \"{0}\"? This can't be undone — export it first if you want a backup.", "New quiz"),
+					Callable.From(() => Ui.Dialogs.Confirm(_app, Lang.F("Delete \"{0}\"? You can bring it back from \"Recently deleted\" for 30 days.", "New quiz"),
 						"Delete", () => { }, dontAskAgain: () => { })).CallDeferred();
 					break;
 				// (four scoreboard rows; after 1.3 s the last one overtakes the other three: shoot at 1.5 to see it mid-slide)
@@ -641,6 +648,29 @@ public sealed class DevTools
 			_dropdownOpened = true;
 			var nth = int.TryParse(Value("--open-dropdown"), out var n) ? n - 1 : 0;
 			Bot.All(_app).OfType<OptionButton>().Where(o => o.IsVisibleInTree()).Skip(nth).FirstOrDefault()?.ShowPopup();
+		}
+		// --short-dropdown-check (with --screen testlab): opens the shortest drop-down and counts the frames its list shows a
+		// scrollbar while it unfolds (should be 0: Max saw it flicker, 0.14.0d1)
+		if (Has("--short-dropdown-check") && _time >= 1)
+		{
+			var box = Bot.All(_app).OfType<OptionButton>().Where(o => o.IsVisibleInTree()).OrderBy(o => o.ItemCount).First();
+			var popup = box.GetPopup();
+			static ScrollContainer? Scroll(Node n) => n as ScrollContainer ?? n.GetChildren(true).Select(Scroll).FirstOrDefault(s => s != null);
+			if (_shortFrames < 0)
+			{
+				box.ShowPopup();
+				_shortFrames = 0;
+			}
+			else if (_shortFrames < 40)
+			{
+				_shortFrames++;
+				if (popup.Visible && Scroll(popup) is { } list && list.GetVScrollBar().Visible) { _shortBarFrames++; GD.Print($"  frame {_shortFrames}: bar visible, mode {list.VerticalScrollMode}, popup {popup.Size}, content {popup.GetContentsMinimumSize()}"); }
+			}
+			else
+			{
+				GD.Print($"Short drop-down ({box.ItemCount} items): scrollbar shown in {_shortBarFrames} of {_shortFrames} frames");
+				_app.Quit(0);
+			}
 		}
 		// --dropdown-check (with --screen testlab): opens the long test drop-down twice and prints whether its list scrolls each time
 		if (Has("--dropdown-check") && _dropdownChecks < 5 && _time >= 1 + _dropdownChecks * 0.7)

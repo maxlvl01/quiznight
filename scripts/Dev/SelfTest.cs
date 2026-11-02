@@ -538,6 +538,16 @@ public static class SelfTest
 		Check(!room.Start().Ok, "team mode: no start before the teams are drawn");
 		Check(room.DrawTeams(new Random(3)).Ok && room.TeamDraw == 1, "the host draws the teams");
 		Check(Enumerable.Range(0, 2).All(t => room.Players.Count(p => p.Team == t) == 2), "four players, two teams of two");
+		var annTeam = room.GetPlayer("ann")!.Team!.Value;
+		var otherTeam = 1 - annTeam;
+		Check(room.RenameTeam("ann", annTeam, "  The   Ann  Squad ").Ok && room.TeamName(annTeam) == "The Ann Squad"
+			&& room.ToState("bob").Teams!.First(t => t.Index == annTeam).Name == "The Ann Squad", "a team names itself after the draw");
+		Check(!room.RenameTeam("ann", otherTeam, "Not Ours").Ok && room.RenameTeam("host", otherTeam, "Host Pick").Ok, "only its own team, or the host for any");
+		Check(!room.RenameTeam("host", otherTeam, "the ann squad").Ok && !room.RenameTeam("host", otherTeam, "  ").Ok, "no name twice, none empty");
+		Check(room.RenameTeam("host", otherTeam, null, new Random(1)).Ok && room.TeamName(otherTeam) is var rolled && rolled != "Host Pick" && rolled != room.TeamName(annTeam),
+			"the dice rolls a name no other team has");
+		Check(room.Snapshot(0).TeamNames![annTeam] == "The Ann Squad", "a saved night keeps the team names");
+		Check(room.DrawTeams(new Random(4)).Ok && room.TeamName(annTeam) == TeamNames.Name(annTeam), "a new draw: the drawn names again");
 		room.Join("eve", "eve");
 		Check(room.GetPlayer("eve")!.Team is not null, "a newcomer joins a team without a new draw");
 		Check(room.Start().Ok, "starts once the teams are drawn");
@@ -1186,6 +1196,14 @@ public static class SelfTest
 
 	static void Files()
 	{
+		// (0.14) a deleted quiz waits in "deleted" and comes back; real files in the quizzes folder, cleaned up after
+		var gone = Storage.QuizStore.Create("Selftest delete me");
+		Storage.QuizStore.Delete(gone.Id);
+		Check(Storage.QuizStore.Get(gone.Id) == null && Storage.QuizStore.Deleted().Any(d => d.Id == gone.Id), "a deleted quiz leaves the list but is kept");
+		Check(Storage.QuizStore.Restore(gone.Id)?.Title == "Selftest delete me" && Storage.QuizStore.Deleted().All(d => d.Id != gone.Id), "and comes back");
+		Storage.QuizStore.Delete(gone.Id);
+		System.IO.File.Delete(System.IO.Path.Combine(Storage.QuizStore.Folder, "deleted", gone.Id + Storage.QuizStore.Extension));
+
 		// A quiz file as the web version exported it (format 1: classic without mode).
 		const string old = """
 		{"version":1,"id":"abc","title":"Old quiz","createdAt":1,"updatedAt":2,

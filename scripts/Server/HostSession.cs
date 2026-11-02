@@ -216,6 +216,9 @@ public sealed class HostSession : IDisposable
 			case Msg.Rename when playerId != null:
 				if (Msg.Read<RenameRequest>(msg.Data) is { } rr && Room.Rename(playerId, rr.Name).Ok) Broadcast();
 				break;
+			case Msg.TeamName when playerId != null:
+				if (Msg.Read<TeamNameRequest>(msg.Data) is { } tn && Room.RenameTeam(playerId, tn.Team, tn.Roll ? null : tn.Name).Ok) Broadcast();
+				break;
 			case Msg.Joker when playerId != null && Playing():
 				if (Msg.Read<JokerRequest>(msg.Data) is { } jr && Room.Game!.PlayJoker(playerId, jr.Kind, jr.On).Ok) Broadcast();
 				break;
@@ -377,6 +380,14 @@ public sealed class HostSession : IDisposable
 	}
 
 	/// <summary>Team mode: the host draws the teams (every lobby screen plays the draw).</summary>
+	/// <summary>The host names a team (null: rolls a new name).</summary>
+	public Result RenameTeam(int team, string? name)
+	{
+		var result = Room.RenameTeam("host", team, name);
+		if (result.Ok) Broadcast();
+		return result;
+	}
+
 	public Result DrawTeams()
 	{
 		var result = Room.DrawTeams();
