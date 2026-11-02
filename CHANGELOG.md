@@ -10,6 +10,7 @@ Versions follow **MAJOR.MINOR.HOTFIX**:
 `0.x.y` means the game is still in development: a letter `a` is an alpha, `b` a beta (from 0.7.1b on).
 `1.0.0` will be the first complete, playable quiz night.
 Versions up to 0.3.2a were the website; the history of those is in the website's CHANGELOG.md.
+On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
@@ -1012,3 +1013,54 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 - Videos have to be `.ogv` files (Godot can't play MP4 or WebM). Sound can be MP3, OGG or WAV.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
+
+[0.13.5b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.13.5b
+[0.13.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.4b
+[0.13.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.3b
+[0.13.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.2b
+[0.13.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.1b
+[0.13.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.0b
+[0.12.8b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.8b
+[0.12.7b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.7b
+[0.12.6b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.6b
+[0.12.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.5b
+[0.12.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.4b
+[0.12.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.3b
+[0.12.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.2b
+[0.12.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.1b
+[0.12.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.0b
+[0.11.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.11.5b
+[0.11.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.11.4b
+[0.11.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.11.3b
+[0.10.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.10.2b
+[0.10.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.10.1b
+[0.10.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.10.0b
+[0.9.6b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.6b
+[0.9.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.5b
+[0.9.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.4b
+[0.9.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.3b
+[0.9.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.2b
+[0.9.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.1b
+[0.9.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.0b
+[0.8.12b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.12b
+[0.8.11b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.11b
+[0.8.10b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.10b
+[0.8.9b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.9b
+[0.8.8b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.8b
+[0.8.7b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.7b
+[0.8.6b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.6b
+[0.8.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.5b
+[0.8.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.4b
+[0.8.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.3b
+[0.8.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.2b
+[0.8.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.1b
+[0.8.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.0b
+[0.7.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.4b
+[0.7.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.3b
+[0.7.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.2b
+[0.7.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.1b
+[0.6.1a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.6.1a
+[0.6.0a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.6.0a
+[0.5.2a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.5.2a
+[0.5.1a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.5.1a
+[0.5.0a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.5.0a
