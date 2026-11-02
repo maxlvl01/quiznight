@@ -23,8 +23,20 @@ On GitHub, each version heading links to its release, where the download is.
   corner names are written on it, so "Where is Eau Rouge?" stays a real question. Like the game maps, each track
   downloads the first time it's used. Track lines by Tomislav Bacinger (f1-circuits), map data © OpenStreetMap
   contributors. Other racing series come next.
+- **Name your team:** after the draw, every team can give itself a name. In the waiting room your team shows under the
+  seats: double-click the name (or press Rename) and type a new one, or roll the dice for a new name picked at random
+  (there are 30 now, from Quiz Khalifa to Sherlock Homies). Anyone in the team can change it, and the host can rename
+  any team. Names stay when a saved night continues; a new draw starts over with the drawn names. Asked for by Max.
+- **Deleted quizzes can come back:** deleting a quiz in My quizzes now keeps it for 30 days. Right after deleting there
+  is an Undo, and "Recently deleted" (under the buttons) lists them with a Restore button each.
 
 ### Fixed
+- **Deleting a quiz could lose it for good without asking** (reported by Max). Once "Don't ask me again" was ticked on
+  the delete question, one click on the red trash key deleted the quiz straight away, and the file was gone. Now a
+  deleted quiz is kept for 30 days and can be restored (see above), and the question says so.
+- **Short drop-downs still showed a scrollbar for a moment when they opened** (reported by Max). The fix in 0.13.5 looked
+  for the list's scroll area in the wrong place (it sits one level deeper), so it never hid the bar. Now it finds it:
+  no scrollbar while a short list unfolds, and long lists still scroll.
 - **The NEW badge on a new map in the editor's map list covered the whole picture** instead of sitting in its corner.
 
 ## [0.14.0d1]
