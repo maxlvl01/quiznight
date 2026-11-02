@@ -115,8 +115,11 @@ the original design decisions; most still apply.
   every 2 s from the screen and the room (never the room code); off with `Settings.DiscordPresence`, in headless runs and
   in dev runs with arguments. The Discord app's art asset key is `logo`.
 - **Guided tour** (`Ui/Tutorial.cs`, `Tutorial.Guided`): offered once on Home, Settings' "Take the tour" starts it again.
-  Steps say their screen (`Step.Where`) and the overlay opens it; the sample quiz is `Tutorial.TourQuiz()`, in memory
-  only. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
+  Steps say their screen (`Step.Where`) and the overlay opens it. The sample quiz (in memory only, id `TourDownload.Id`,
+  which `QuizStore.Save` skips) is "Test Night", downloaded in the background when the tour starts (`Storage/TourDownload`,
+  `tour.quiznight.zip` + `.sig` on the maps release: `tools/tour_quiz.sh [--test] QUIZ.zip`), deleted when it ends; not there
+  in time or offline = the built-in `Tutorial.TourQuiz()`. `--tour-wait` (with a local `QUIZNIGHT_MAPS_FEED` from
+  `tools/tour_quiz.sh --dry-run`) shows the downloaded one. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
   --tutorial-step N` for screenshots.
 - **Podium** (`Ui/Screens/PodiumScreen`): built once from the first finished state (`Shared.FinalResults`), never
   again, so leaving can't change it (and `Room.Leave` keeps the seat in `Finished` too). Podium + score list big in the

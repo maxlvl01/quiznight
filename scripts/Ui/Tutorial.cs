@@ -1,9 +1,10 @@
 // Tutorials: the guided tour, the first time the home screen opens (Settings' "Take the tour" starts it again). The screen
 // goes dark except for one thing at a time, which gets a glowing frame, and a bubble next to it says what it is for.
 // Screens mark what a tour points at (Mark). The tour walks through the screens on its own (Step.Where): home, the quiz
-// list, a sample quiz that only lives in memory, one of its questions in the editor, and back home. Skip (or Esc) ends
+// list, a sample quiz that only lives in memory (Test Night, downloaded in the background while the tour starts: TourDownload;
+// the small built-in one if it isn't there in time), one of its questions in the editor, and back home. Skip (or Esc) ends
 // it, "Turn off tutorials" too and keeps it from coming back. Dev: --tutorial guided shows it every time home opens,
-// --tutorial-step N starts at that step.
+// --tutorial-step N starts at that step, --tour-wait first waits for the sample quiz download.
 
 using System;
 using System.Collections.Generic;
@@ -55,10 +56,25 @@ public static class Tutorial
 		},
 	};
 
-	/// <summary>The tour's sample quiz (in memory only, never saved): the sample with categories, some left out on purpose.</summary>
+	/// <summary>The tour's sample quiz (in memory only, never saved): the downloaded Test Night if it's ready, else the
+	/// built-in one.</summary>
+	internal static Quiz SampleQuiz() => TourDownload.IfReady() is { } quiz ? Prepare(quiz) : TourQuiz();
+
+	/// <summary>The downloaded quiz as the tour shows it (its own copy, read for this tour): its title, one category left
+	/// out (the yellow hint).</summary>
+	static Quiz Prepare(Quiz quiz)
+	{
+		quiz.Id = TourDownload.Id;
+		quiz.Title = Lang.T("Sample quiz (tour)");
+		if (quiz.Questions.Count > 2) quiz.Questions[2].Category = "";
+		return quiz;
+	}
+
+	/// <summary>The built-in sample quiz for the tour (in memory only, never saved): the sample with categories, some left out on purpose.</summary>
 	internal static Quiz TourQuiz()
 	{
 		var quiz = Dev.SampleQuiz.Build();
+		quiz.Id = TourDownload.Id;
 		quiz.Title = Lang.T("Sample quiz (tour)");
 		var presets = new[] { "Space & astronomy", "Science", "Music", "Geography", "Games", "Geography", "Music", "Science", "Games", "Sport" };
 		for (var i = 0; i < quiz.Questions.Count; i++)
@@ -180,12 +196,22 @@ public partial class TutorialOverlay : Control
 	{
 		Current = this;
 		Trace.Log("tutorial", _id);
+		// (Test Night comes in the background while the first steps are on home and the quiz list)
+		TourDownload.Start();
 		// (keys go to the tour, not to a field that had the focus)
 		GetViewport().GuiReleaseFocus();
 		// (dev: --tutorial-step N starts at that step, for screenshots)
 		var args = OS.GetCmdlineUserArgs();
 		var arg = Array.IndexOf(args, "--tutorial-step");
-		Show(arg >= 0 && arg + 1 < args.Length && int.TryParse(args[arg + 1], out var n) ? Math.Clamp(n - 1, 0, _steps.Count - 1) : 0);
+		var first = arg >= 0 && arg + 1 < args.Length && int.TryParse(args[arg + 1], out var n) ? Math.Clamp(n - 1, 0, _steps.Count - 1) : 0;
+		// (dev: --tour-wait holds the tour until the sample quiz download ended, to see the downloaded quiz with --tutorial-step)
+		if (args.Contains("--tour-wait")) Hold();
+		else Show(first);
+		async void Hold()
+		{
+			while (!TourDownload.Settled) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+			if (IsInstanceValid(this)) Show(first);
+		}
 	}
 
 	public override void _ExitTree()
@@ -198,7 +224,7 @@ public partial class TutorialOverlay : Control
 	{
 		if (where == _where) return;
 		_where = where;
-		_quiz ??= Tutorial.TourQuiz();
+		_quiz ??= Tutorial.SampleQuiz();
 		switch (where)
 		{
 			case "home": App.I.GoHome(); break;
@@ -268,6 +294,7 @@ public partial class TutorialOverlay : Control
 	{
 		Tutorial.MarkSeen(_id);
 		QueueFree();
+		TourDownload.Clear();
 		// (never left on the sample quiz, which isn't saved: back home)
 		if (_where is "overview" or "editor" && App.I.Screen == _screen) App.I.GoHome();
 	}

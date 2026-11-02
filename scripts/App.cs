@@ -175,6 +175,8 @@ public partial class App : Control
 			if (Updater.Enabled) Updater.CleanUp();
 			// (an update from before 0.12.8b left the maps folder next to the game: the quizzes' maps move, the rest goes)
 			MapPacks.MoveOldMaps();
+			// (the tour's sample quiz left behind by a game closed during the tour)
+			TourDownload.DeleteFiles();
 			UpdatePrompt.CheckAndInstall(this);
 		}
 		if (cards != null) cards.TreeExited += Popups;

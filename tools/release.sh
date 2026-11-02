@@ -64,6 +64,7 @@ mkdir -p build && touch build/.gdignore
 # (the game downloads the built-in maps from the "maps" release, test builds from the test repo's: it has to have these
 # maps before a build goes out)
 tools/map_packs.sh --check ${TEST:+--test} || exit 1
+tools/tour_quiz.sh --check ${TEST:+--test} || echo "(going on: the tour works without it, just with the small quiz)"
 dotnet build "QuizNight!.csproj" -nologo -v q
 # The Windows build uses our slim engine (export_presets custom_template/release; built from the Godot source with
 # tools/engine_profile.py, see CLAUDE.md): 37 MB instead of the stock 105 MB.

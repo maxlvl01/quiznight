@@ -108,6 +108,8 @@ public static class QuizStore
 	/// <summary>Saves a quiz. Throws UserError when the disk says no.</summary>
 	public static Quiz Save(Quiz quiz)
 	{
+		// (the guided tour's sample quiz only lives in memory: never written to My quizzes, even by Ctrl+S during the tour)
+		if (quiz.Id == TourDownload.Id) return quiz;
 		DateQuestions(quiz);
 		// Drop maps no question uses anymore, so saved and exported quizzes stay small.
 		var used = quiz.Questions.Where(q => q.Type == QuestionType.MapPin && q.MapId != null).Select(q => q.MapId).ToHashSet();

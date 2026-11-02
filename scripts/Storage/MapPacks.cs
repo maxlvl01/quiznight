@@ -307,7 +307,7 @@ public static class MapPacks
 		}
 	}
 
-	static HttpClient NewClient(TimeSpan timeout)
+	internal static HttpClient NewClient(TimeSpan timeout)
 	{
 		var http = new HttpClient { Timeout = timeout };
 		http.DefaultRequestHeaders.UserAgent.ParseAdd("Quiznight-Maps");
@@ -323,7 +323,7 @@ public static class MapPacks
 	/// tried in a test build before they go public (tools/map_packs.sh --test). Debug builds: QUIZNIGHT_MAPS_FEED, a
 	/// folder or address with the files (tools/map_packs.sh --dry-run makes one).
 	/// </summary>
-	static async Task<byte[]> Fetch(HttpClient http, string name, Action<int>? read = null, long max = 64L << 20)
+	internal static async Task<byte[]> Fetch(HttpClient http, string name, Action<int>? read = null, long max = 64L << 20)
 	{
 		var feed = OS.IsDebugBuild() ? OS.GetEnvironment("QUIZNIGHT_MAPS_FEED").TrimEnd('/', '\\') : "";
 		if (feed.Length > 0 && !feed.StartsWith("http"))
