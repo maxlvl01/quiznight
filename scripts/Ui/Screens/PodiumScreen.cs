@@ -30,6 +30,8 @@ public partial class PodiumScreen : Control, IRoomScreen
 	readonly Control _stage = new() { ClipContents = true, MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ExpandFill };
 	Control? _awards, _bar, _list;
 	CreditsRoll? _credits;
+	/// <summary>True once the credits have rolled to their end (or were skipped); the dev runs wait for it.</summary>
+	public bool CreditsDone { get; private set; }
 	Button? _packButton;
 	Label? _note;
 	Tween? _show;
@@ -351,6 +353,7 @@ public partial class PodiumScreen : Control, IRoomScreen
 		_credits = new CreditsRoll(_results, _myId, () =>
 		{
 			_credits = null;
+			CreditsDone = true;
 			_awards.Visible = true;
 			_awards.Modulate = Colors.Transparent;
 			CreateTween().TweenProperty(_awards, "modulate", Colors.White, 0.6f);

@@ -84,6 +84,7 @@ public sealed class DevTools
 	string? _pilotKey;
 	double _pilotSince;
 	double? _finishedAt;
+	double? _creditsDoneAt;
 
 	Bot? _bot;
 
@@ -890,6 +891,12 @@ public sealed class DevTools
 			case Phase.Finished:
 				_finishedAt ??= _time;
 				if (_quitAtEnd && _time - _finishedAt > 3) _app.Quit();
+				// --quit-after-credits: wait until the podium show and the credits have run, so a recording holds all of it
+				else if (Has("--quit-after-credits"))
+				{
+					if (_app.CurrentScreen is PodiumScreen { CreditsDone: true }) _creditsDoneAt ??= _time;
+					if (_creditsDoneAt != null && _time - _creditsDoneAt > 4) _app.Quit();
+				}
 				break;
 		}
 	}

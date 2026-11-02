@@ -232,6 +232,12 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
   jukebox, gear and calendar buttons), a `Glyph` (`Ui/Widgets.cs`, 0.13.4b: one-colour SVG symbols, `button.On(Glyph.Kind.X)`
   tints with the button's font colours, `Glyph.Before(kind, label)` puts one in front of a text) or a coloured SVG like
   `Bolt` (filled, ink outline). Text marks like ✓ ✗ ★ ▶ are fine (monochrome font glyphs, not emoji).
+- **Recording a run (only when Max asks for one):** never capture the desktop (ffmpeg gdigrab filmed his Discord, 2026-11-02). Use Godot's own
+  movie writer per window: `--write-movie FILE.avi --fixed-fps 30` before the `--` (all windows come out 800×450, the splash size
+  override wins over `--resolution`), host with `--host QUIZ.zip --autopilot --players N --quit-after-credits` (quits 4 s after the
+  credits closed, so the AVI is finalized; a killed process leaves a broken file), bots `--bot NAME` (windowed ones get their own
+  movie; they quit by themselves when the room closes, `--headless` ones need no video). A 30-question night is ~6 min; convert
+  with ffmpeg (`-c:v libx264 -crf 26`, the AVIs are ~800 MB each).
 - **Custom cursors** (`assets/cursors`, `tools/make_cursors.py`) are set in `App.UseCursors`, cleared in `App._ExitTree`
   (else Godot reports their textures as leaked at exit).
 
