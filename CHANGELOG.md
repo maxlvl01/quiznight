@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.14.0d2]
+
 ### Added
 - **Race tracks for map questions:** all 22 circuits of the 2026 Formula 1 calendar (Bahrain and Jeddah are off it this
   year), from Albert Park to Yas Marina, each drawn true to scale so players see how many metres off their pin was. The
