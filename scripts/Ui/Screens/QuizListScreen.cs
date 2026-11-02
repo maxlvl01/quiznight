@@ -105,30 +105,19 @@ public partial class QuizListScreen : Control
 				dontAskAgain: Settings.AskBeforeDeletingQuiz ? () => Settings.AskBeforeDeletingQuiz = false : null,
 				option: option, optionChosen: on => dropMaps = on);
 		});
-		// Just the red can, no box. Under the mouse it grows, lights up and says "Delete?".
-		foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) button.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
-		var icon = new TrashIcon(new Color(C.Coral, 0.7f), 22);
-		var ask = U.Text("Delete?", 15, C.Coral, Fonts.Bold).With(l => l.Visible = false);
-		var row = GameParts.Row(6, ask, icon);
-		row.Alignment = BoxContainer.AlignmentMode.End;
-		row.SetAnchorsPreset(LayoutPreset.FullRect);
-		row.MouseFilter = MouseFilterEnum.Ignore;
-		foreach (var c in row.GetChildren().OfType<Control>()) c.MouseFilter = MouseFilterEnum.Ignore;
-		button.AddChild(row);
-		void Fit() => button.CustomMinimumSize = row.GetCombinedMinimumSize().Max(new Vector2(34, 34));
-		row.MinimumSizeChanged += Fit;
-		Fit();
-		Tween? grow = null;
-		void Hover(bool on)
-		{
-			ask.Visible = on;
-			icon.Color = on ? C.Coral.Lightened(0.25f) : new Color(C.Coral, 0.7f);
-			grow?.Kill();
-			grow = button.CreateTween();
-			grow.TweenProperty(icon, "custom_minimum_size", new Vector2(on ? 28 : 22, on ? 28 : 22), 0.12);
-		}
-		button.MouseEntered += () => Hover(true);
-		button.MouseExited += () => Hover(false);
+		// A square button like the others on the card (Max asked for one that fits in, without the "Delete?" text that
+		// showed under the mouse), the red can in it; the tooltip says what it does, and it lights up under the mouse.
+		button.TooltipText = Lang.T("Delete quiz");
+		var icon = new TrashIcon(new Color(C.Coral, 0.8f), 18) { MouseFilter = MouseFilterEnum.Ignore };
+		var center = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
+		center.SetAnchorsPreset(LayoutPreset.FullRect);
+		center.AddChild(icon);
+		button.AddChild(center);
+		var side = Mathf.Max(32, button.GetCombinedMinimumSize().Y);
+		button.CustomMinimumSize = new Vector2(side, side);
+		button.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+		button.MouseEntered += () => icon.Color = C.Coral.Lightened(0.25f);
+		button.MouseExited += () => icon.Color = new Color(C.Coral, 0.8f);
 		return button;
 	}
 
