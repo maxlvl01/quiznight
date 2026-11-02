@@ -198,8 +198,8 @@ public partial class TestLabScreen : Control
 		foreach (var (type, label) in new[]
 		{
 			("classic", "Classic"), ("choice", "A B C D"), ("multi", "Multiple choice"), ("picture", "Picture"),
-			("image", "Picture · reveal"), ("estimation", "Estimation"), ("mapPin", "Map pin"), ("wow", "WoW Forever map"),
-			("sound", "Sound"), ("video", "Video"), ("order", "Put in order"), ("timeline", "Timeline"),
+			("image", "Picture · reveal"), ("estimation", "Estimation"), ("mapPin", "Map"), ("wow", "WoW Forever map"),
+			("sound", "Audio"), ("video", "Video"), ("order", "Put in order"), ("timeline", "Timeline"),
 			("steps", "Step by step"), ("interactive", "Interactive"),
 		})
 			types.AddChild(U.Small(label, () => OpenSample(type)));

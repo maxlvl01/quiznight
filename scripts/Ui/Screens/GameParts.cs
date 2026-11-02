@@ -287,13 +287,15 @@ public static class GameParts
 		return panel;
 	}
 
-	/// <summary>Estimation: "ℹ Hours played per game · Data as of 1 November 2026" under the question, if it has either.</summary>
+	/// <summary>Estimation: "(i) Hours played per game · Data as of 1 November 2026" under the question, if it has either.</summary>
 	public static Control? InfoLine(PublicQuestion q, int size = 16)
 	{
 		if (q.Info == null && q.DataAsOf == null) return null;
-		var row = Row(10, U.Text("ℹ", size, C.Teal, Fonts.Black));
-		if (q.Info != null) row.AddChild(U.Text(q.Info, size, C.Text, null, true).Raw().Grow());
-		if (q.DataAsOf != null) row.AddChild(U.Text(Lang.F("Data as of {0}", q.DataAsOf), size, C.Muted, Fonts.Bold, q.Info == null).Raw().With(l => { if (q.Info == null) l.Grow(); }));
+		// (the date gets its own line under the info, wrapping: side by side, a long "after the Mexico City GP" ran off the panel)
+		var texts = U.V(2);
+		if (q.Info != null) texts.AddChild(U.Text(q.Info, size, C.Text, null, true).Raw());
+		if (q.DataAsOf != null) texts.AddChild(U.Text(Lang.F("Data as of {0}", q.DataAsOf), size - 2, C.Muted, Fonts.Bold, true).Raw());
+		var row = Row(10, Glyph.Rect(Glyph.Kind.Info, size + 2, C.Teal).With(r => r.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin), texts.Grow());
 		var panel = U.Panel(row, "Clear");
 		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(C.Teal, 0.08f), 10, C.Teal, 1, 12, 6));
 		return panel;

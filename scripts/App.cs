@@ -133,6 +133,8 @@ public partial class App : Control
 		if (args.Contains("--lan-locked")) LanUnlocked = false;
 		// (built-in maps like an export: from user://maps/, downloaded when missing; QUIZNIGHT_MAPS_FEED for a local list)
 		if (args.Contains("--map-packs")) MapPacks.Simulate = true;
+		// (dev: map packs and the tour's sample quiz from the private test repo, like a test build)
+		if (args.Contains("--maps-from-test-repo")) MapPacks.FromTestRepo = true;
 		if (!args.Contains("--no-steam") && !args.Contains("--selftest") && !args.Contains("--bot")) SteamService.Init();
 		_dev = DevTools.FromArgs(this, args);
 		if (_dev?.TakesOver == true) return;
@@ -175,6 +177,8 @@ public partial class App : Control
 			if (Updater.Enabled) Updater.CleanUp();
 			// (an update from before 0.12.8b left the maps folder next to the game: the quizzes' maps move, the rest goes)
 			MapPacks.MoveOldMaps();
+			// (the tour's sample quiz left behind by a game closed during the tour)
+			TourDownload.DeleteFiles();
 			UpdatePrompt.CheckAndInstall(this);
 		}
 		if (cards != null) cards.TreeExited += Popups;

@@ -35,7 +35,7 @@ public static class QuestionType
 
 	public static readonly Dictionary<string, Info> Infos = new()
 	{
-		[MapPin] = new("Map pin", "map pin", "Show a screenshot. Players pin the spot on a map. Closest wins.",
+		[MapPin] = new("Map", "map", "Show a screenshot. Players pin the spot on a map. Closest wins.",
 			"Show a screenshot (or none), and everyone places a pin on a map. The closest pin wins.",
 			new[]
 			{
@@ -70,7 +70,7 @@ public static class QuestionType
 				"Answer it like a classic question: buzzer, everyone types, A B C D or multiple choice. A bonus works too.",
 				"Reveal: the picture starts zoomed right in or pixelated and gets clearer over time; players buzz in or type as soon as they know it.",
 			}),
-		[Sound] = new("Sound", "sound", "Play a song or sound effect. Players buzz in; shows how fast it was guessed.",
+		[Sound] = new("Audio", "audio", "Play a song or sound effect. Players buzz in; shows how fast it was guessed.",
 			"Play a song or sound effect (MP3, OGG or WAV). It plays on the players' PCs too, once you press Start.",
 			new[]
 			{

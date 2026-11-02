@@ -23,6 +23,8 @@ public static class QuizStore
 
 	// Parsing files with big images is slow, so loaded quizzes are kept in memory.
 	static readonly Dictionary<string, Quiz> Cache = new();
+	// (each file's write time when it was read or saved: a rescan only reads files that are new or changed since)
+	static readonly Dictionary<string, DateTime> Stamps = new();
 	static bool _scanned;
 
 	/// <summary>Random id (24 hex characters).</summary>
@@ -45,28 +47,46 @@ public static class QuizStore
 
 	public static List<Quiz> List()
 	{
-		if (!_scanned)
+		if (!_scanned) Rescan();
+		return Cache.Values.OrderByDescending(q => q.UpdatedAt).ToList();
+	}
+
+	/// <summary>
+	/// Reads the quizzes folder again: files that are new or changed since they were read (dropped in by hand, copied over
+	/// from another PC) come in, deleted ones go. Before 0.13.5 the folder was read once per run, so those only showed
+	/// after a restart. My quizzes does this each time it opens and on its refresh button.
+	/// </summary>
+	public static void Rescan()
+	{
+		Directory.CreateDirectory(FolderPath);
+		var seen = new HashSet<string>();
+		foreach (var file in Directory.GetFiles(FolderPath, "*" + Extension))
 		{
-			Directory.CreateDirectory(FolderPath);
-			foreach (var file in Directory.GetFiles(FolderPath, "*" + Extension))
+			var id = Path.GetFileName(file)[..^Extension.Length];
+			seen.Add(id);
+			try
 			{
-				try
+				var stamp = File.GetLastWriteTimeUtc(file);
+				if (Cache.ContainsKey(id) && Stamps.TryGetValue(id, out var known) && known == stamp) continue;
+				var quiz = QuizJson.Parse(File.ReadAllText(file), out _);
+				if (quiz != null && quiz.Id == id)
 				{
-					var quiz = QuizJson.Parse(File.ReadAllText(file), out _);
-					if (quiz != null && quiz.Id != "" && Path.GetFileName(file) == quiz.Id + Extension)
-					{
-						DateQuestions(quiz);
-						Cache[quiz.Id] = quiz;
-					}
-				}
-				catch (IOException e)
-				{
-					GD.PrintErr($"Couldn't read {file}: {e.Message}");
+					DateQuestions(quiz);
+					Cache[id] = quiz;
+					Stamps[id] = stamp;
 				}
 			}
-			_scanned = true;
+			catch (IOException e)
+			{
+				GD.PrintErr($"Couldn't read {file}: {e.Message}");
+			}
 		}
-		return Cache.Values.OrderByDescending(q => q.UpdatedAt).ToList();
+		foreach (var gone in Cache.Keys.Where(id => !seen.Contains(id)).ToList())
+		{
+			Cache.Remove(gone);
+			Stamps.Remove(gone);
+		}
+		_scanned = true;
 	}
 
 	public static Quiz? Get(string id)
@@ -88,6 +108,8 @@ public static class QuizStore
 	/// <summary>Saves a quiz. Throws UserError when the disk says no.</summary>
 	public static Quiz Save(Quiz quiz)
 	{
+		// (the guided tour's sample quiz only lives in memory: never written to My quizzes, even by Ctrl+S during the tour)
+		if (quiz.Id == TourDownload.Id) return quiz;
 		DateQuestions(quiz);
 		// Drop maps no question uses anymore, so saved and exported quizzes stay small.
 		var used = quiz.Questions.Where(q => q.Type == QuestionType.MapPin && q.MapId != null).Select(q => q.MapId).ToHashSet();
@@ -109,12 +131,14 @@ public static class QuizStore
 			throw new UserError(Lang.F("Saving failed: {0}", e.Message));
 		}
 		Cache[quiz.Id] = quiz;
+		Stamps[quiz.Id] = File.GetLastWriteTimeUtc(path);
 		return quiz;
 	}
 
 	public static void Delete(string id)
 	{
 		Cache.Remove(id);
+		Stamps.Remove(id);
 		var path = PathFor(id);
 		if (File.Exists(path)) File.Delete(path);
 		NightSaves.Delete(id);

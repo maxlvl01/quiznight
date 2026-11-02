@@ -115,8 +115,11 @@ the original design decisions; most still apply.
   every 2 s from the screen and the room (never the room code); off with `Settings.DiscordPresence`, in headless runs and
   in dev runs with arguments. The Discord app's art asset key is `logo`.
 - **Guided tour** (`Ui/Tutorial.cs`, `Tutorial.Guided`): offered once on Home, Settings' "Take the tour" starts it again.
-  Steps say their screen (`Step.Where`) and the overlay opens it; the sample quiz is `Tutorial.TourQuiz()`, in memory
-  only. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
+  Steps say their screen (`Step.Where`) and the overlay opens it. The sample quiz (in memory only, id `TourDownload.Id`,
+  which `QuizStore.Save` skips) is "Test Night", downloaded in the background when the tour starts (`Storage/TourDownload`,
+  `tour.quiznight.zip` + `.sig` on the maps release: `tools/tour_quiz.sh [--test] QUIZ.zip`), deleted when it ends; not there
+  in time or offline = the built-in `Tutorial.TourQuiz()`. `--tour-wait` (with a local `QUIZNIGHT_MAPS_FEED` from
+  `tools/tour_quiz.sh --dry-run`) shows the downloaded one. New screens' parts are pointed at with `Tutorial.Mark(control, "key")`. `--screen home --tutorial guided
   --tutorial-step N` for screenshots.
 - **Podium** (`Ui/Screens/PodiumScreen`): built once from the first finished state (`Shared.FinalResults`), never
   again, so leaving can't change it (and `Room.Leave` keeps the seat in `Finished` too). Podium + score list big in the
@@ -213,6 +216,7 @@ dotnet build "QuizNight!.csproj"                              # compile — run 
 monitor's fullscreen resolutions: Windows switches the monitor itself in fullscreen, `Storage/DisplayModes.cs`), `--screen settings --window-mode fullscreen` (the settings as if that mode were picked), `--shot FILE --after SEC` (screenshot runs ignore the saved window, so `--resolution` and `--fullscreen --screen N` apply)
 (see `DevTools.cs`). Full solo test: host with `--autopilot --players 2` plus two `--bot` instances.
 Screenshots need a window (no `--headless`); the window opens briefly on the user's screen.
+Windows shell: use `py` (not `python`) for scripts; `node -e` works for multi-line scripted edits. `--start-at N` is 1-based.
 
 ## Gotchas learned so far
 
@@ -232,6 +236,14 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
   jukebox, gear and calendar buttons), a `Glyph` (`Ui/Widgets.cs`, 0.13.4b: one-colour SVG symbols, `button.On(Glyph.Kind.X)`
   tints with the button's font colours, `Glyph.Before(kind, label)` puts one in front of a text) or a coloured SVG like
   `Bolt` (filled, ink outline). Text marks like ✓ ✗ ★ ▶ are fine (monochrome font glyphs, not emoji).
+- **Recording a run (only when Max asks for one):** never capture the desktop (ffmpeg gdigrab filmed his Discord, 2026-11-02). Use Godot's own
+  movie writer per window: `--write-movie FILE.avi --fixed-fps 30` before the `--` (all windows come out 800×450, the splash size
+  override wins over `--resolution`), host with `--host QUIZ.zip --autopilot --players N --quit-after-credits` (quits 4 s after the
+  credits closed, so the AVI is finalized; a killed process leaves a broken file), bots `--bot NAME` (windowed ones get their own
+  movie; they quit by themselves when the room closes, `--headless` ones need no video). A 30-question night is ~6 min; convert
+  with ffmpeg (`-c:v libx264 -crf 26`, the AVIs are ~800 MB each).
+- **My quizzes list:** `QuizStore.List()` caches; `Rescan()` re-reads only new or changed files (`Stamps`) and runs each time the
+  screen opens (plus a Refresh button), so quiz files dropped into the folder show up without a restart.
 - **Custom cursors** (`assets/cursors`, `tools/make_cursors.py`) are set in `App.UseCursors`, cleared in `App._ExitTree`
   (else Godot reports their textures as leaked at exit).
 
@@ -270,9 +282,10 @@ Screenshots need a window (no `--headless`); the window opens briefly on the use
   draft on the public repo now (nobody had downloaded it); drafts aren't deleted either.
 - **Releases & updates:** `tools/release.sh` exports, zips and publishes a GitHub release on the public code repo
   `maxlvl01/quiznight` (`Updater.ReleasesRepo`; it was `quiznight-godot` until 0.13.5, the old web version is the archived
-  `quiznight-web`). Games before 0.13.5 check the old downloads-only `maxlvl01/quiznight-releases` (`LegacyReleasesRepo`):
-  release.sh copies each public release there too (zips and signed update lists; the packs stay where they are), so they
-  update to a version that knows the new repo. Never delete or rename it. Exported games check
+  `quiznight-web`). Games before 0.13.5 check the old downloads-only `maxlvl01/quiznight-releases` (`LegacyReleasesRepo`),
+  whose newest release is 0.13.5b (the bridge: it knows the new repo), so they update to that and then follow the new
+  repo; nothing is copied there any more (`release.sh`'s `LEGACY` is off). Never delete or rename it, and no release
+  newer than 0.13.5b goes there (its update lists point into it). Exported games check
   it at startup (`Storage/Updater.cs`) and update themselves; "What's new" is read from the shipped
   CHANGELOG.md, so its `## [version]` / `### Added|Changed|Fixed|Removed` layout matters.
   **Updates are signed:** `release.sh` signs each zip and update list (`<file>.sig`, `openssl dgst -sha256 -sign`) with Max's

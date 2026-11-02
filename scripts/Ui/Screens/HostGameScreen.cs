@@ -40,14 +40,16 @@ public partial class HostGameScreen : Control, IRoomScreen
 		// (a question players can't see yet is shown to the host as it is: players see everything on their own
 		// screens, so the host's screen needn't be streamed and they can read it out before showing it)
 		var stageCard = U.Panel(U.V(14, _head, _media, _content).GrowV()).GrowV();
-		var stage = U.V(12, stageCard, _controls).Grow(3).GrowV();
-		var stageScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.Grow(3).GrowV();
-		stageScroll.AddChild(stage);
+		// (the card scrolls when a question is taller than the window; the buttons under it stay put, so Reveal and
+		// Correct/Wrong never end up below the fold)
+		var stageScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.GrowV();
+		stageScroll.AddChild(stageCard.Grow());
+		var stage = U.V(12, stageScroll, _controls).Grow(3).GrowV();
 		var side = U.Panel(_side).MinSize(380).GrowV();
 		// (wider than the players' column: the host's score rows also hold the − and + keys)
 		var sideScroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled }.MinSize(390).GrowV();
 		sideScroll.AddChild(side.Grow());
-		var body = U.Pad(U.H(16, stageScroll, sideScroll), 16, 16, 16, 16).GrowV();
+		var body = U.Pad(U.H(16, stage, sideScroll), 16, 16, 16, 16).GrowV();
 		var layout = U.V(0, _bar, body);
 		layout.SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(layout);

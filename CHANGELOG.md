@@ -13,6 +13,55 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 
 ## [Unreleased]
 
+## [0.13.6d4]
+
+### Changed
+- The test builds are renumbered: 0.13.5d1 to d3 are 0.13.6d1 to d3 now, because 0.13.5b went out on its own with only
+  the move of the downloads to github.com/maxlvl01/quiznight. This build has that too.
+
+## [0.13.6d3]
+
+### Changed
+
+- The guided tour now walks through a real quiz: "Test Night", 30 questions with one of every question type, pictures, sound and video (Max's idea). It's too big to ship with the game (13 MB), so it downloads in the background while the tour's first steps are on the home screen and the quiz list, and it's deleted again when the tour ends. It only lives in memory: it never shows up in My quizzes, and saving during the tour (Ctrl+S) writes nothing. If it hasn't arrived by the time the tour opens the quiz (slow internet, offline), the tour uses the small built-in sample quiz as before.
+
+## [0.13.6d2]
+
+### Added
+- **Arrows in the question editor to go to the previous or next question.** Top right, next to "Preview": the left
+  arrow opens the question before this one in the play order, the right arrow the one after it, and between them
+  you see where you are ("3 / 15"). Ctrl+Page Up and Ctrl+Page Down do the same. If the question has changes you
+  haven't saved, it asks first, with "Save them first" ticked (untick it to leave them behind). Before, you had to
+  go back to the quiz page for every question. (Thanks for the idea, Max!)
+
+## [0.13.6d1]
+
+### Fixed
+- **The host's buttons no longer slip off the bottom of the screen.** On a long question with a picture and four
+  answers (found in a test night with the paella question), "Reveal answer", "Hold to peek" and "+5 s" were pushed below
+  the window, so the host saw only their top edges and had to scroll down to reveal. The question card and the buttons
+  under it scrolled as one block. Now only the card scrolls and the buttons stay pinned underneath, always in view.
+  Pictures in a question also give way a bit more before anything has to scroll (they can still be clicked to see
+  them big), which helps players on the same questions too. (Thanks for asking for the test run, Max!)
+- **"Data as of" on estimation questions gets its own line.** With an explanation next to it, the date note sat
+  beside it without wrapping, so a longer note ran off the edge of its box. It now sits under the explanation and wraps,
+  and the little "i" in front is a drawn icon instead of Windows' blue emoji.
+- **Drop-down lists don't flash a scrollbar any more.** A short list that doesn't need scrolling showed its scrollbar
+  for a few frames while it rolled open: during the animation the list is briefly smaller than its items, so the
+  scrollbar popped up and vanished again. It now stays hidden while the list opens and only shows for lists that
+  really scroll. (Thanks for the report, Max!)
+- **Mini games: one line per rivalry.** In the lobby's mini games, each rivalry ("Ann 3 – 1 Ben · Pong · Ann ×2 in a
+  row") was one long sentence that wrapped over two or three lines in the narrow column, so you couldn't tell where
+  one rivalry ended and the next began. Each is now one row: the names and score, the game small on the right and a
+  streak as "×2" (hover for the whole line). (Thanks for the report, Max!)
+
+### Changed
+- **My quizzes reads the folder again every time you open it**, and has a "Refresh" button. The list used to be read
+  once per run, so a quiz file you copied into the quizzes folder yourself only showed up after restarting the game.
+  New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
+- **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
+  is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
+
 ## [0.13.5b]
 
 ### Changed
