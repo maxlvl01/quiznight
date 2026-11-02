@@ -47,7 +47,9 @@ grep -q "^## \[$VERSION\]" CHANGELOG.md || { echo "CHANGELOG.md has no section '
 # one version with everything (tools/fold_changelog.py; commit CHANGELOG.md afterwards). Test builds keep their own.
 if [ -z "$TEST" ] && [ -z "$DRY" ]; then
 	# (the first release on the new repo: the last public one is still the old repo's)
-	LAST_PUBLIC=$( (gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null || gh api "repos/$LEGACY/releases/latest" --jq .tag_name) | sed 's/^v//')
+	# (gh api prints GitHub's error to stdout too: only a successful answer counts)
+	LAST_PUBLIC=$(gh api "repos/$REPO/releases/latest" --jq .tag_name 2>/dev/null) || LAST_PUBLIC=$(gh api "repos/$LEGACY/releases/latest" --jq .tag_name)
+	LAST_PUBLIC=${LAST_PUBLIC#v}
 	py -I tools/fold_changelog.py CHANGELOG.md "$VERSION" "$LAST_PUBLIC"
 fi
 # Every file the game installs from is signed with Max's release key (ECDSA P-256), which never leaves his PC: the game
