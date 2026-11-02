@@ -105,10 +105,11 @@ public partial class QuizListScreen : Control
 				dontAskAgain: Settings.AskBeforeDeletingQuiz ? () => Settings.AskBeforeDeletingQuiz = false : null,
 				option: option, optionChosen: on => dropMaps = on);
 		});
-		// A square button like the others on the card (Max asked for one that fits in, without the "Delete?" text that
-		// showed under the mouse), the red can in it; the tooltip says what it does, and it lights up under the mouse.
+		// A small red key like the others on the card (Max asked for one that fits in, red, without the "Delete?" text that
+		// showed under the mouse), the can in it in the key's dark ink; the tooltip says what it does.
+		button.ThemeTypeVariation = "SmallCoralButton";
 		button.TooltipText = Lang.T("Delete quiz");
-		var icon = new TrashIcon(new Color(C.Coral, 0.8f), 18) { MouseFilter = MouseFilterEnum.Ignore };
+		var icon = new TrashIcon(new Color("#2a0a0e"), 18) { MouseFilter = MouseFilterEnum.Ignore };
 		var center = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
 		center.SetAnchorsPreset(LayoutPreset.FullRect);
 		center.AddChild(icon);
@@ -116,8 +117,6 @@ public partial class QuizListScreen : Control
 		var side = Mathf.Max(32, button.GetCombinedMinimumSize().Y);
 		button.CustomMinimumSize = new Vector2(side, side);
 		button.SizeFlagsVertical = SizeFlags.ShrinkCenter;
-		button.MouseEntered += () => icon.Color = C.Coral.Lightened(0.25f);
-		button.MouseExited += () => icon.Color = new Color(C.Coral, 0.8f);
 		return button;
 	}
 
