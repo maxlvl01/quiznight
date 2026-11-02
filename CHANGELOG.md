@@ -14,6 +14,16 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Added
+- **Group your quiz by question type:** on the quiz page, "By type" now shows a heading for each type with ▲ ▼, just
+  like "By category", so you can move all the map questions before the music ones and then press "Play in this order".
+  The quiz remembers the order. Asked for by Max.
+
+### Fixed
+- **"My quizzes" broke onto two lines when an update was out** (reported by Max). The "Update to …" button sat in the
+  same row as the heading and the five buttons, squeezing the heading and stretching the buttons. It now sits above
+  them, next to "← Home".
+
 ## [0.14.0d2]
 
 ### Added

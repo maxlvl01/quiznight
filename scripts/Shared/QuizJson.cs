@@ -41,13 +41,17 @@ public static class QuizJson
 			UpdatedAt = (long)Num(o, "updatedAt", 0),
 			Maps = maps.OfType<JsonObject>().Select(ReadMap).ToList(),
 			Questions = qs.OfType<JsonObject>().Select(ReadQuestion).ToList(),
-			CategoryOrder = o["categoryOrder"] is JsonArray order
-				? order.Select(n => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null).OfType<string>().Where(s => s != "").Distinct().Take(200).ToList()
-				: new(),
+			CategoryOrder = Strings(o["categoryOrder"], 200),
+			TypeOrder = Strings(o["typeOrder"], 50).Where(QuestionType.All.Contains).ToList(),
 		};
 		SkyrimCrop.Migrate(quiz);
 		return quiz;
 	}
+
+	/// <summary>A list of names (an order): the strings in it, each once, at most max; anything else is left out.</summary>
+	static List<string> Strings(JsonNode? node, int max) => node is JsonArray list
+		? list.Select(n => n is JsonValue v && v.TryGetValue<string>(out var s) ? s : null).OfType<string>().Where(s => s != "").Distinct().Take(max).ToList()
+		: new();
 
 	public static string Write(Quiz quiz, bool indented = false)
 	{
@@ -62,6 +66,7 @@ public static class QuizJson
 			["questions"] = new JsonArray(quiz.Questions.Select(q => (JsonNode)WriteQuestion(q)).ToArray()),
 		};
 		if (quiz.CategoryOrder.Count > 0) o["categoryOrder"] = new JsonArray(quiz.CategoryOrder.Select(c => (JsonNode)JsonValue.Create(c)!).ToArray());
+		if (quiz.TypeOrder.Count > 0) o["typeOrder"] = new JsonArray(quiz.TypeOrder.Select(t => (JsonNode)JsonValue.Create(t)!).ToArray());
 		return o.ToJsonString(new JsonSerializerOptions { WriteIndented = indented });
 	}
 

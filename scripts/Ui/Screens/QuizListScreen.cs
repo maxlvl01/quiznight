@@ -20,17 +20,18 @@ public partial class QuizListScreen : Control
 	public QuizListScreen()
 	{
 		SetAnchorsPreset(LayoutPreset.FullRect);
+		// (the heading stays on one line and the buttons at their height: the update badge sits in the Home row above)
 		var head = U.H(10,
-			U.Heading("My quizzes", 34).Grow(),
-			new UpdateBadge(),
+			U.Heading("My quizzes", 34, false).Grow(),
 			Tutorial.Mark(U.H(10,
 				U.Btn("Refresh", "", () => { QuizStore.Rescan(); Refresh(); }).On(Glyph.Kind.Refresh, 16)
 					.Tip("Reads the quizzes folder again, for quiz files you put there yourself"),
 				U.Btn("Open folder", "", () => OS.ShellOpen(QuizStore.Folder)).Tip("Where your quiz files are saved"),
 				U.Btn("Import file", "", Import),
 				U.Btn("Paste share code", "", PasteCode).Tip("Imports the share code you copied"),
-				U.Btn("New quiz", "AccentButton", Create)), "quizzes.bar"));
-		var page = U.V(14, U.Link("← Home", () => App.I.GoHome()).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin), head, _error, _undo, _deleted, _list);
+				U.Btn("New quiz", "AccentButton", Create)).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter), "quizzes.bar"));
+		var top = U.H(10, U.Link("← Home", () => App.I.GoHome()).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin), U.Fill(), new UpdateBadge());
+		var page = U.V(14, top, head, _error, _undo, _deleted, _list);
 		AddChild(U.Page(page, 980, 20));
 		// (the folder again each time the list opens, so quiz files copied in by hand show without a restart)
 		QuizStore.Rescan();

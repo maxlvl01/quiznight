@@ -371,11 +371,12 @@ public sealed class DevTools
 					break;
 				case "quiz":
 				{
-					// (--list play|type|category|created: the list shown that way; --category-order a,b,c: the quiz's categories' order)
+					// (--list play|type|category|created: the list shown that way; --category-order a,b,c: the quiz's categories' order; --type-order a,b: its types' order)
 					if (Value("--list") is { } listed) QuizOverviewScreen.ListedBy = listed;
 					// (--tour-quiz: the guided tour's sample, which has categories)
 					var sample = Has("--tour-quiz") ? Ui.Tutorial.TourQuiz() : SampleQuiz.Build();
 					if (Value("--category-order") is { } order) sample.CategoryOrder = order.Split(',').ToList();
+					if (Value("--type-order") is { } types) sample.TypeOrder = types.Split(',').ToList();
 					_app.GoQuiz(QuizStore.Save(sample).Id);
 					break;
 				}

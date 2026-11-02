@@ -601,6 +601,12 @@ public static class SelfTest
 		var reread = QuizJson.Parse(QuizJson.Write(ordered), out _);
 		Check(reread != null && reread.CategoryOrder.SequenceEqual(ordered.CategoryOrder) && QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.CategoryOrder.Count == 0,
 			"a quiz keeps its categories' order (and one without stays without)");
+		ordered.TypeOrder = new() { QuestionType.Sound, QuestionType.MapPin };
+		var typed = SampleQuiz.Build();
+		typed.TypeOrder = new() { QuestionType.Sound, "nonsense", QuestionType.MapPin };
+		Check(QuizJson.Parse(QuizJson.Write(ordered), out _)!.TypeOrder.SequenceEqual(ordered.TypeOrder)
+			&& QuizJson.Parse(QuizJson.Write(typed), out _)!.TypeOrder.SequenceEqual(ordered.TypeOrder),
+			"a quiz keeps its question types' order (unknown types are dropped)");
 
 		var informed = SampleQuiz.Build();
 		var est = informed.Questions.First(q => q.Type == QuestionType.Estimation);
