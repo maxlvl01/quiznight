@@ -34,8 +34,8 @@ To try it alone, use LAN mode: open the game twice (or more) and join `127.0.0.1
 
 | Repo | What it's for |
 |------|---------------|
-| [`quiznight-godot`](https://github.com/maxlvl01/quiznight-godot) | The code (this repo). |
-| [`quiznight-releases`](https://github.com/maxlvl01/quiznight-releases) | Public downloads. Installed games update themselves from here, so its address must never change. |
+| [`quiznight`](https://github.com/maxlvl01/quiznight) | The code and the downloads (this repo; called quiznight-godot before 0.13.5). Games from 0.13.5 on update themselves from its releases. |
+| [`quiznight-releases`](https://github.com/maxlvl01/quiznight-releases) | The old downloads. Games before 0.13.5 look for updates here, so every public release is copied there too; never delete or rename it. |
 | `quiznight-test-releases` (private) | Test builds Max tries before they go public. |
 | `quiznight-results` (private) | Quiz night results for the eternal table, bug reports and share codes. Kept apart on purpose: the game ships a token that can write to that repo, so it must not be the code repo. |
 | `quiznight-web` (private, archived) | The old web version, kept for reference only. |

@@ -3,7 +3,8 @@
 # on a "maps" release (a pre-release, never "latest", so the update check doesn't see it).
 #   tools/map_packs.sh --test     to the private maxlvl01/quiznight-test-releases: test builds take their maps from
 #                                 there, so new or changed maps are tried first, like the game itself
-#   tools/map_packs.sh            to the public maxlvl01/quiznight-releases (only once Max says the maps are fine)
+#   tools/map_packs.sh            to the public maxlvl01/quiznight (only once Max says the maps are fine; games before
+#                                 0.13.5 keep using the old maxlvl01/quiznight-releases maps release)
 #   … --check                     only say whether the published maps match assets/maps (exit 1 if not)
 #   … --dry-run                   build and sign, upload nothing
 # Run it before a (test) release whenever a map was added or changed: games from 0.12.8b on don't ship the maps.
@@ -18,7 +19,7 @@ for arg in "$@"; do
 		*) echo "Unknown option $arg"; exit 1 ;;
 	esac
 done
-REPO="maxlvl01/quiznight-releases"
+REPO="maxlvl01/quiznight"
 [ -n "$TEST" ] && REPO="maxlvl01/quiznight-test-releases"
 TAG="maps"
 OUT="build/map-packs"

@@ -3,7 +3,7 @@
 # of every question type), signed with Max's release key, as tour.quiznight.zip(.sig) on the "maps" release next to the
 # map packs.
 #   tools/tour_quiz.sh --test QUIZ.zip    to the private maxlvl01/quiznight-test-releases (test builds take it from there)
-#   tools/tour_quiz.sh QUIZ.zip           to the public maxlvl01/quiznight-releases (only once Max says it's fine)
+#   tools/tour_quiz.sh QUIZ.zip           to the public maxlvl01/quiznight (only once Max says it's fine)
 #   tools/tour_quiz.sh --dry-run QUIZ.zip sign into build/tour-quiz/, upload nothing (QUIZNIGHT_MAPS_FEED=that folder tries it)
 #   tools/tour_quiz.sh --check [--test]   only say whether the release has it (exit 1 if not)
 # The maps release must exist (tools/map_packs.sh makes it).
@@ -18,7 +18,7 @@ for arg in "$@"; do
 		*) QUIZ="$arg" ;;
 	esac
 done
-REPO="maxlvl01/quiznight-releases"
+REPO="maxlvl01/quiznight"
 [ -n "$TEST" ] && REPO="maxlvl01/quiznight-test-releases"
 TAG="maps"
 if [ "$MODE" = "--check" ]; then

@@ -1,4 +1,5 @@
-// Updates the game from GitHub: the public repo ReleasesRepo has one release per version (tag "v0.5.0a")
+// Updates the game from GitHub: the public repo ReleasesRepo (the code repo, maxlvl01/quiznight, since 0.13.5; before
+// that the downloads-only maxlvl01/quiznight-releases, LegacyReleasesRepo) has one release per version (tag "v0.5.0a")
 // with the builds as "Quiznight-<version>-windows.zip" and "…-linux.zip", plus "update-windows.json" /
 // "update-linux.json": every file of the build with its SHA-256 and the pack (a zip: game, engine, maps or
 // AnyConverter) it's in, maybe in an older release (tools/manifest.py). At startup the game asks for the latest
@@ -30,7 +31,10 @@ namespace QuizNight.Storage;
 
 public static class Updater
 {
-	public const string ReleasesRepo = "maxlvl01/quiznight-releases";
+	public const string ReleasesRepo = "maxlvl01/quiznight";
+	/// <summary>Where games before 0.13.5 look for updates (and maps). Never deleted or renamed: release.sh publishes each
+	/// public release there too, so an old game updates to one that knows ReleasesRepo, and their update packs live there.</summary>
+	public const string LegacyReleasesRepo = "maxlvl01/quiznight-releases";
 	public const string TestRepo = "maxlvl01/quiznight-test-releases";
 
 	/// <summary>An internal test build: it has test-channel.txt next to the game and updates from TestRepo.</summary>
