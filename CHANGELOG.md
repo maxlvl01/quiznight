@@ -14,6 +14,10 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **Race tracks show more of what's around them:** lakes, rivers, bays and parks that were missing are now drawn, like
+  the lake inside Albert Park, the river around Montreal's island, Singapore's Marina Bay and the marina at Yas Marina.
+
 ## [0.14.0b] — "Lights Out": Formula 1 race tracks, team names, deleted quizzes you can bring back and grouping by question type
 
 ### Added
