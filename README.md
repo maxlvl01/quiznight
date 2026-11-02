@@ -38,7 +38,7 @@ To try it alone, use LAN mode: open the game twice (or more) and join `127.0.0.1
 | [`quiznight-releases`](https://github.com/maxlvl01/quiznight-releases) | Public downloads. Installed games update themselves from here, so its address must never change. |
 | `quiznight-test-releases` (private) | Test builds Max tries before they go public. |
 | `quiznight-results` (private) | Quiz night results for the eternal table, bug reports and share codes. Kept apart on purpose: the game ships a token that can write to that repo, so it must not be the code repo. |
-| `quiznight` (private, archived) | The old web version, kept for reference only. |
+| `quiznight-web` (private, archived) | The old web version, kept for reference only. |
 
 ## License
 
