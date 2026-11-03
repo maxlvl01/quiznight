@@ -19,6 +19,11 @@ On GitHub, each version heading links to its release, where the download is.
   the screen stutter when its question is shown. The host's game saves the night at most once a second instead of on
   every click at a reveal, and a few things the game checked every frame (settings, the Windows "reduce motion" option,
   idle sound bars) are now looked up once and remembered.
+- **Less work for the host when lots happens at once:** every answer, buzz, joker and click used to send the whole room
+  to every player straight away, and the host's game worked out the scoreboard, teams and stats again for each player.
+  Now everything that changes within one frame goes out together, once, and the parts that are the same for everyone are
+  worked out once per send. With many players answering at the same moment the host's game stays smooth, and the
+  messages themselves are made with less copying.
 
 ## [0.14.1b]
 

@@ -654,9 +654,21 @@ public static class Msg
 
 	public static byte[] Encode(string type, object? payload = null)
 	{
-		var o = new JsonObject { ["t"] = type };
-		if (payload != null) o["d"] = JsonSerializer.SerializeToNode(payload, payload.GetType(), Json);
-		return Encoding.UTF8.GetBytes(o.ToJsonString());
+		// (written straight to UTF-8: the state goes out to every player many times a minute, and going through a
+		// JsonNode tree and a string first cost three copies of it)
+		var buffer = new System.Buffers.ArrayBufferWriter<byte>(1024);
+		using (var w = new Utf8JsonWriter(buffer))
+		{
+			w.WriteStartObject();
+			w.WriteString("t", type);
+			if (payload != null)
+			{
+				w.WritePropertyName("d");
+				JsonSerializer.Serialize(w, payload, payload.GetType(), Json);
+			}
+			w.WriteEndObject();
+		}
+		return buffer.WrittenSpan.ToArray();
 	}
 
 	/// <summary>Splits a message into its type and payload. Null if it isn't valid.</summary>

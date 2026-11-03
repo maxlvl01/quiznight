@@ -364,6 +364,17 @@ public sealed class Room : IGameHooks
 	/// <summary>The room as one viewer may see it: "host", or a player id.</summary>
 	public RoomState ToState(string viewer)
 	{
+		var state = SharedState();
+		state.Game = ViewFor(viewer);
+		return state;
+	}
+
+	/// <summary>The current question as one viewer sees it (null outside the game).</summary>
+	public GameView? ViewFor(string viewer) => Game != null && Phase == Shared.Phase.Playing ? Game.View(viewer) : null;
+
+	/// <summary>The state without the game view: the same for every viewer, so a broadcast makes it once (HostSession).</summary>
+	public RoomState SharedState()
+	{
 		var (order, places) = Ranking();
 		return new()
 		{
@@ -376,7 +387,6 @@ public sealed class Room : IGameHooks
 			}),
 			Code = Code,
 			Quiz = new QuizInfo { Id = Quiz.Id, Title = Quiz.Title, QuestionCount = Quiz.Questions.Count },
-			Game = Game != null && Phase == Shared.Phase.Playing ? Game.View(viewer) : null,
 			Scores = new Dictionary<string, int>(Scores),
 			ServerNow = Now(),
 			Phase = Phase,
