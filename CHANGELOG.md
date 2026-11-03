@@ -20,6 +20,9 @@ On GitHub, each version heading links to its release, where the download is.
 - **On a first start, the guided tour opened on top of "What's new"** (reported by Max). Both showed up as soon as the
   intro ended, with the tour covering the patch notes, so you had to skip one to read the other. The tour now waits
   until "What's new" (or the update window) is closed, then starts.
+- **Installing FFmpeg or LibreOffice from the converter could stop on some PCs:** when Windows' Microsoft Store source for
+  winget was broken (certificate errors), winget stopped and asked which source to use. The converter's install buttons
+  now tell winget to use its own source.
 
 ## [0.14.1b]
 
@@ -1059,6 +1062,7 @@ On GitHub, each version heading links to its release, where the download is.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
 
+[0.14.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.2b
 [0.14.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.1b
 [0.14.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.0b
 [0.13.5b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.13.5b
