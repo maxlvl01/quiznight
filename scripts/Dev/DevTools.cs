@@ -266,6 +266,11 @@ public sealed class DevTools
 			TakesOver = true;
 			SyncCheck();
 		}
+		else if (Value("--sync-only") is { } syncId)
+		{
+			TakesOver = true;
+			SyncOnly(syncId);
+		}
 		else if (Value("--bot") is { } name)
 		{
 			TakesOver = true;
@@ -533,6 +538,26 @@ public sealed class DevTools
 		catch (Exception e)
 		{
 			GD.PrintErr($"Sync check failed: {e.Message}");
+			_app.Quit(1);
+		}
+	}
+
+	/// <summary>--sync-only ID: the real Sync (your Steam account), for that one quiz only. A conflict is skipped.</summary>
+	async void SyncOnly(string id)
+	{
+		try
+		{
+			var plan = await QuizSync.MakePlan(QuizSync.Account ?? throw new UserError("Sync needs Steam."));
+			plan.Steps.RemoveAll(s => s.QuizId != id);
+			plan.Same.Clear();
+			GD.Print($"Sync only {id}: {string.Join(", ", plan.Steps.Select(s => s.Kind))}");
+			var report = await QuizSync.Run(plan, GD.Print);
+			GD.Print($"Sync: up {report.Uploaded.Count}, down {report.Downloaded.Count}, failed {report.Failed.Count}");
+			_app.Quit(report.Failed.Count == 0 ? 0 : 1);
+		}
+		catch (Exception e)
+		{
+			GD.PrintErr($"Sync failed: {e.Message}");
 			_app.Quit(1);
 		}
 	}

@@ -78,6 +78,12 @@ the original design decisions; most still apply.
 - **After the answer** (format 13): `Question.AfterText`, `Source`, `AfterImage` show to everyone at the reveal
   (`PublicQuestion.AfterText`/`Source`/`AfterImageKey`, asset `q3/after`, shared ahead of time but unlocked only at the reveal;
   `GameParts.After`). `Question.BonusAnswer` is host-only (`GameView.HostBonusAnswer`).
+- **Sync** (0.15, `Storage/QuizSync.cs`, My Quiznights' Sync button): each quiz as an export zip on the results repo's
+  `sync` pre-release, named `<Steam ID>-<quiz id>.zip`, label `<UpdatedAt> <title>` (release files: replacing one keeps no
+  history). `user://sync.json` remembers each quiz's UpdatedAt at the last sync, so `QuizSync.Decide` knows which side
+  changed; both = asked (this PC's / the other's / both). Deleting stays local (the cloud keeps it; this PC doesn't take it
+  back unless it changed elsewhere). Downloads keep UpdatedAt (`QuizStore.SaveSynced`). `--sync-check` = a real round trip
+  under the account "selftest"; `--sync-only ID` syncs one quiz with your Steam account.
 - **Steam avatars** (`Net/SteamAvatars`): every app asks Steam for the picture of "steam:<id>" players; `Avatar` draws it.
 - **The host runs the pace.** Questions open hidden (`Game.Shown`) until the host shows them; buzzers stay
   locked (`BuzzersOpen`) until unlocked — both lobby rules. Players get no content of a hidden question, and

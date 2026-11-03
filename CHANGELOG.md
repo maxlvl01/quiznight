@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.0d2]
+
 ### Added
 - **Sync your quiz nights between your PCs** (idea by Max). My Quiznights has a new **Sync** button: it sends the quiz
   nights on this PC to the cloud and brings the ones from your other PCs here, sounds and videos included, so you can
