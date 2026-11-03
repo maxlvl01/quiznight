@@ -1126,6 +1126,7 @@ On GitHub, each version heading links to its release, where the download is.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
 
+[0.15.3b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.3b
 [0.15.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.2b
 [0.15.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.1b
 [0.15.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.0b
