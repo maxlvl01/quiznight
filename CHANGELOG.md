@@ -24,6 +24,7 @@ On GitHub, each version heading links to its release, where the download is.
   behind your back. If a quiz night was changed on both PCs since the last sync, the game asks which one to keep (this
   PC's, the other PC's, or both). Deleting a quiz night only deletes it on that PC: the cloud keeps its copy, and this PC
   won't bring it back unless it's changed on another PC later.
+  The guided tour shows the Sync button too.
 
 ### Changed
 - **"My quizzes" is now "My Quiznights"** (idea by Max): the list's heading, the Home button, the quiz page's back link,

@@ -26,7 +26,7 @@ public partial class QuizListScreen : Control
 			Tutorial.Mark(U.H(10,
 				U.Btn("Refresh", "", () => { QuizStore.Rescan(); Refresh(); }).On(Glyph.Kind.Refresh, 16)
 					.Tip("Reads the quizzes folder again, for quiz files you put there yourself"),
-				SyncButton(),
+				Tutorial.Mark(SyncButton(), "quizzes.sync"),
 				U.Btn("Open folder", "", () => OS.ShellOpen(QuizStore.Folder)).Tip("Where your quiz files are saved"),
 				U.Btn("Import file", "", Import),
 				U.Btn("Paste share code", "", PasteCode).Tip("Imports the share code you copied"),
