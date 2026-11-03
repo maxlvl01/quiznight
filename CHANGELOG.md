@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.0b] — "Cloud Nine": sync your quiz nights between your PCs, My Quiznights and a lighter host
+
 ## [0.15.0d2]
 
 ### Added
