@@ -206,7 +206,10 @@ the original design decisions; most still apply.
 | `scripts/Ui/Screens/` | Home, QuizList, QuizOverview, QuestionEditor, HostLobby, WaitingRoom, HostGame (+ Curtain, HostNotes window), PlayerGame, Podium, Settings |
 | `scripts/Dev/` | `SelfTest`, `SampleQuiz`, `DevTools` (bots, autopilot, screenshots) |
 
-User data: `%APPDATA%\Quiznight\` (quizzes, settings.cfg, cache).
+User data: `%APPDATA%\Quiznight\` (quizzes, settings.cfg, cache). Since 1.0.0d3 the 1.0 dev builds use `%APPDATA%\Quiznight-dev\`
+(`custom_user_dir_name` in project.godot) so they run beside the beta; `Storage/BetaDataCopy` copies quizzes, saves, podiums, settings
+and pictures over once. Test builds only update to releases with their own MAJOR (`Updater.CheckTestAsync`). Back on the 0.x line the
+folder name is "Quiznight" again.
 
 ## Commands
 

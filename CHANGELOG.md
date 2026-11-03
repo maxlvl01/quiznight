@@ -14,6 +14,18 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [1.0.0d3]
+
+### Changed
+- **The 1.0 test builds can run next to the beta now.** Two things made that unsafe: a 0.x beta test build would have
+  updated itself to the newest 1.0.0d build in the test repo, and both used the same data folder, so a 1.0 build that
+  changed a file format could have broken the beta. Now a test build only follows releases of its own line (0.x stays
+  with 0.x, 1.0.0d with 1.0.0d), and the 1.0.0d builds keep their data in their own folder, `%APPDATA%\Quiznight-dev`.
+  The first time it starts, it copies your quizzes, saved nights, podiums, settings and pictures over from the beta's
+  folder (it only copies, the beta's own folder isn't touched). After that the two don't share anything: a quiz you make
+  in 1.0 won't show up in the beta. Test builds from before this one don't have the filter, so a 0.x test build that's
+  already installed will still jump to a 1.0.0d build once.
+
 ## [1.0.0d2]
 
 ### Changed

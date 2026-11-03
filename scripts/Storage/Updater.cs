@@ -158,10 +158,13 @@ public static class Updater
 			using var http = NewClient(TimeSpan.FromSeconds(10));
 			http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 			var json = await http.GetStringAsync($"https://api.github.com/repos/{TestRepo}/releases?per_page=20");
+			// (only this game's own line: the 1.0.0d builds and the 0.x beta's test builds live in the same repo, side by side, and
+			// must not pull each other along. Builds from before 1.0.0d3 don't have this filter.)
+			var line = AppVersion.Parse(App.Version)?.Major;
 			var newest = (JsonNode.Parse(json) as JsonArray)?.OfType<JsonObject>()
 				.Where(r => r["draft"]?.GetValue<bool>() != true)
 				.Select(r => (Release: r, Version: AppVersion.Parse(r["tag_name"]?.GetValue<string>())))
-				.Where(r => r.Version != null)
+				.Where(r => r.Version != null && (line == null || r.Version.Value.Major == line))
 				.OrderByDescending(r => r.Version!.Value)
 				.FirstOrDefault();
 			Trace.Log("update", $"test repo: newest {newest?.Version?.ToString() ?? "none"}, this is {App.Version}");

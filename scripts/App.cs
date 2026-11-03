@@ -63,6 +63,8 @@ public partial class App : Control
 	public override void _Ready()
 	{
 		I = this;
+		// (the 1.0 dev builds have a data folder of their own: the beta's quizzes and settings come over once, before anything reads them)
+		BetaDataCopy.Run();
 		LoadMusicPack();
 		// (nothing saved yet: the very first start on this PC, which asks for the accessibility settings first)
 		var firstStart = Settings.NothingSaved;
