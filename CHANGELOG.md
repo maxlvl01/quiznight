@@ -14,6 +14,12 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [1.0.0d4]
+
+### Changed
+- **Everything from 0.15.3b is in the 1.0 line now:** the Eternal table's columns fill the whole card, and the home
+  screen's spotlights are real lights by default (see 0.15.3b below).
+
 ## [1.0.0d3]
 
 ### Changed
