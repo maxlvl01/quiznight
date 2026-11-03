@@ -1,4 +1,4 @@
-# Quiznight! (Godot)
+# Quiznight? (Godot)
 
 Host quiz nights with friends, everyone on their own PC (talking on Discord). The host is the quizmaster
 (builds the quiz and runs the show, doesn't play); players join with a 4-character room code. Everyone sees and
