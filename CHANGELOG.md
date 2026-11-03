@@ -14,6 +14,21 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.1b]
+
+### Fixed
+- **The game took more and more video memory the longer it was open** (reported by Max: 2.2 GB at the start, 3.5 GB
+  later). Every built-in map that was shown (in the editor, the map picker, or a game) stayed in video memory until the
+  game was closed, and the big ones take about 50 to 90 MB each, so clicking through map questions added up fast. Now
+  only the last four maps stay loaded and the others are let go. Opening ten maps in a row used to end at 575 MB of
+  textures and kept climbing; now it stays at about 260 MB.
+- **The background music kept playing over a sound you previewed in the editor** (reported by Max). Pressing ▶ Play on
+  a sound or video question's file now fades the music out like a sound question does in the game, and it comes back
+  when the preview stops.
+- **The question jumped around while the timer counted down** (reported by Max, in the Interactive preview). The
+  timer's digits aren't all the same width, so each second the question next to it had a little more or less room and
+  a long one wrapped differently. The timer now always takes the room of its widest time.
+
 ## [0.15.0b] — "Cloud Nine": sync your quiz nights between your PCs, My Quiznights and a lighter host
 
 ### Added

@@ -215,6 +215,8 @@ public partial class MediaField : VBoxContainer
 		if (_play == null) return;
 		var playing = _audio?.Playing == true || _video?.IsPlaying() == true;
 		_play.Text = playing ? "■ Stop" : "▶ Play";
+		if (playing) UiAudio.Previewing = this;
+		else if (UiAudio.Previewing == this) UiAudio.Previewing = null;
 	}
 
 	void Set(MediaAsset? media)

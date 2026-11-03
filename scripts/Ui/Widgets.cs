@@ -213,6 +213,11 @@ public partial class Countdown : HBoxContainer
 		SizeFlagsVertical = SizeFlags.ShrinkCenter;
 		if (label != null) AddChild(U.Text(label, 15, ink ?? C.Muted, Fonts.Bold).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter));
 		_time = U.Mono("", size);
+		// (as wide as the widest time it can show: the font's digits aren't all the same width, so "0:19" → "0:18" made the
+		// question next to it wrap differently and jump every second, issue #10)
+		var widest = Enumerable.Range(0, 10).Max(d => Fonts.Mono.GetStringSize($"{d}:{d}{d}", HorizontalAlignment.Left, -1, size).X);
+		_time.CustomMinimumSize = new Vector2(Mathf.Ceil(widest), 0);
+		_time.HorizontalAlignment = HorizontalAlignment.Right;
 		AddChild(_time);
 		Visible = endsAt != null;
 		Update();

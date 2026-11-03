@@ -323,9 +323,13 @@ public partial class UiAudio : Node
 		_ => 0,
 	};
 
+	/// <summary>The editor's sound or video preview while it plays (EditorFields.MediaField): the music makes room for it,
+	/// as for a sound question in the game. A node, so one that's gone never keeps the music quiet (issue #11).</summary>
+	public static Node? Previewing;
+
 	void Apply()
 	{
-		var quiet = !Settings.MusicOn || _questionQuiet || IntroSequence.HoldsMusic || AntiCheatSplash.Showing || Storage.Sfx.IsPlaying(true) || (Storage.Sfx.Previewing && Storage.Sfx.IsPlaying(false));
+		var quiet = !Settings.MusicOn || _questionQuiet || IsInstanceValid(Previewing) || IntroSequence.HoldsMusic || AntiCheatSplash.Showing || Storage.Sfx.IsPlaying(true) || (Storage.Sfx.Previewing && Storage.Sfx.IsPlaying(false));
 		if (quiet == _quiet) return;
 		_quiet = quiet;
 		if (_music.Stream == null) return;

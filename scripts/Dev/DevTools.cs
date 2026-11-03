@@ -261,6 +261,11 @@ public sealed class DevTools
 			TakesOver = true;
 			ShareCheck();
 		}
+		else if (Has("--vram-check"))
+		{
+			TakesOver = true;
+			VramCheck();
+		}
 		else if (Has("--sync-check"))
 		{
 			TakesOver = true;
@@ -524,6 +529,24 @@ public sealed class DevTools
 	}
 
 	/// <summary>Uploads the sample quiz as a short share code and downloads it again (real GitHub repo; prints the code to delete).</summary>
+	/// <summary>--vram-check (with a window): ten built-in maps opened one after another, the video memory for textures
+	/// printed after each (issue #12: it should level off, as only the last few maps stay decoded).</summary>
+	async void VramCheck()
+	{
+		static double Mb(Performance.Monitor m) => Performance.GetMonitor(m) / 1048576.0;
+		var start = Mb(Performance.Monitor.RenderTextureMemUsed);
+		foreach (var preset in MapPresets.All.Where(p => p.ImagePath.EndsWith(".webp") && !p.ImagePath.Contains("/wow/")).Take(10))
+		{
+			Images.BuiltinTexture(preset.ImagePath);
+			await _app.ToSignal(_app.GetTree(), SceneTree.SignalName.ProcessFrame);
+			await _app.ToSignal(_app.GetTree(), SceneTree.SignalName.ProcessFrame);
+			GC.WaitForPendingFinalizers();
+			await _app.ToSignal(_app.GetTree(), SceneTree.SignalName.ProcessFrame);
+			GD.Print($"VRAM check: {preset.Id,-16} textures {Mb(Performance.Monitor.RenderTextureMemUsed),7:0} MB (start {start:0}), video {Mb(Performance.Monitor.RenderVideoMemUsed),7:0} MB");
+		}
+		_app.Quit(0);
+	}
+
 	/// <summary>--sync-check: the sample quiz (with test sound and video) through the cloud and back (Storage/QuizSync).</summary>
 	async void SyncCheck()
 	{
