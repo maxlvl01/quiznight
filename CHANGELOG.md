@@ -16,8 +16,6 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [0.15.0b] — "Cloud Nine": sync your quiz nights between your PCs, My Quiznights and a lighter host
 
-## [0.15.0d2]
-
 ### Added
 - **Sync your quiz nights between your PCs** (idea by Max). My Quiznights has a new **Sync** button: it sends the quiz
   nights on this PC to the cloud and brings the ones from your other PCs here, sounds and videos included, so you can
@@ -30,10 +28,6 @@ On GitHub, each version heading links to its release, where the download is.
 ### Changed
 - **"My quizzes" is now "My Quiznights"** (idea by Max): the list's heading, the Home button, the quiz page's back link,
   the tour and the help texts.
-
-## [0.15.0d1]
-
-### Changed
 - **Smoother running:** pictures sent by the host are now decoded in the background, so a big picture no longer makes
   the screen stutter when its question is shown. The host's game saves the night at most once a second instead of on
   every click at a reveal, and a few things the game checked every frame (settings, the Windows "reduce motion" option,
@@ -1096,6 +1090,7 @@ On GitHub, each version heading links to its release, where the download is.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
 
+[0.15.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.0b
 [0.14.3b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.3b
 [0.14.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.2b
 [0.14.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.1b
