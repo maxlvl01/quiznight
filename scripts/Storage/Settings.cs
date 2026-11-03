@@ -279,10 +279,11 @@ public static class Settings
 		set => Set("ask_delete_quiz", value ? "on" : "off");
 	}
 
-	/// <summary>Experimental: the home screen's spotlights as real lights with shadows (LitSpotlights); off unless switched on.</summary>
+	/// <summary>The home screen's spotlights as real lights with shadows (LitSpotlights); on unless switched off (0.15.3b, was
+	/// an off-by-default experiment).</summary>
 	public static bool RealSpotlights
 	{
-		get => Get("real_spotlights", "off") == "on";
+		get => Get("real_spotlights", "on") != "off";
 		set => Set("real_spotlights", value ? "on" : "off");
 	}
 

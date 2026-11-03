@@ -136,7 +136,7 @@ public partial class SettingsScreen : Control
 			U.Muted("The joke parts are the anti-cheat window and the World Premiere video. The publisher and the sponsor stay: they're credits. \"Skip it all\" goes straight to the title screen.", 12),
 			U.Field("Theme", U.Small("Switch to light mode", HomeScreen.LightMode).On(Glyph.Kind.Sun, 15).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin)),
 			// (saved at once, like the seasonal skins; the home screen picks it up when it's built again)
-			new CheckBox { Text = Lang.T("Real spotlights with shadows (experimental)"), ButtonPressed = Settings.RealSpotlights, MouseDefaultCursorShape = CursorShape.PointingHand }
+			new CheckBox { Text = Lang.T("Real spotlights with shadows"), ButtonPressed = Settings.RealSpotlights, MouseDefaultCursorShape = CursorShape.PointingHand }
 				.With(b => b.Toggled += on => Settings.RealSpotlights = on),
 			U.Muted("The home screen's two spotlights as real lights: the buttons and the logo throw shadows. May cost frame rate on older PCs.", 12),
 			U.Muted("Frame rate is capped at 60 FPS.", 12),
