@@ -66,8 +66,8 @@ public static class Settings
 		set => Set("accessibility_asked", value ? "on" : "off");
 	}
 
-	/// <summary>How much of the intro the game shows when it starts: "all", "nojokes" (no anti-cheat, World Premiere,
-	/// publisher or sponsor) or "none" (straight to the title screen). Asked on the first start, changed in Settings.</summary>
+	/// <summary>How much of the intro the game shows when it starts: "all", "nojokes" (no anti-cheat window or World
+	/// Premiere video; the publisher and sponsor are credits and stay) or "none" (straight to the title screen). Asked on the first start, changed in Settings.</summary>
 	public static string Intro
 	{
 		get => Get("intro", "all") is var v && v is "nojokes" or "none" ? v : "all";

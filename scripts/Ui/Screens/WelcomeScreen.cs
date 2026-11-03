@@ -43,7 +43,7 @@ public partial class WelcomeScreen : Control
 				U.Eyebrow("The intro"),
 				U.Text("Next time you start the game, show …", 15, C.Text, null, true),
 				U.Segmented(Settings.IntroChoices, Settings.Intro, id => Settings.Intro = id),
-				U.Muted("The joke parts are the anti-cheat window, the World Premiere video, the publisher and the sponsor. \"Skip it all\" goes straight to the title screen.", 12)),
+				U.Muted("The joke parts are the anti-cheat window and the World Premiere video. The publisher and the sponsor stay: they're credits. \"Skip it all\" goes straight to the title screen.", 12)),
 			U.Muted("You can change all of this any time in Settings. This only shows on the very first start.", 13),
 			go);
 		AddChild(U.Page(page, 720, 60));

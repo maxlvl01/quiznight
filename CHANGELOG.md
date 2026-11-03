@@ -14,6 +14,12 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **The publisher and the sponsor are credits now, not jokes.** "Skip the joke parts" used to cut the Pinke Geilheit
+  Publishing card and the TrackGlow sponsor card along with the anti-cheat window and the World Premiere video. Now it
+  only skips those two, so the publisher and the sponsor still show when the game starts. "Skip it all" still goes
+  straight to the title screen, and "Everything" is unchanged. The text under the setting says so.
+
 ### Added
 - **Importing a quiz you already have now asks first** (idea by Max). Before, importing the same file or share code twice
   quietly gave you two identical quizzes. Now My quizzes compares the questions with the quizzes you already have, and

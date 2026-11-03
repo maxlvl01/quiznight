@@ -49,7 +49,7 @@ public partial class IntroSequence : Control
 		_bg = new ColorRect { Color = Black, MouseFilter = MouseFilterEnum.Ignore };
 		_bg.SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(_bg);
-		// (Settings.Intro: "nojokes" leaves out the made-up ones, "none" every card: straight to the title screen)
+		// (Settings.Intro: "nojokes" leaves out the anti-cheat window and the World Premiere video, "none" every card: straight to the title screen)
 		var jokes = Settings.Intro != "all";
 		_cards = Settings.Intro == "none" ? new() : new()
 		{
@@ -61,7 +61,8 @@ public partial class IntroSequence : Control
 			new(SponsorCard, 2.4, SplashBg),
 			new(() => new CreditsWall(), 3.0, SplashBg),
 		};
-		if (jokes) _cards.RemoveAll(c => c.Build == VideoCard || c.Build == PublisherCard || c.Build == SponsorCard);
+		// (the publisher and the sponsor are credits, not jokes: they stay unless the whole intro is skipped)
+		if (jokes) _cards.RemoveAll(c => c.Build == VideoCard);
 	}
 
 	static Color SplashBg => C.Bg;
