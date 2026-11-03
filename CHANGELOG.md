@@ -14,6 +14,11 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **Bug reports no longer contain your Steam ID.** They still say your Steam name (so ideas can be credited), but the ID
+  and the profile link are gone, and any Steam ID that turns up in the log part (the "someone joined" lines) is replaced
+  by "<steam id>".
+
 ## [0.15.1b]
 
 ### Fixed

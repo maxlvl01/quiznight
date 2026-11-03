@@ -670,18 +670,20 @@ public static class SelfTest
 	/// <summary>A bug report as a GitHub Issue (Storage/BugReports): title and body made from the report's text, no network.</summary>
 	static void BugIssue()
 	{
-		var report = "# Bug: Map pin\r\n\r\n- **Sent by:** Ann · Steam ID 7656 (https://steamcommunity.com/profiles/7656)\r\n"
+		var report = "# Bug: Map pin\r\n\r\n- **Sent by:** Ann\r\n"
 			+ "- **Version:** 0.12.9d1 (test build)\r\n- **System:** Windows 11\r\n\r\n## What happened\r\n\r\nThe pin vanished.\r\n\r\n"
 			+ "## Log (last 200 lines)\r\n\r\n```\r\nline one\r\nline two\r\n```\r\n";
 		Eq(Storage.BugReports.IssueTitle(report), "Map pin (0.12.9d1)", "a bug issue's title is the category and the version");
 		var body = Storage.BugReports.IssueBody(report, "bugs/Reported/2026-11-01 12-00 0.12.9d1 Map pin abc123.png");
-		Check(!body.Contains("# Bug:") && body.StartsWith("- **Sent by:** Ann · Steam ID 7656") && body.Contains("- **Version:** 0.12.9d1 (test build)")
+		Check(!body.Contains("# Bug:") && body.StartsWith("- **Sent by:** Ann") && body.Contains("- **Version:** 0.12.9d1 (test build)")
 			&& body.Contains("- **System:** Windows 11") && body.Contains("The pin vanished."), "the issue keeps the report's text, not its heading");
 		Check(body.Contains("<details><summary>Log (last 200 lines)</summary>") && body.Contains("````\nline one\nline two\n````\n\n</details>")
 			&& !body.Contains("\r") && !body.Contains("## Log"), "the log is folded into a <details> block");
 		Check(body.Contains("Map%20pin%20abc123.png?raw=true") && body.IndexOf("Screenshot") > body.IndexOf("The pin vanished.")
 			&& body.IndexOf("Screenshot") < body.IndexOf("<details>"), "the screenshot (a file in the repo) is shown under the text");
 		Check(!Storage.BugReports.IssueBody(report, null).Contains("Screenshot"), "no screenshot, no picture");
+		var scrubbed = Storage.BugReports.NoSteamIds("Join: \"Ann\" (Steam ID 76561198038635340, client id \"steam-76561198038635340\") -> steam:76561198038635340 and 76561198038635341");
+		Check(!scrubbed.Contains("7656119") && scrubbed.Contains("Join: \"Ann\""), "Steam IDs are taken out of a report's log");
 		var huge = Storage.BugReports.IssueBody(report.Replace("line two", new string('x', 100_000)), null);
 		Check(huge.Length < 65_536 && huge.Contains("line one") == false && huge.EndsWith("````\n\n</details>\n"), "a huge log is cut from its start to fit an issue");
 	}

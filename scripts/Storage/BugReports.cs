@@ -7,7 +7,7 @@
 // Feedback (ideas: maps, question types, quality of life …) stays a file in features/Requested/ (<kind> in the name),
 // without the log; Max moves those on by hand (WIP, Pending, Resolved). If sending fails (no internet), the report waits in
 // user://bug-reports and goes on the next start (a bug trying the issue first again).
-// Every report says who sent it (Steam name and ID, so ideas can be credited in the changelog), and once it's in a push
+// Every report says who sent it (Steam name, no ID, so ideas can be credited in the changelog), and once it's in a push
 // goes to Max's phone and PC through ntfy.sh (Push), opening the issue (or the file) when tapped.
 
 using System;
@@ -48,7 +48,7 @@ public static class BugReports
 			using var stream = new FileStream(path, FileMode.Open, System.IO.FileAccess.Read, FileShare.ReadWrite);
 			using var reader = new StreamReader(stream);
 			var lines = reader.ReadToEnd().Split('\n');
-			return CrashReports.Anonymise(string.Join('\n', lines.Skip(Math.Max(0, lines.Length - LogLines))), System.Environment.UserName);
+			return NoSteamIds(CrashReports.Anonymise(string.Join('\n', lines.Skip(Math.Max(0, lines.Length - LogLines))), System.Environment.UserName));
 		}
 		catch (Exception e)
 		{
@@ -56,13 +56,16 @@ public static class BugReports
 		}
 	}
 
-	/// <summary>Who sent it: the Steam name and ID with a link to the profile (to credit ideas), or the game's name without Steam.</summary>
+	/// <summary>Takes Steam IDs out of text (the join messages in the log name them): "steam:7656...", "steam-7656...", "Steam ID 7656..."
+	/// or a bare 17-digit ID all become "&lt;steam id&gt;", so a report can be read by anyone.</summary>
+	public static string NoSteamIds(string text) =>
+		System.Text.RegularExpressions.Regex.Replace(text, @"(?i)(steam[:\- ]|steam id )?\b7656119\d{10}\b", "<steam id>");
+
+	/// <summary>Who sent it: the Steam name only (to credit ideas), no ID, so reports could be public.</summary>
 	public static string Sender()
 	{
-		if (Net.SteamService.MySteamId is var id && id != 0)
-			return $"{Net.SteamService.PlayerName} · Steam ID {id} (https://steamcommunity.com/profiles/{id})";
-		var name = Settings.PlayerName.Trim();
-		return $"{(name == "" ? "(no name)" : name)} · no Steam ID (Steam wasn't running)";
+		var name = (Net.SteamService.MySteamId != 0 ? Net.SteamService.PlayerName : Settings.PlayerName).Trim();
+		return name == "" ? "(no name)" : name;
 	}
 
 	/// <summary>The report from the template: what the game knows, then the player's text, then the log.</summary>
