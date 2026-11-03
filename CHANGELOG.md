@@ -18,6 +18,9 @@ On GitHub, each version heading links to its release, where the download is.
 - **The title screen's curtain looks like two halves now** (Max: it looked like one big curtain). The right half hangs a
   little over the left one and throws a soft shadow onto it, with a dark crease where they meet, and both halves end on a
   lit fold in the middle, like real stage curtains.
+- **And it looks like real velvet now.** The folds have different widths and depths instead of being perfectly even, with
+  a soft sheen on the ridges and deep shadows in between. It's darker at the top and along the heavy hem, whose bottom
+  edge waves with the folds. When it opens, the bottom trails a little behind the top, like heavy cloth does.
 
 ## [1.0.0d1]
 
