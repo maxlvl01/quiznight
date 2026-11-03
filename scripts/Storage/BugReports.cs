@@ -1,5 +1,6 @@
 // Bug reports, sent by hand (the 🐞 button, Ui/BugReport), from the same template every time. Since 0.12.9 a bug report is
-// a GitHub Issue in Max's private results repo (title "<category> (<version>)", label "bug", the log folded into a
+// a GitHub Issue (since 0.15.2 on the public repo maxlvl01/quiznight with issues-token.txt, no screenshot in it; the private
+// results repo's issue with the screenshot is the fallback, then a file) in Max's private results repo (title "<category> (<version>)", label "bug", the log folded into a
 // <details> block: IssueTitle/IssueBody); its screenshot is still a file, bugs/Reported/<date> <version> <category> <id>.png,
 // shown in the issue. Max adds wip/pending labels and closes the issue once the fix is out. If the issue can't be made
 // (the token lacks "Issues: read and write" → 403/404), the report goes as a Markdown file next to the screenshot as before
@@ -34,6 +35,19 @@ public static class BugReports
 	const int PushTextMax = 600;
 	/// <summary>GitHub takes at most 65 536 characters in an issue body; the log is cut from its start to stay under this.</summary>
 	const int IssueBodyMax = 60_000;
+
+	const string PublicRepo = "maxlvl01/quiznight", IssuesTokenFile = "res://issues-token.txt";
+
+	/// <summary>The token that can only open issues on the public repo (issues-token.txt, shipped like the results token).</summary>
+	static string? IssuesToken
+	{
+		get
+		{
+			if (!Godot.FileAccess.FileExists(IssuesTokenFile)) return null;
+			var token = Godot.FileAccess.GetFileAsString(IssuesTokenFile).Trim();
+			return token == "" ? null : token;
+		}
+	}
 
 	/// <summary>Reports can be sent (the game has the results token).</summary>
 	public static bool Enabled => ResultsUpload.Token != null;
@@ -169,7 +183,20 @@ public static class BugReports
 		{
 			try
 			{
-				return await CreateIssue(IssueTitle(report), IssueBody(report, png != null ? name + ".png" : null));
+				// (public first: its text has no screenshot, that stays in the private repo; the private issue shows it)
+				if (IssuesToken is { } issues)
+				{
+					try
+					{
+						var shot = png != null ? "\n\n_A screenshot was sent too; Max has it._" : "";
+						return await CreateIssue(PublicRepo, issues, IssueTitle(report), IssueBody(report, null) + shot);
+					}
+					catch (Exception e)
+					{
+						GD.PrintErr($"Couldn't open a public issue for the bug report, trying the private repo: {e.Message}");
+					}
+				}
+				return await CreateIssue(ResultsUpload.Repo, ResultsUpload.Token!, IssueTitle(report), IssueBody(report, png != null ? name + ".png" : null));
 			}
 			catch (Exception e)
 			{
@@ -224,11 +251,11 @@ public static class BugReports
 	}
 
 	/// <summary>Opens the issue (label "bug", which GitHub makes if it's missing) and returns its page.</summary>
-	static async Task<string> CreateIssue(string title, string body)
+	static async Task<string> CreateIssue(string repo, string token, string title, string body)
 	{
-		using var http = ResultsUpload.Client(ResultsUpload.Token!);
+		using var http = ResultsUpload.Client(token);
 		var json = new JsonObject { ["title"] = title, ["body"] = body, ["labels"] = new JsonArray("bug") }.ToJsonString();
-		using var response = await http.PostAsync($"https://api.github.com/repos/{ResultsUpload.Repo}/issues", new StringContent(json, Encoding.UTF8, "application/json"));
+		using var response = await http.PostAsync($"https://api.github.com/repos/{repo}/issues", new StringContent(json, Encoding.UTF8, "application/json"));
 		if (!response.IsSuccessStatusCode) throw new HttpRequestException($"GitHub said {(int)response.StatusCode}");
 		return JsonNode.Parse(await response.Content.ReadAsStringAsync())?["html_url"]?.GetValue<string>()
 			?? throw new HttpRequestException("GitHub's answer had no html_url");

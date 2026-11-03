@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.2b]
+
 ### Changed
 - **Bug reports no longer contain your Steam ID.** They still say your Steam name (so ideas can be credited), but the ID
   and the profile link are gone, and any Steam ID that turns up in the log part (the "someone joined" lines) is replaced
@@ -1111,6 +1113,7 @@ On GitHub, each version heading links to its release, where the download is.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
 
+[0.15.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.2b
 [0.15.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.1b
 [0.15.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.0b
 [0.14.3b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.3b

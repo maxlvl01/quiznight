@@ -70,6 +70,7 @@ sign() {
 # (without it the game uploads no results or crash logs, and a test build can't even see newer test builds: stop. It isn't
 # in git, so a fresh checkout or worktree needs it copied in from the main checkout.)
 [ -s results-token.txt ] || { echo "results-token.txt is missing (copy it from the main checkout): no results, logs or test updates without it"; exit 1; }
+[ -s issues-token.txt ] || { echo "issues-token.txt is missing (copy it from the main checkout): bug reports would stay private"; exit 1; }
 
 # (keeps Godot from importing what's in build/, e.g. the map packs)
 mkdir -p build && touch build/.gdignore
