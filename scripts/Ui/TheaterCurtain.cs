@@ -39,12 +39,27 @@ public partial class TheaterCurtain : Control
 		var h = Size.Y;
 		// (each half shrinks from half the screen to a narrow bunch at its edge, its folds packed tighter)
 		var panel = w / 2 * Mathf.Lerp(1f, 0.07f, _open);
-		DrawHalf(0, panel, h);
-		DrawHalf(w - panel, w, h);
+		// (closed, the right half hangs a little over the left one, as real curtains overlap in the middle)
+		var overlap = Overlap * (1 - _open);
+		DrawHalf(0, panel + overlap, h, inner: panel + overlap);
+		DrawHalf(w - panel, w, h, inner: w - panel);
+		// the right half's shadow on the left one, and a dark crease where they meet
+		var edge = w - panel;
+		var shadow = new[] { new Vector2(edge - ShadowW, 0), new Vector2(edge, 0), new Vector2(edge, h), new Vector2(edge - ShadowW, h) };
+		var clear = new Color(0, 0, 0, 0);
+		var dark = new Color(0, 0, 0, 0.55f * (1 - _open * 0.6f));
+		DrawPolygon(shadow, new[] { clear, dark, dark, clear });
+		DrawRect(new Rect2(edge - 1, 0, 2, h), new Color(Dark.Darkened(0.5f), 0.9f));
 	}
 
-	/// <summary>One half as vertical slices whose colours run dark to light and back, so it reads as folded velvet.</summary>
-	void DrawHalf(float x0, float x1, float h)
+	const float Overlap = 10;
+	const float ShadowW = 22;
+
+	/// <summary>
+	/// One half as vertical slices whose colours run dark to light and back, so it reads as folded velvet. The folds are
+	/// counted from the inner edge (the one in the middle), which ends on a lit fold, so each half's edge catches the light.
+	/// </summary>
+	void DrawHalf(float x0, float x1, float h, float inner)
 	{
 		var slices = Folds * SlicesPerFold;
 		var step = (x1 - x0) / slices;
@@ -53,8 +68,8 @@ public partial class TheaterCurtain : Control
 		for (var i = 0; i < slices; i++)
 		{
 			var left = x0 + i * step;
-			colors[0] = colors[3] = Shade(i / (float)SlicesPerFold);
-			colors[1] = colors[2] = Shade((i + 1) / (float)SlicesPerFold);
+			colors[0] = colors[3] = Shade(Mathf.Abs(left - inner) / step / SlicesPerFold + 0.5f);
+			colors[1] = colors[2] = Shade(Mathf.Abs(left + step - inner) / step / SlicesPerFold + 0.5f);
 			points[0] = new Vector2(left, 0);
 			points[1] = new Vector2(left + step + 0.5f, 0);
 			points[2] = new Vector2(left + step + 0.5f, h);

@@ -14,6 +14,11 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **The title screen's curtain looks like two halves now** (Max: it looked like one big curtain). The right half hangs a
+  little over the left one and throws a soft shadow onto it, with a dark crease where they meet, and both halves end on a
+  lit fold in the middle, like real stage curtains.
+
 ## [1.0.0d1]
 
 ### Changed
