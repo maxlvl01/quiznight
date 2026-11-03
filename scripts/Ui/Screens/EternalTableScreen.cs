@@ -466,6 +466,9 @@ public partial class EternalTableScreen : Control
 			}
 		}
 		// (the numbers scroll sideways when they're wider than the page: before, the table pushed the page past the window)
+		// When they're narrower, their columns share the card's width, so no blank strip is left on the right (issue #13).
+		grid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		foreach (var cell in grid.GetChildren().OfType<Control>()) cell.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		var stats = U.SideScroll(grid);
 		page.AddChild(U.Card(0, U.H(22, names, stats)));
 		AddChild(U.Page(page, 1180, 20));

@@ -14,6 +14,17 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **The home screen's spotlights are real lights now, for everyone.** The buttons and the logo throw shadows where the
+  beams hit them. This used to be an experiment you had to switch on in the settings; it turned out cheap enough to run
+  on any PC, so it's on by default. You can still switch it off there ("Real spotlights with shadows"), and if you had
+  switched it off before, it stays off.
+
+### Fixed
+- **The Eternal table had a big empty strip on its right** (reported by Max). With only a few columns, the numbers
+  were all squeezed to the left side of the table and the rest of the card stayed blank. The columns now share the
+  table's whole width; with many columns, they still scroll sideways like before.
+
 ## [0.15.2b]
 
 ### Changed
