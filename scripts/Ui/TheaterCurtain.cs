@@ -5,13 +5,12 @@ using Godot;
 namespace QuizNight.Ui;
 
 /// <summary>
-/// A red velvet stage curtain over the whole screen: two folded halves and a scalloped valance with a gold edge.
-/// <see cref="Open"/> 0 is closed, 1 is drawn aside (bunched up at the two edges, the valance lifted out of sight).
+/// A red velvet stage curtain over the whole screen: two folded halves (no valance across the top: Max preferred it without).
+/// <see cref="Open"/> 0 is closed, 1 is drawn aside (bunched up at the two edges).
 /// </summary>
 public partial class TheaterCurtain : Control
 {
-	static readonly Color Dark = new("4a0716"), Light = new("a81d3c"), Gold = new("e8b84a");
-	const float ValanceH = 64;
+	static readonly Color Dark = new("4a0716"), Light = new("a81d3c");
 	const int Folds = 9;
 	const int SlicesPerFold = 6;
 
@@ -42,7 +41,6 @@ public partial class TheaterCurtain : Control
 		var panel = w / 2 * Mathf.Lerp(1f, 0.07f, _open);
 		DrawHalf(0, panel, h);
 		DrawHalf(w - panel, w, h);
-		DrawValance(w, -(ValanceH + 50) * _open);
 	}
 
 	/// <summary>One half as vertical slices whose colours run dark to light and back, so it reads as folded velvet.</summary>
@@ -66,20 +64,4 @@ public partial class TheaterCurtain : Control
 	}
 
 	static Color Shade(float foldPosition) => Dark.Lerp(Light, 0.5f - 0.5f * Mathf.Cos(foldPosition * Mathf.Tau));
-
-	/// <summary>The bar across the top with half-round scallops hanging from it, trimmed in gold.</summary>
-	void DrawValance(float w, float y)
-	{
-		var body = Light.Darkened(0.25f);
-		DrawRect(new Rect2(0, y, w, ValanceH), body);
-		var count = Mathf.Max(4, Mathf.RoundToInt(w / 110f));
-		var radius = w / count / 2;
-		for (var i = 0; i < count; i++)
-		{
-			var centre = new Vector2(radius + i * radius * 2, y + ValanceH);
-			DrawCircle(centre, radius, body);
-			DrawArc(centre, radius, 0, Mathf.Pi, 28, Gold, 4, true);
-		}
-		DrawRect(new Rect2(0, y, w, 6), Gold);
-	}
 }

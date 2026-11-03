@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [1.0.0d1]
+
 ### Changed
 - **The publisher and the sponsor are credits now, not jokes.** "Skip the joke parts" used to cut the Pinke Geilheit
   Publishing card and the TrackGlow sponsor card along with the anti-cheat window and the World Premiere video. Now it
@@ -21,9 +23,9 @@ On GitHub, each version heading links to its release, where the download is.
   straight to the title screen, and "Everything" is unchanged. The text under the setting says so.
 
 ### Added
-- **The title screen is a theatre now** (idea by Max). A red velvet stage curtain with a gold-trimmed valance hangs behind
-  the logo while "Press any button" blinks. When you press, the curtain is drawn aside to the two edges and the valance
-  lifts away, at the same moment the voice line starts, and the logo glides into the home screen as before.
+- **The title screen is a theatre now** (idea by Max). A red velvet stage curtain hangs behind
+  the logo while "Press any button" blinks. When you press, the curtain is drawn aside to the two edges,
+  at the same moment the voice line starts, and the logo glides into the home screen as before.
 - **Importing a quiz you already have now asks first** (idea by Max). Before, importing the same file or share code twice
   quietly gave you two identical quizzes. Now My quizzes compares the questions with the quizzes you already have, and
   if it finds the same one it asks "Import it again as a copy?". On yes, the copy gets "(1)" behind its title (the next
