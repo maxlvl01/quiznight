@@ -278,13 +278,17 @@ public static class QuizStore
 	}
 
 	/// <summary>Imports a quiz file (zip or .json) as a new quiz (a fresh id, so importing twice gives two copies).</summary>
-	public static Quiz Import(string path)
+	public static Quiz Import(string path) => SaveImported(ReadImport(path));
+
+	/// <summary>Reads a quiz file (zip, .json or a long share code in a text file) without saving it, so the caller can look
+	/// for a double first (FindDouble).</summary>
+	public static Quiz ReadImport(string path)
 	{
 		if (path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
 		{
 			var fromZip = ReadZip(path);
 			if (fromZip.Title.Trim() == "") fromZip.Title = Path.GetFileName(path).Replace(ZipExtension, "");
-			return SaveImported(fromZip);
+			return fromZip;
 		}
 		string text;
 		try
@@ -295,21 +299,58 @@ public static class QuizStore
 		{
 			throw new UserError(Lang.F("Couldn't read that file: {0}", e.Message));
 		}
-		if (ShareCode.LooksLong(text)) return ImportCode(text);
+		if (ShareCode.LooksLong(text)) return ReadCode(text);
 		var quiz = QuizJson.Parse(text, out var error) ?? throw new UserError(error ?? QuizJson.NotAQuiz);
 		if (quiz.Title.Trim() == "") quiz.Title = Path.GetFileName(path).Replace(Extension, "");
-		return SaveImported(quiz);
+		return quiz;
 	}
 
 	/// <summary>Imports a long share code (ShareCode) as a new quiz.</summary>
-	public static Quiz ImportCode(string code) =>
-		SaveImported(ShareCode.Read(code, out var error) ?? throw new UserError(error ?? QuizJson.NotAQuiz));
+	public static Quiz ImportCode(string code) => SaveImported(ReadCode(code));
+
+	/// <summary>Reads a long share code without saving it.</summary>
+	public static Quiz ReadCode(string code) =>
+		ShareCode.Read(code, out var error) ?? throw new UserError(error ?? QuizJson.NotAQuiz);
 
 	/// <summary>Saves a quiz from elsewhere (a file, a share code) as a new quiz: a fresh id, so importing twice gives two copies.</summary>
-	public static Quiz SaveImported(Quiz quiz)
+	/// <param name="numbered">A double the user chose to import anyway: its title gets the first free " (1)", " (2)" … behind it.</param>
+	public static Quiz SaveImported(Quiz quiz, bool numbered = false)
 	{
 		quiz.Id = MakeId();
 		if (quiz.CreatedAt == 0) quiz.CreatedAt = NowMs();
+		if (numbered) quiz.Title = NumberedTitle(quiz.Title);
 		return Save(quiz);
+	}
+
+	/// <summary>The quiz in My quizzes with exactly these questions (the title doesn't count: a numbered copy has another one),
+	/// if there is one. Question made-times don't count either, as a copy may have been dated again.</summary>
+	public static Quiz? FindDouble(Quiz quiz)
+	{
+		if (quiz.Questions.Count == 0) return null;
+		var print = Fingerprint(quiz);
+		return List().FirstOrDefault(q => Fingerprint(q) == print);
+	}
+
+	static string Fingerprint(Quiz quiz)
+	{
+		var text = string.Join("\n", quiz.Questions.Select(q =>
+		{
+			var o = QuizJson.WriteQuestion(q);
+			o.Remove("createdAt");
+			return o.ToJsonString();
+		}));
+		return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)));
+	}
+
+	/// <summary>"Title (1)", or the first of (2), (3) … that no quiz has yet; a title that already ends in a number is counted on from it.</summary>
+	static string NumberedTitle(string title)
+	{
+		var baseTitle = System.Text.RegularExpressions.Regex.Replace(title.Trim(), @" \(\d+\)$", "");
+		var taken = List().Select(q => q.Title.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+		for (var n = 1; ; n++)
+		{
+			var candidate = $"{baseTitle} ({n})";
+			if (!taken.Contains(candidate)) return candidate;
+		}
 	}
 }

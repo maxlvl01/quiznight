@@ -14,6 +14,14 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Added
+- **Importing a quiz you already have now asks first** (idea by Max). Before, importing the same file or share code twice
+  quietly gave you two identical quizzes. Now My quizzes compares the questions with the quizzes you already have, and
+  if it finds the same one it asks "Import it again as a copy?". On yes, the copy gets "(1)" behind its title (the next
+  free number: "(2)", "(3)" … if you do it again), on no nothing is imported. This works for the Import button,
+  dropping files onto the page and pasting a share code. A quiz you renamed or reordered the categories of still counts as
+  the same one; a quiz where you changed a question counts as a different one.
+
 ## [0.15.2b]
 
 ### Changed

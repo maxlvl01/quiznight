@@ -273,7 +273,7 @@ public partial class QuizListScreen : Control
 				var wait = Dialogs.Wait(this, "Looking up the share code…", "Share code");
 				try
 				{
-					quiz = QuizStore.SaveImported(await QuizShare.Download(key));
+					quiz = await QuizShare.Download(key);
 				}
 				finally
 				{
@@ -281,10 +281,13 @@ public partial class QuizListScreen : Control
 				}
 				if (!IsInstanceValid(this)) return;
 			}
-			else quiz = QuizStore.ImportCode(text);
+			else quiz = QuizStore.ReadCode(text);
 			_error.Visible = false;
-			Refresh();
-			ShareInfo.Imported(this, quiz);
+			SaveOrAsk(quiz, saved =>
+			{
+				Refresh();
+				ShareInfo.Imported(this, saved);
+			});
 		}
 		catch (UserError e)
 		{
@@ -302,7 +305,7 @@ public partial class QuizListScreen : Control
 	{
 		try
 		{
-			QuizStore.Import(path);
+			SaveOrAsk(QuizStore.ReadImport(path), null);
 			_error.Visible = false;
 			Refresh();
 		}
@@ -312,6 +315,33 @@ public partial class QuizListScreen : Control
 			_error.Visible = true;
 		}
 	});
+
+	/// <summary>
+	/// Saves an imported quiz, unless My quizzes already has one with these questions: then it asks first, and a yes saves it
+	/// with a " (1)", " (2)" … behind its title. <paramref name="saved"/> hears the saved quiz (not when the answer was no).
+	/// </summary>
+	void SaveOrAsk(Quiz quiz, Action<Quiz>? saved)
+	{
+		if (QuizStore.FindDouble(quiz) is not { } twin)
+		{
+			saved?.Invoke(QuizStore.SaveImported(quiz));
+			return;
+		}
+		Dialogs.Confirm(this, Lang.F("You already have this quiz (\"{0}\"). Import it again as a copy?", twin.Title), "Import again", () =>
+		{
+			try
+			{
+				var copy = QuizStore.SaveImported(quiz, numbered: true);
+				_error.Visible = false;
+				Refresh();
+				saved?.Invoke(copy);
+			}
+			catch (UserError e)
+			{
+				ShowError(e.Message);
+			}
+		}, "Already imported");
+	}
 
 	public void Export(Quiz quiz) => ExportQuiz(this, quiz, _error);
 
@@ -337,7 +367,7 @@ public partial class QuizListScreen : Control
 			if (!f.EndsWith(".json") && !f.EndsWith(".txt") && !f.EndsWith(".zip")) continue;
 			try
 			{
-				QuizStore.Import(f);
+				SaveOrAsk(QuizStore.ReadImport(f), null);
 			}
 			catch (UserError e)
 			{
