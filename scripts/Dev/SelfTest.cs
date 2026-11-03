@@ -733,6 +733,38 @@ public static class SelfTest
 		}
 	}
 
+	/// <summary>Sync (Storage/Storage.QuizSync.Decide): which side wins, conflicts, and deleted quizzes staying deleted.</summary>
+	static void Sync()
+	{
+		Storage.QuizSync.Remote R(string id, long at) => new(1, id, at, id);
+		var local = new Dictionary<string, (long, string)>
+		{
+			["new-here"] = (5, "a"), ["same"] = (7, "b"), ["changed-here"] = (9, "c"), ["changed-there"] = (3, "d"),
+			["changed-both"] = (4, "e"), ["never-synced"] = (6, "f"),
+		};
+		var remote = new Dictionary<string, Storage.QuizSync.Remote>
+		{
+			["same"] = R("same", 7), ["changed-here"] = R("changed-here", 2), ["changed-there"] = R("changed-there", 8),
+			["changed-both"] = R("changed-both", 5), ["never-synced"] = R("never-synced", 1), ["new-there"] = R("new-there", 2),
+			["deleted-here"] = R("deleted-here", 4), ["deleted-then-changed"] = R("deleted-then-changed", 6),
+		};
+		var synced = new Dictionary<string, long>
+		{
+			["same"] = 7, ["changed-here"] = 2, ["changed-there"] = 3, ["changed-both"] = 1, ["deleted-here"] = 4, ["deleted-then-changed"] = 5,
+		};
+		var (steps, same) = Storage.QuizSync.Decide(local, remote, synced);
+		Storage.QuizSync.Kind? KindOf(string id) => steps.FirstOrDefault(s => s.QuizId == id)?.Kind;
+		Eq(KindOf("new-here"), Storage.QuizSync.Kind.Upload, "sync: a quiz only on this PC goes up");
+		Eq(KindOf("new-there"), Storage.QuizSync.Kind.Download, "sync: a quiz only in the cloud comes down");
+		Check(KindOf("same") == null && same.ContainsKey("same"), "sync: the same on both sides: nothing to do");
+		Eq(KindOf("changed-here"), Storage.QuizSync.Kind.Upload, "sync: changed on this PC only: this PC's goes up");
+		Eq(KindOf("changed-there"), Storage.QuizSync.Kind.Download, "sync: changed on the other PC only: the cloud's comes down");
+		Eq(KindOf("changed-both"), Storage.QuizSync.Kind.Conflict, "sync: changed on both: asked");
+		Eq(KindOf("never-synced"), Storage.QuizSync.Kind.Conflict, "sync: on both sides but never synced here, and different: asked");
+		Eq(KindOf("deleted-here"), null, "sync: deleted on this PC: the cloud's copy doesn't come back");
+		Eq(KindOf("deleted-then-changed"), Storage.QuizSync.Kind.Download, "sync: deleted here but changed on the other PC since: it comes back");
+	}
+
 	static void Safety()
 	{
 		var room = new Room("ABCD", Dev.SampleQuiz.Build());
@@ -841,6 +873,7 @@ public static class SelfTest
 		PodiumAndAwards();
 		TeamMode();
 		Safety();
+		Sync();
 		Undo();
 		Files();
 		// Load, not just Exists: an Opus .ogg exists but Godot can't import it.

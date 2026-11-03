@@ -51,7 +51,7 @@ public partial class QuizOverviewScreen : Control
 		title.AddThemeFontSizeOverride("font_size", 22);
 
 		var sidebar = U.V(12,
-			U.Link("← My quizzes", App.I.GoQuizzes, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin),
+			U.Link("← My Quiznights", App.I.GoQuizzes, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin),
 			U.Eyebrow("Quiz"),
 			Tutorial.Mark(title, "overview.title"),
 			_sortBar,

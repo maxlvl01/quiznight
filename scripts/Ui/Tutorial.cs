@@ -37,7 +37,7 @@ public static class Tutorial
 			new("home", "home.join", "Join a quiz night", "Got a room code from a friend? Type it here with your name and press Join!. Everyone plays on their own PC; talk on Discord while you play."),
 			new("home", "bug", "Found a bug? Got an idea?", "The bug button is on every screen. \"Report a bug\" if something doesn't work or looks wrong, \"Give feedback\" for an idea: a map, a question type, anything. Max gets it straight away, and ideas that make it into the game are credited in the changelog."),
 			new("home", "home.host", "Be the quizmaster", "Here you make your own quizzes and host them. The host runs the night and doesn't play along. Let's have a look."),
-			new("quizzes", "quizzes.bar", "Your quizzes", "Start a new quiz, import a quiz file, or paste a share code a friend sent you. Your quizzes are listed below: click one to open it."),
+			new("quizzes", "quizzes.bar", "My Quiznights", "Start a new quiz, import a quiz file, paste a share code a friend sent you, or sync your quizzes with your other PCs. They are listed below: click one to open it."),
 			new("overview", null, "A quiz, opened", "This is a sample quiz just for the tour (it isn't saved). Here you build the quiz: its name, its questions and their order."),
 			new("overview", "overview.title", "Name your quiz", "Click the title to rename it. It's saved as soon as you leave the field."),
 			new("overview", "overview.types", "Add a question", "Pick a type to add a question to the quiz. The ? on a card tells what the type does and which ways it can be played."),

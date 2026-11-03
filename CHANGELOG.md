@@ -14,6 +14,19 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Added
+- **Sync your quiz nights between your PCs** (idea by Max). My Quiznights has a new **Sync** button: it sends the quiz
+  nights on this PC to the cloud and brings the ones from your other PCs here, sounds and videos included, so you can
+  work on a quiz night on your desktop and finish it on your laptop. They're kept under your Steam account, so you never
+  get a friend's half-finished quiz (or they yours); Sync needs Steam running. You press it yourself, nothing syncs
+  behind your back. If a quiz night was changed on both PCs since the last sync, the game asks which one to keep (this
+  PC's, the other PC's, or both). Deleting a quiz night only deletes it on that PC: the cloud keeps its copy, and this PC
+  won't bring it back unless it's changed on another PC later.
+
+### Changed
+- **"My quizzes" is now "My Quiznights"** (idea by Max): the list's heading, the Home button, the quiz page's back link,
+  the tour and the help texts.
+
 ### Fixed
 - **On a first start, the guided tour opened on top of "What's new"** (reported by Max). Both showed up as soon as the
   intro ended, with the tour covering the patch notes, so you had to skip one to read the other. The tour now waits

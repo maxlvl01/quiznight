@@ -106,7 +106,8 @@ public static class QuizStore
 	}
 
 	/// <summary>Saves a quiz. Throws UserError when the disk says no.</summary>
-	public static Quiz Save(Quiz quiz)
+	/// <param name="touch">Whether this is a change (its last-saved time moves on); not for a quiz synced from the cloud as it was.</param>
+	public static Quiz Save(Quiz quiz, bool touch = true)
 	{
 		// (the guided tour's sample quiz only lives in memory: never written to My quizzes, even by Ctrl+S during the tour)
 		if (quiz.Id == TourDownload.Id) return quiz;
@@ -117,7 +118,7 @@ public static class QuizStore
 		// Built-in maps ship with the game; their pictures don't need to be in the file.
 		foreach (var m in quiz.Maps)
 			if (MapPresets.Get(m.PresetId) != null) m.Image.DataUrl = "";
-		quiz.UpdatedAt = NowMs();
+		if (touch) quiz.UpdatedAt = NowMs();
 		Directory.CreateDirectory(FolderPath);
 		var path = PathFor(quiz.Id);
 		var tmp = path + ".tmp";
@@ -132,6 +133,16 @@ public static class QuizStore
 		}
 		Cache[quiz.Id] = quiz;
 		Stamps[quiz.Id] = File.GetLastWriteTimeUtc(path);
+		return quiz;
+	}
+
+	/// <summary>A quiz from the cloud (QuizSync), as it was saved on the other PC. If this PC had deleted it, the deleted copy
+	/// goes: it's back in the list.</summary>
+	public static Quiz SaveSynced(Quiz quiz)
+	{
+		Save(quiz, touch: false);
+		var deleted = Path.Combine(DeletedPath, quiz.Id + Extension);
+		if (File.Exists(deleted)) File.Delete(deleted);
 		return quiz;
 	}
 

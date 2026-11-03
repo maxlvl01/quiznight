@@ -563,7 +563,7 @@ public partial class App : Control
 				else GoHome();
 				return true;
 		}
-		// (every other screen has a "← Home", "← My quizzes" … link: Escape presses it)
+		// (every other screen has a "← Home", "← My Quiznights" … link: Escape presses it)
 		if (BackLink(screen) is { } link)
 		{
 			link.EmitSignal(BaseButton.SignalName.Pressed);

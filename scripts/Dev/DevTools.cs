@@ -261,6 +261,11 @@ public sealed class DevTools
 			TakesOver = true;
 			ShareCheck();
 		}
+		else if (Has("--sync-check"))
+		{
+			TakesOver = true;
+			SyncCheck();
+		}
 		else if (Value("--bot") is { } name)
 		{
 			TakesOver = true;
@@ -514,6 +519,24 @@ public sealed class DevTools
 	}
 
 	/// <summary>Uploads the sample quiz as a short share code and downloads it again (real GitHub repo; prints the code to delete).</summary>
+	/// <summary>--sync-check: the sample quiz (with test sound and video) through the cloud and back (Storage/QuizSync).</summary>
+	async void SyncCheck()
+	{
+		var quiz = WithTestMedia(SampleQuiz.Build());
+		quiz.UpdatedAt = QuizStore.NowMs();
+		try
+		{
+			var same = await QuizSync.Check(quiz);
+			GD.Print($"Sync check: {(same ? "came back the same" : "CAME BACK DIFFERENT")}");
+			_app.Quit(same ? 0 : 1);
+		}
+		catch (Exception e)
+		{
+			GD.PrintErr($"Sync check failed: {e.Message}");
+			_app.Quit(1);
+		}
+	}
+
 	async void ShareCheck()
 	{
 		var sample = SampleQuiz.Build();

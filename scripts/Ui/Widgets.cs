@@ -506,6 +506,28 @@ public static class Dialogs
 		d.PopupCentered();
 	}
 
+	/// <summary>A question with a few answers (the first on the OK button); picked hears the answer's index, or -1 when the
+	/// window is closed.</summary>
+	public static void Choose(Node owner, string text, string title, string[] answers, Action<int> picked)
+	{
+		var d = new AcceptDialog { Title = Lang.T(title), DialogText = Lang.T(text), OkButtonText = Lang.T(answers[0]), DialogAutowrap = true };
+		d.MinSize = new Vector2I(520, 0);
+		var done = false;
+		void Pick(int i)
+		{
+			if (done) return;
+			done = true;
+			picked(i);
+			d.QueueFree();
+		}
+		for (var i = 1; i < answers.Length; i++) d.AddButton(Lang.T(answers[i]), false, i.ToString());
+		d.Confirmed += () => Pick(0);
+		d.CustomAction += action => Pick(int.Parse(action.ToString()));
+		d.Canceled += () => Pick(-1);
+		owner.AddChild(d);
+		d.PopupCentered();
+	}
+
 	public static AcceptDialog Info(Node owner, string text, string title = "Quiznight?")
 	{
 		var d = new AcceptDialog { Title = Lang.T(title), DialogText = Lang.T(text), DialogAutowrap = true };
@@ -646,7 +668,7 @@ public static class Bolt
 /// </summary>
 public static class Glyph
 {
-	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right }
+	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right, Cloud }
 
 	// (24 × 24, white; holes by even-odd, so one path can carry the details)
 	static string Body(Kind kind) => kind switch
@@ -668,6 +690,8 @@ public static class Glyph
 		Kind.Refresh => "<path fill='none' stroke='#fff' stroke-width='2.6' stroke-linecap='round' d='M19.4 13.2A7.6 7.6 0 1 1 17 6.3'/><path d='M14.2 2.6h7.2v7.2z'/>",
 		Kind.Left => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M15 4.5 7.5 12l7.5 7.5'/>",
 		Kind.Right => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M9 4.5 16.5 12 9 19.5'/>",
+		// (a cloud with an arrow up and an arrow down cut out of it: Sync)
+		Kind.Cloud => "<path fill-rule='evenodd' d='M6.5 21A5.5 5.5 0 0 1 5.4 10.1 7 7 0 0 1 18.6 9.1 6 6 0 0 1 18 21zM9 9.5l3.4 4h-2.1v5H7.7v-5H5.6zM15 18.5l-3.4-4h2.1v-5h2.6v5h2.1z'/>",
 		_ => "",
 	};
 

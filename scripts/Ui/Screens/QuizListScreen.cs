@@ -22,10 +22,11 @@ public partial class QuizListScreen : Control
 		SetAnchorsPreset(LayoutPreset.FullRect);
 		// (the heading stays on one line and the buttons at their height: the update badge sits in the Home row above)
 		var head = U.H(10,
-			U.Heading("My quizzes", 34, false).Grow(),
+			U.Heading("My Quiznights", 34, false).Grow(),
 			Tutorial.Mark(U.H(10,
 				U.Btn("Refresh", "", () => { QuizStore.Rescan(); Refresh(); }).On(Glyph.Kind.Refresh, 16)
 					.Tip("Reads the quizzes folder again, for quiz files you put there yourself"),
+				SyncButton(),
 				U.Btn("Open folder", "", () => OS.ShellOpen(QuizStore.Folder)).Tip("Where your quiz files are saved"),
 				U.Btn("Import file", "", Import),
 				U.Btn("Paste share code", "", PasteCode).Tip("Imports the share code you copied"),
@@ -178,6 +179,82 @@ public partial class QuizListScreen : Control
 	{
 		var quiz = QuizStore.Create();
 		App.I.GoQuiz(quiz.Id);
+	}
+
+	// ---------- Sync (0.15, Storage/QuizSync) ----------
+
+	Button SyncButton()
+	{
+		var b = U.Btn("Sync", "", Sync).On(Glyph.Kind.Cloud, 16);
+		if (!QuizSync.Available) b.Disabled = true;
+		return b.Tip(!QuizSync.Available ? "This game can't sync: it has no key for the cloud."
+			: QuizSync.Account == null ? "Sync needs Steam: start Steam, then try again."
+			: "Brings your quiz nights to your other PCs, and theirs here (sounds and videos too). Only your own: they're kept under your Steam account.");
+	}
+
+	bool _syncing;
+
+	async void Sync()
+	{
+		if (_syncing) return;
+		if (QuizSync.Account is not { } account)
+		{
+			Dialogs.Info(this, "Sync needs Steam: your quiz nights are kept under your Steam account, so only you get them. Start Steam, then try again.", "Sync");
+			return;
+		}
+		_syncing = true;
+		var wait = Dialogs.Wait(this, "Looking at your quiz nights in the cloud…", "Sync");
+		try
+		{
+			var plan = await QuizSync.MakePlan(account);
+			Dialogs.Close(wait);
+			if (!IsInstanceValid(this)) return;
+			foreach (var step in plan.Steps.Where(s => s.Kind == QuizSync.Kind.Conflict))
+			{
+				var picked = new System.Threading.Tasks.TaskCompletionSource<int>();
+				Dialogs.Choose(this, Lang.F("\"{0}\" was changed on this PC and on another one since the last sync. Which one do you want to keep?", step.Title),
+					"Changed on both PCs", new[] { "Keep this PC's", "Keep the other PC's", "Keep both" }, picked.SetResult);
+				var answer = await picked.Task;
+				step.Choice = answer switch { 0 => QuizSync.Choice.Mine, 1 => QuizSync.Choice.Theirs, 2 => QuizSync.Choice.Both, _ => QuizSync.Choice.Skip };
+				if (!IsInstanceValid(this)) return;
+			}
+			if (plan.Steps.All(s => s.Kind == QuizSync.Kind.Conflict && s.Choice == QuizSync.Choice.Skip))
+			{
+				// (nothing to send or fetch: only what's already the same is noted)
+				await QuizSync.Run(plan, _ => { });
+				if (plan.Steps.Count == 0 && IsInstanceValid(this)) Dialogs.Info(this, "Everything is up to date: this PC and the cloud have the same quiz nights.", "Sync");
+				return;
+			}
+			wait = Dialogs.Wait(this, "Syncing…", "Sync");
+			var report = await QuizSync.Run(plan, text =>
+			{
+				if (IsInstanceValid(wait)) wait.DialogText = text;
+			});
+			Dialogs.Close(wait);
+			QuizStore.Rescan();
+			if (!IsInstanceValid(this)) return;
+			Refresh();
+			Dialogs.Info(this, Summary(report), "Sync");
+		}
+		catch (UserError e)
+		{
+			Dialogs.Close(wait);
+			if (IsInstanceValid(this)) Dialogs.Info(this, e.Message, "Sync");
+		}
+		finally
+		{
+			_syncing = false;
+		}
+	}
+
+	static string Summary(QuizSync.Report report)
+	{
+		static string Names(List<string> titles) => string.Join(", ", titles.Select(t => $"\"{t}\""));
+		var lines = new List<string>();
+		if (report.Uploaded.Count > 0) lines.Add(Lang.F("Sent to the cloud: {0}", Names(report.Uploaded)));
+		if (report.Downloaded.Count > 0) lines.Add(Lang.F("Brought to this PC: {0}", Names(report.Downloaded)));
+		if (report.Failed.Count > 0) lines.Add(Lang.F("Didn't sync (try again later): {0}", Names(report.Failed)));
+		return lines.Count == 0 ? Lang.T("Nothing to sync.") : string.Join("\n\n", lines);
 	}
 
 	async void PasteCode()

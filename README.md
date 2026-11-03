@@ -25,7 +25,7 @@ test app, so everyone needs Steam running) or over **LAN** (same Wi-Fi, or sever
 1. Open the project in Godot 4.7.2 (.NET / mono version) and press Play — or run it from the command line:
    `Godot_v4.7.2-stable_mono_win64.exe --path .`
 2. Start Steam first if you want to play over Steam.
-3. **Host:** My quizzes → build or import a quiz → **Open lobby**, share the code.
+3. **Host:** My Quiznights → build or import a quiz → **Open lobby**, share the code.
    **Players:** choose Steam (or LAN), enter the code (or the host's address) and a name → Join.
 
 To try it alone, use LAN mode: open the game twice (or more) and join `127.0.0.1` from the extra windows.
