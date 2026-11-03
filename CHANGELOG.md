@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.0d1]
+
 ### Changed
 - **Smoother running:** pictures sent by the host are now decoded in the background, so a big picture no longer makes
   the screen stutter when its question is shown. The host's game saves the night at most once a second instead of on
