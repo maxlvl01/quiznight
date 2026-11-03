@@ -14,6 +14,11 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Fixed
+- **On a first start, the guided tour opened on top of "What's new"** (reported by Max). Both showed up as soon as the
+  intro ended, with the tour covering the patch notes, so you had to skip one to read the other. The tour now waits
+  until "What's new" (or the update window) is closed, then starts.
+
 ## [0.15.0d1]
 
 ### Changed
