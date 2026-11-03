@@ -26,6 +26,29 @@ def key(version):
     return (int(m[1]), int(m[2]), int(m[3] or 0), 0 if letter == "d" else 1, letter or "~", int(m[5] or 0))
 
 
+LINK = re.compile(r"^\[[^\]]+\]:\s*https?://\S+\s*$")
+# (the code repo has the downloads from 0.13.5b on; the older ones are on the old downloads-only repo, which has every
+# version from 0.5.0a on)
+NEW_REPO, OLD_REPO = "maxlvl01/quiznight", "maxlvl01/quiznight-releases"
+
+
+def with_links(text):
+    """The file with a link line for each public version at the end ("[0.13.5b]: https://github.com/…/releases/tag/v0.13.5b"):
+    on GitHub every "## [version]" heading is then a link to that version's release (its downloads). Test versions
+    (0.13.6d4) and Unreleased have none. The game skips these lines (Changelog.Parse)."""
+    lines = text.rstrip("\n").split("\n")
+    while lines and (LINK.match(lines[-1]) or not lines[-1].strip()):
+        lines.pop()
+    links = []
+    for line in lines:
+        m = HEAD.match(line)
+        if not m or (k := key(m[1])) is None or k[4] == "d" or k < (0, 5, 0, 1, "a", 0):
+            continue
+        repo = NEW_REPO if k >= (0, 13, 5, 1, "b", 0) else OLD_REPO
+        links.append(f"[{m[1]}]: https://github.com/{repo}/releases/tag/v{m[1]}")
+    return "\n".join(lines) + "\n\n" + "\n".join(links) + "\n"
+
+
 def parse(text):
     """The file as (preamble, [ (version, header line, [(kind, [lines])], loose lines) ])."""
     lines = text.split("\n")
@@ -91,9 +114,10 @@ if __name__ == "__main__":
     with open(path, encoding="utf-8") as f:
         text = f.read()
     new, folded = fold(text, version, last_public)
-    if folded:
+    new = with_links(new)
+    if new != text:
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             f.write(new)
-        print(f"CHANGELOG.md: test versions {', '.join(folded)} folded into {version}")
+        print(f"CHANGELOG.md: test versions {', '.join(folded)} folded into {version}" if folded else "CHANGELOG.md: links updated")
     else:
         print(f"CHANGELOG.md: no test versions between {last_public} and {version}")

@@ -31,6 +31,8 @@ public static class DropDowns
 		popup.AboutToPopup += () =>
 		{
 			o.AddThemeIconOverride("arrow", Arrow(true));
+			// (no scrollbar on the list's first frame, before Unfold has sized it: it flickered on short lists, Max 0.14.0d1)
+			if (ListScroll(popup) is { } bar) bar.VerticalScrollMode = ScrollContainer.ScrollMode.ShowNever;
 			Callable.From(() => Unfold(popup, o)).CallDeferred();
 		};
 		popup.PopupHide += () =>
@@ -60,8 +62,11 @@ public static class DropDowns
 		// dividing that by the rows came out too small)
 		var row = popup.GetThemeFont("font").GetHeight(popup.GetThemeFontSize("font_size")) + popup.GetThemeConstant("v_separation");
 		var pad = popup.GetThemeStylebox("panel").GetMinimumSize().Y;
-		var wanted = Mathf.Min(natural.Y, row * Math.Min(MaxRows, popup.ItemCount) + pad);
 		float below = screen.End.Y - button.End.Y - Margin, above = button.Position.Y - screen.Position.Y - Margin;
+		// (whether it scrolls is decided by its rows and the room, not by the row height guessed from the font: that came
+		// out a few pixels short, so a short list was cut by a hair and got a scrollbar)
+		var scrolls = popup.ItemCount > MaxRows || natural.Y > Mathf.Max(below, above) + 1;
+		var wanted = scrolls ? Mathf.Min(natural.Y, row * Math.Min(MaxRows, popup.ItemCount) + pad) : natural.Y;
 		var upwards = below < Mathf.Min(wanted, row * 3) && above > below;
 		var full = new Vector2I(Mathf.RoundToInt(Mathf.Max(natural.X, button.Size.X)), Mathf.RoundToInt(Mathf.Min(wanted, upwards ? above : below)));
 		var x = Mathf.RoundToInt(Mathf.Clamp(button.Position.X, screen.Position.X, screen.End.X - full.X));
@@ -82,11 +87,11 @@ public static class DropDowns
 		}
 		// (while it unfolds the list is shorter than its items, so Godot showed its scrollbar for a few frames even on
 		// short lists: hidden until the list is open, then back only for lists that really scroll)
-		var scroll = popup.GetChildren(true).OfType<ScrollContainer>().FirstOrDefault();
+		var scroll = ListScroll(popup);
 		void ScrollBar()
 		{
 			if (scroll != null && GodotObject.IsInstanceValid(scroll))
-				scroll.VerticalScrollMode = natural.Y > full.Y + 1 ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.ShowNever;
+				scroll.VerticalScrollMode = scrolls || natural.Y > full.Y + 1 ? ScrollContainer.ScrollMode.Auto : ScrollContainer.ScrollMode.ShowNever;
 		}
 		if (Announcer.ReduceMotion)
 		{
@@ -100,6 +105,11 @@ public static class DropDowns
 		tween.TweenMethod(Callable.From<float>(Height), 0f, (float)full.Y, UnfoldSec).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.Out);
 		tween.TweenCallback(Callable.From(ScrollBar));
 	}
+
+	/// <summary>The list's scroll area. It's not a direct child of the PopupMenu (its panel is between): looking only
+	/// there found nothing, so the scrollbar fix of 0.13.5 never did anything.</summary>
+	static ScrollContainer? ListScroll(Node node) =>
+		node.GetChildren(true).OfType<ScrollContainer>().FirstOrDefault() ?? node.GetChildren(true).Select(ListScroll).FirstOrDefault(s => s != null);
 
 	const string Shown = "dropdown_rect", Up = "dropdown_up";
 	const int MaxWidth = 4096;

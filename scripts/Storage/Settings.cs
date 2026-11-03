@@ -23,11 +23,20 @@ public static class Settings
 		}
 	}
 
-	static string Get(string key, string fallback) => Cfg.GetValue("app", key, fallback).AsString();
+	// (what each key holds, null = not set: some are read every frame, and asking the ConfigFile goes through Godot each time)
+	static readonly System.Collections.Generic.Dictionary<string, string?> _values = new();
+
+	static string Get(string key, string fallback)
+	{
+		if (!_values.TryGetValue(key, out var value))
+			_values[key] = value = Cfg.HasSectionKey("app", key) ? Cfg.GetValue("app", key).AsString() : null;
+		return value ?? fallback;
+	}
 
 	static void Set(string key, string value)
 	{
 		Cfg.SetValue("app", key, value);
+		_values[key] = value;
 		Cfg.Save(FilePath);
 	}
 
@@ -38,7 +47,11 @@ public static class Settings
 	public static bool ResetVolumesOnce(bool firstStart)
 	{
 		if (Get("volumes_reset", "") == "0.10.2b") return false;
-		foreach (var key in new[] { "volume_master", "volume_music", "volume_game_music", "volume_sfx" }) Cfg.SetValue("app", key, "50");
+		foreach (var key in new[] { "volume_master", "volume_music", "volume_game_music", "volume_sfx" })
+		{
+			Cfg.SetValue("app", key, "50");
+			_values[key] = "50";
+		}
 		Set("volumes_reset", "0.10.2b");
 		return !firstStart;
 	}
@@ -127,15 +140,14 @@ public static class Settings
 	// ---------- settings screen ----------
 
 	/// <summary>Everything on the settings screen as one value: the screen edits a copy and saves it with Apply.</summary>
-	public sealed record Values(string Language, int Master, int Music, int GameMusic, int Sfx, string Buzzer, string WindowMode, Vector2I WindowSize, string FullscreenShape, Vector2I FullscreenResolution, int Screen, bool BackgroundMotion, string Background, string Podium, bool PodiumFollowHost);
+	public sealed record Values(int Master, int Music, int GameMusic, int Sfx, string Buzzer, string WindowMode, Vector2I WindowSize, string FullscreenShape, Vector2I FullscreenResolution, int Screen, bool BackgroundMotion, string Background, string Podium, bool PodiumFollowHost);
 
-	public static Values Defaults => new(Lang.SystemDefault, 50, 50, 50, 50, Storage.Sfx.DefaultBuzzer, "windowed", new Vector2I(1600, 900), "", Vector2I.Zero, DisplayServer.GetPrimaryScreen(), true, Backgrounds.Default, Sfx.DefaultPodium, true);
+	public static Values Defaults => new(50, 50, 50, 50, Storage.Sfx.DefaultBuzzer, "windowed", new Vector2I(1600, 900), "", Vector2I.Zero, DisplayServer.GetPrimaryScreen(), true, Backgrounds.Default, Sfx.DefaultPodium, true);
 
-	public static Values Current => new(Language, MasterVolume, MusicVolume, GameMusicVolume, SfxVolume, BuzzerSound, WindowMode, WindowSize, FullscreenShape, FullscreenResolution, Screen, BackgroundMotion, Background, PodiumSound, PodiumFollowHost);
+	public static Values Current => new(MasterVolume, MusicVolume, GameMusicVolume, SfxVolume, BuzzerSound, WindowMode, WindowSize, FullscreenShape, FullscreenResolution, Screen, BackgroundMotion, Background, PodiumSound, PodiumFollowHost);
 
 	public static void Save(Values v)
 	{
-		Language = v.Language;
 		MasterVolume = v.Master;
 		MusicVolume = v.Music;
 		GameMusicVolume = v.GameMusic;
@@ -153,12 +165,6 @@ public static class Settings
 	}
 
 	static int GetPercent(string key, int fallback) => int.TryParse(Get(key, ""), out var v) ? Mathf.Clamp(v, 0, 100) : fallback;
-
-	public static string Language
-	{
-		get => Get("language", Lang.SystemDefault);
-		set => Set("language", value);
-	}
 
 	public static int MasterVolume
 	{

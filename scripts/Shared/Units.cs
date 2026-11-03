@@ -1,5 +1,5 @@
 // Units for estimation questions, grouped for the editor's drop-down. The question stores the unit as the text players
-// see ("km", "light years"); words are stored in the quiz maker's language, symbols as they are. Anything else can still
+// see ("km", "light years"). Anything else can still
 // be typed as a custom unit.
 
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace QuizNight.Shared;
 
 public static class Units
 {
-	/// <summary>(group, units): a unit is its symbol, or a word that's translated when picked.</summary>
+	/// <summary>(group, units): a unit is its symbol or a word.</summary>
 	public static readonly (string Group, string[] Units)[] Groups =
 	{
 		("Length", new[] { "mm", "cm", "m", "km", "in", "ft", "yd", "mi", "nmi", "AU", "light years", "pc" }),
@@ -25,18 +25,22 @@ public static class Units
 		("Other", new[] { "%", "people", "pieces" }),
 	};
 
-	/// <summary>Units that are words (translated into the quiz maker's language when picked).</summary>
-	static readonly HashSet<string> Words = new() { "light years", "days", "weeks", "months", "years", "knots", "acres", "people", "pieces" };
+	/// <summary>What a picked unit stores: the unit as it is.</summary>
+	public static string Text(string unit) => unit;
 
-	/// <summary>What a picked unit stores: a symbol as it is, a word in the current language.</summary>
-	public static string Text(string unit) => Words.Contains(unit) ? Lang.T(unit) : unit;
+	// (quizzes made while the game also spoke German stored these words in German)
+	static readonly Dictionary<string, string> German = new()
+	{
+		["Lichtjahre"] = "light years", ["Tage"] = "days", ["Wochen"] = "weeks", ["Monate"] = "months", ["Jahre"] = "years",
+		["Knoten"] = "knots", ["Acres"] = "acres", ["Personen"] = "people", ["Stück"] = "pieces",
+	};
 
-	/// <summary>The list unit a stored text is (in either language), or null for a custom one.</summary>
+	/// <summary>The list unit a stored text is (also an old German word), or null for a custom one.</summary>
 	public static string? Find(string text)
 	{
 		if (text == "") return null;
 		foreach (var u in Groups.SelectMany(g => g.Units))
-			if (u == text || Words.Contains(u) && (Lang.T(u) == text || LangDe.Strings.TryGetValue(u, out var de) && de == text)) return u;
-		return null;
+			if (u == text) return u;
+		return German.GetValueOrDefault(text);
 	}
 }

@@ -83,6 +83,7 @@ public sealed class HostSession : IDisposable
 		if (Room.Phase == Phase.Lobby) ArcadeDone(Arcade.Tick(Godot.Engine.GetMainLoop() is Godot.SceneTree tree ? tree.Root.GetProcessDeltaTime() : 1 / 60.0));
 		SendMedia();
 		var now = Godot.Time.GetTicksMsec() / 1000.0;
+		if (_saveDue && now - _savedAt >= 1) SaveNow();
 		if (_progressChanged && now - _progressSentAt > 0.4)
 		{
 			_progressChanged = false;
@@ -124,9 +125,7 @@ public sealed class HostSession : IDisposable
 			// (at most 8 MB per frame and connection; usually the connection says "full" much sooner)
 			for (var n = 0; n < 32; n++)
 			{
-				var next = files.Where(v => v.Index >= from)
-					.Select(v => (v.Id, Data: _encrypted[v.Id] is { IsCompletedSuccessfully: true } t ? t.Result : null))
-					.FirstOrDefault(v => v.Data != null && sent.GetValueOrDefault(v.Id) < v.Data.Length);
+				var next = NextToSend(files, from, sent);
 				if (next.Data == null) break;
 				var offset = sent.GetValueOrDefault(next.Id);
 				var size = (int)Math.Min(MediaChunk.MaxData, next.Data.Length - offset);
@@ -134,6 +133,16 @@ public sealed class HostSession : IDisposable
 				sent[next.Id] = offset + size;
 			}
 		}
+	}
+
+	/// <summary>The first file (from this question on) that's encrypted and not all sent yet. A plain loop: this runs every
+	/// frame for every player, also long after everything has gone.</summary>
+	(string Id, byte[]? Data) NextToSend(IReadOnlyList<Game.SharedMedia> files, int from, Dictionary<string, long> sent)
+	{
+		foreach (var v in files)
+			if (v.Index >= from && _encrypted[v.Id] is { IsCompletedSuccessfully: true } t && sent.GetValueOrDefault(v.Id) < t.Result.Length)
+				return (v.Id, t.Result);
+		return ("", null);
 	}
 
 	/// <summary>The video encrypted with AES-CBC, the 16-byte IV first.</summary>
@@ -215,6 +224,9 @@ public sealed class HostSession : IDisposable
 				break;
 			case Msg.Rename when playerId != null:
 				if (Msg.Read<RenameRequest>(msg.Data) is { } rr && Room.Rename(playerId, rr.Name).Ok) Broadcast();
+				break;
+			case Msg.TeamName when playerId != null:
+				if (Msg.Read<TeamNameRequest>(msg.Data) is { } tn && Room.RenameTeam(playerId, tn.Team, tn.Roll ? null : tn.Name).Ok) Broadcast();
 				break;
 			case Msg.Joker when playerId != null && Playing():
 				if (Msg.Read<JokerRequest>(msg.Data) is { } jr && Room.Game!.PlayJoker(playerId, jr.Kind, jr.On).Ok) Broadcast();
@@ -377,6 +389,14 @@ public sealed class HostSession : IDisposable
 	}
 
 	/// <summary>Team mode: the host draws the teams (every lobby screen plays the draw).</summary>
+	/// <summary>The host names a team (null: rolls a new name).</summary>
+	public Result RenameTeam(int team, string? name)
+	{
+		var result = Room.RenameTeam("host", team, name);
+		if (result.Ok) Broadcast();
+		return result;
+	}
+
 	public Result DrawTeams()
 	{
 		var result = Room.DrawTeams();
@@ -523,9 +543,21 @@ public sealed class HostSession : IDisposable
 	/// <summary>This room has a save on disk (written or continued): it goes when the night ends.</summary>
 	bool _hasSave;
 
+	/// <summary>Something changed since the last save; when it was written (it's written at most once a second, then soon after).</summary>
+	bool _saveDue;
+	double _savedAt = double.NegativeInfinity;
+
 	void Autosave()
 	{
 		if (!Autosaves) return;
+		_saveDue = true;
+		if (Room.Phase == Phase.Finished || Godot.Time.GetTicksMsec() / 1000.0 - _savedAt >= 1) SaveNow();
+	}
+
+	void SaveNow()
+	{
+		_saveDue = false;
+		_savedAt = Godot.Time.GetTicksMsec() / 1000.0;
 		if (Room.Phase == Phase.Finished)
 		{
 			if (_hasSave) Storage.NightSaves.Delete(Room.Quiz.Id);
@@ -577,6 +609,8 @@ public sealed class HostSession : IDisposable
 	{
 		if (_disposed) return;
 		_disposed = true;
+		// (the last changes, if they waited for their second)
+		if (_saveDue) SaveNow();
 		_net.Dispose();
 	}
 }

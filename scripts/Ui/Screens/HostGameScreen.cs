@@ -632,12 +632,16 @@ public partial class HostMedia : VBoxContainer
 public partial class SoundBars : Control
 {
 	public bool Active;
+	bool _wasActive = true;
 	double _t;
 
 	public SoundBars() => CustomMinimumSize = new Vector2(0, 64);
 
 	public override void _Process(double delta)
 	{
+		// (still bars don't need drawing again, only the frame they stop)
+		if (!Active && !_wasActive) return;
+		_wasActive = Active;
 		if (Active) _t += delta;
 		QueueRedraw();
 	}

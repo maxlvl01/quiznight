@@ -15,9 +15,90 @@ public static class TeamParts
 {
 	public static Color ColorOf(int team) => new(TeamNames.Color(team));
 
+	/// <summary>A team's name in this room: the one it gave itself (0.14), else the drawn one.</summary>
+	public static string NameOf(RoomState room, int team) => room.Teams?.FirstOrDefault(t => t.Index == team)?.Name ?? TeamNames.Name(team);
+
 	/// <summary>"● Smarty Pints" in the team's colour.</summary>
-	public static Control Pill(int team, int size = 12) =>
-		U.Pill(TeamNames.Name(team), ColorOf(team)).With(p => p.Raw()).With(p => p.TooltipText = Lang.T("Their team"));
+	public static Control Pill(RoomState room, int team) =>
+		U.Pill(NameOf(room, team), ColorOf(team)).With(p => p.Raw()).With(p => p.TooltipText = Lang.T("Their team"));
+
+	/// <summary>A screen's team name being typed: the field, kept across rebuilds so typing isn't lost.</summary>
+	public sealed class Rename
+	{
+		public LineEdit? Field;
+		public int Team;
+		public string? Error;
+
+		/// <summary>Before the screen clears its content (that would free the field).</summary>
+		public void Detach() => Field?.GetParent()?.RemoveChild(Field);
+	}
+
+	/// <summary>
+	/// A team's name to change after the draw (0.14): the name in the team's colour (double-click or "Rename" to type a
+	/// new one, Enter keeps it, Esc goes back) and the dice for a new name. Names never get translated.
+	/// </summary>
+	/// <param name="rename">Sends the new name; null rolls one.</param>
+	/// <param name="refresh">Builds the screen again (the field comes and goes).</param>
+	/// <param name="renameButton">False: only the double-click (where room is short, e.g. six teams in the host's lobby).</param>
+	public static Control NameEditor(RoomState room, int team, Rename state, Action<int, string?> rename, Action refresh, int size = 18, bool renameButton = true)
+	{
+		var current = NameOf(room, team);
+		void Edit()
+		{
+			var field = U.Input(current, "", null, TeamNames.NameMaxLength);
+			(state.Field, state.Team, state.Error) = (field, team, null);
+			field.TextSubmitted += _ => Done(true);
+			field.FocusExited += () => Done(true);
+			field.GuiInput += k =>
+			{
+				if (k is InputEventKey { Pressed: true, Keycode: Key.Escape }) Done(false);
+			};
+			refresh();
+			field.CallDeferred(Control.MethodName.GrabFocus);
+			field.CallDeferred(LineEdit.MethodName.SelectAll);
+
+			void Done(bool keep)
+			{
+				if (state.Field != field) return;
+				state.Field = null;
+				var text = TeamNames.Clean(field.Text);
+				if (keep && text != "" && text != current)
+				{
+					if (room.Teams?.Any(t => t.Index != team && string.Equals(t.Name, text, StringComparison.OrdinalIgnoreCase)) == true)
+						state.Error = Lang.T("Another team already has that name.");
+					else rename(team, text);
+				}
+				// (after the field's own signal is done: rebuilding frees it)
+				Callable.From(refresh).CallDeferred();
+			}
+		}
+		Control name;
+		if (state.Field != null && state.Team == team)
+		{
+			state.Detach();
+			name = state.Field;
+			name.CustomMinimumSize = new Vector2(220, 0);
+		}
+		else
+		{
+			var label = U.Text(current, size, ColorOf(team), Fonts.Black, false).Raw();
+			label.MouseFilter = Control.MouseFilterEnum.Stop;
+			label.MouseDefaultCursorShape = Control.CursorShape.Ibeam;
+			label.TooltipText = Lang.T("Double-click to rename the team");
+			label.GuiInput += e =>
+			{
+				if (e is InputEventMouseButton { DoubleClick: true, ButtonIndex: MouseButton.Left }) Edit();
+			};
+			name = label;
+		}
+		name.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+		var row = U.H(8, U.Text("●", size, ColorOf(team), null, false).Raw().With(d => d.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter), name);
+		if (renameButton) row.AddChild(U.Small("Rename", Edit).With(b => b.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter));
+		row.AddChild(U.Small("", () => rename(team, null)).On(Glyph.Kind.Dice, 15).Tip("A new name, picked at random")
+			.With(b => b.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter));
+		if (state.Error == null || state.Team != team) return row;
+		return U.V(4, row, U.Text(state.Error, 12, C.Coral, null, true));
+	}
 
 	/// <summary>The teams by place, with their members and points (the player's own team outlined).</summary>
 	public static Control Board(RoomState room, string? me = null)
@@ -46,6 +127,9 @@ public partial class TeamDrawShow : Control
 {
 	/// <summary>The last draw each room's screens have seen: a screen built again doesn't show it twice.</summary>
 	static (string Code, int Draw) _seen;
+
+	/// <summary>Dev (--drawn): this draw counts as seen, no show.</summary>
+	public static void Seen(RoomState room) => _seen = (room.Code, room.TeamDraw);
 
 	/// <summary>A lobby screen's update: plays the draw if this one is new (not when you come into a room drawn before).</summary>
 	public static void MaybeShow(Control screen, RoomState room)

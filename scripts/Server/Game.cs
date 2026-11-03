@@ -980,16 +980,13 @@ public sealed class Game
 	/// <summary>Like toLocaleString('en-GB', { maximumFractionDigits: 2 }).</summary>
 	/// <summary>
 	/// A number as typed, every digit after the point (0.00000034 stays that), without float noise (0.1 + 0.2 shows
-	/// 0.3), in the language's style ("2.5" / German "2,5").
+	/// 0.3), with thousands commas ("12,500.25").
 	/// </summary>
 	public static string Fmt(double n)
 	{
 		var clean = double.Parse(n.ToString("G15", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
-		var culture = Godot.TranslationServer.GetLocale() == "de" ? De : En;
-		return clean.ToString("#,0.###############", culture);
+		return clean.ToString("#,0.###############", En);
 	}
-
-	static readonly CultureInfo De = CultureInfo.GetCultureInfo("de-DE");
 
 	public static string FormatDistance(double? km, double percent)
 	{

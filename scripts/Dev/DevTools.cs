@@ -9,7 +9,6 @@
 //   --bot NAME [--address IP]      join a LAN room and answer on its own
 //   --open TYPE                    open the editor on the sample quiz's question of that type
 //   --screen home|quizzes|quiz|settings|eternal|history|podium|delete  open that screen (delete: the delete question, deleting nothing; podium: a made-up night's)
-//   --lang en|de                   use that language this run (not saved)
 //   --video-guide [FILE]           open a new video question with the MP4 → .ogv guide
 //   --whats-new                    the home screen with this version's What's new open
 //   --settings-window              with --host-sample: Settings open as a window over the lobby
@@ -45,6 +44,7 @@ public sealed class DevTools
 	bool _undoChecked;
 	bool _arcadeOpened, _bugOpened;
 	bool _dropdownOpened;
+	int _shortFrames = -1, _shortBarFrames;
 	int _dropdownChecks;
 	bool _scrolled;
 
@@ -170,7 +170,6 @@ public sealed class DevTools
 		_quitAtEnd = Has("--quit-at-end");
 		if (int.TryParse(Value("--players"), out var n)) _players = n;
 		if (int.TryParse(Value("--start-at"), out var first)) _startAt = first - 1;
-		if (Value("--lang") is { } lang) Lang.Use(lang);
 		// --net-lag MS: this copy's LAN connection to the host is as slow as the internet (MS each way, unevenly)
 		if (double.TryParse(Value("--net-lag"), System.Globalization.CultureInfo.InvariantCulture, out var lagMs)) Net.LanClientTransport.Lag = lagMs;
 		// (the fullscreen picture's shape, not saved: e.g. --fullscreen-shape 16:9 with Godot's --fullscreen)
@@ -283,6 +282,12 @@ public sealed class DevTools
 					lobbyHost.Room.Join("fake-" + seat, seat);
 			// (-1 = "Play in teams" ticked)
 			if (int.TryParse(Value("--teams"), out var teams)) _app.Host?.UpdateSettings(teams: teams);
+			// --drawn (with --teams): the teams drawn straight away (the draw's show skipped), --team-name NAME names the first
+			if (Has("--drawn") && _app.Host is { } drawHost && drawHost.DrawTeams().Ok)
+			{
+				Ui.Screens.TeamDrawShow.Seen(drawHost.State);
+				if (Value("--team-name") is { } teamName) drawHost.RenameTeam(0, teamName);
+			}
 			// --settings-window: Settings open over the lobby (or the game), for screenshots
 			if (Has("--settings-window")) _app.GetTree().CreateTimer(1.5).Timeout += Ui.Screens.SettingsWindow.Open;
 		}
@@ -302,6 +307,8 @@ public sealed class DevTools
 			}
 			// --map-grid (with --open mapPin): no map chosen yet, so the editor shows the map grid
 			if (Has("--map-grid")) sample.Questions.First(x => x.Type == QuestionType.MapPin).MapId = null;
+			// --map-tab "Race tracks" (with --map-grid): the grid opens on that tab
+			if (Value("--map-tab") is { } tab) QuestionEditorScreen.MapTab = tab;
 			var quiz = QuizStore.Save(sample);
 			var q = quiz.Questions.FirstOrDefault(x => x.Type == type || (type == "choice" && x.Mode == ClassicMode.Choice) || (type == "multi" && x.IsMulti) || (type == "image" && x.Type == QuestionType.Image) || (type == "timeline" && x.IsTimeline) || (type == "wow" && x.MapId != null && quiz.MapById(x.MapId)?.PresetId == WowAtlas.PresetId)) ?? quiz.Questions[0];
 			_app.GoQuestion(quiz.Id, q.Id, null);
@@ -364,11 +371,12 @@ public sealed class DevTools
 					break;
 				case "quiz":
 				{
-					// (--list play|type|category|created: the list shown that way; --category-order a,b,c: the quiz's categories' order)
+					// (--list play|type|category|created: the list shown that way; --category-order a,b,c: the quiz's categories' order; --type-order a,b: its types' order)
 					if (Value("--list") is { } listed) QuizOverviewScreen.ListedBy = listed;
 					// (--tour-quiz: the guided tour's sample, which has categories)
 					var sample = Has("--tour-quiz") ? Ui.Tutorial.TourQuiz() : SampleQuiz.Build();
 					if (Value("--category-order") is { } order) sample.CategoryOrder = order.Split(',').ToList();
+					if (Value("--type-order") is { } types) sample.TypeOrder = types.Split(',').ToList();
 					_app.GoQuiz(QuizStore.Save(sample).Id);
 					break;
 				}
@@ -449,7 +457,7 @@ public sealed class DevTools
 				// (the delete question over My quizzes, to see it; it deletes nothing)
 				case "delete":
 					_app.GoQuizzes();
-					Callable.From(() => Ui.Dialogs.Confirm(_app, Lang.F("Delete \"{0}\"? This can't be undone — export it first if you want a backup.", "New quiz"),
+					Callable.From(() => Ui.Dialogs.Confirm(_app, Lang.F("Delete \"{0}\"? You can bring it back from \"Recently deleted\" for 30 days.", "New quiz"),
 						"Delete", () => { }, dontAskAgain: () => { })).CallDeferred();
 					break;
 				// (four scoreboard rows; after 1.3 s the last one overtakes the other three: shoot at 1.5 to see it mid-slide)
@@ -639,6 +647,29 @@ public sealed class DevTools
 			_dropdownOpened = true;
 			var nth = int.TryParse(Value("--open-dropdown"), out var n) ? n - 1 : 0;
 			Bot.All(_app).OfType<OptionButton>().Where(o => o.IsVisibleInTree()).Skip(nth).FirstOrDefault()?.ShowPopup();
+		}
+		// --short-dropdown-check (with --screen testlab): opens the shortest drop-down and counts the frames its list shows a
+		// scrollbar while it unfolds (should be 0: Max saw it flicker, 0.14.0d1)
+		if (Has("--short-dropdown-check") && _time >= 1)
+		{
+			var box = Bot.All(_app).OfType<OptionButton>().Where(o => o.IsVisibleInTree()).OrderBy(o => o.ItemCount).First();
+			var popup = box.GetPopup();
+			static ScrollContainer? Scroll(Node n) => n as ScrollContainer ?? n.GetChildren(true).Select(Scroll).FirstOrDefault(s => s != null);
+			if (_shortFrames < 0)
+			{
+				box.ShowPopup();
+				_shortFrames = 0;
+			}
+			else if (_shortFrames < 40)
+			{
+				_shortFrames++;
+				if (popup.Visible && Scroll(popup) is { } list && list.GetVScrollBar().Visible) { _shortBarFrames++; GD.Print($"  frame {_shortFrames}: bar visible, mode {list.VerticalScrollMode}, popup {popup.Size}, content {popup.GetContentsMinimumSize()}"); }
+			}
+			else
+			{
+				GD.Print($"Short drop-down ({box.ItemCount} items): scrollbar shown in {_shortBarFrames} of {_shortFrames} frames");
+				_app.Quit(0);
+			}
 		}
 		// --dropdown-check (with --screen testlab): opens the long test drop-down twice and prints whether its list scrolls each time
 		if (Has("--dropdown-check") && _dropdownChecks < 5 && _time >= 1 + _dropdownChecks * 0.7)

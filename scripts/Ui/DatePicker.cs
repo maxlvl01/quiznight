@@ -7,18 +7,17 @@ namespace QuizNight.Ui;
 
 /// <summary>
 /// A small month calendar that opens under a calendar button (the estimation's "Data as of"). Picking a day writes it into the
-/// field as "1 November 2026" ("1. November 2026" in German); the field stays free text, so "2024" or "March 2025" still work.
+/// field as "1 November 2026"; the field stays free text, so "2024" or "March 2025" still work.
 /// Esc or a click outside closes it.
 /// </summary>
 public partial class DatePicker : Control
 {
 	static readonly CultureInfo En = CultureInfo.GetCultureInfo("en-GB");
+	// (German dates still read: quizzes made while the game also spoke German have them)
 	static readonly CultureInfo De = CultureInfo.GetCultureInfo("de-DE");
-	static bool German => TranslationServer.GetLocale() == "de";
-	static CultureInfo Culture => German ? De : En;
 
-	/// <summary>A day as the field shows it, in the editor's language.</summary>
-	public static string Format(DateTime day) => day.ToString(German ? "d. MMMM yyyy" : "d MMMM yyyy", Culture);
+	/// <summary>A day as the field shows it.</summary>
+	public static string Format(DateTime day) => day.ToString("d MMMM yyyy", En);
 
 	/// <summary>The day a field's text names, if it's written the way the picker writes it (in either language).</summary>
 	public static DateTime? Parse(string text)
@@ -93,7 +92,7 @@ public partial class DatePicker : Control
 	void Fill()
 	{
 		foreach (var child in _body.GetChildren()) child.QueueFree();
-		var title = U.Bold(_month.ToString("MMMM yyyy", Culture), 16, null, false, HorizontalAlignment.Center).Raw().Grow();
+		var title = U.Bold(_month.ToString("MMMM yyyy", En), 16, null, false, HorizontalAlignment.Center).Raw().Grow();
 		title.SizeFlagsVertical = SizeFlags.ShrinkCenter;
 		_body.AddChild(U.H(8,
 			U.Small("◀", () => Turn(-1)).Raw(),
@@ -103,9 +102,9 @@ public partial class DatePicker : Control
 		var grid = new GridContainer { Columns = 7 };
 		grid.AddThemeConstantOverride("h_separation", 4);
 		grid.AddThemeConstantOverride("v_separation", 4);
-		// Weeks start on Monday (both languages), names from the language ("Mon" / "Mo").
+		// Weeks start on Monday.
 		for (var i = 0; i < 7; i++)
-			grid.AddChild(U.Text(Culture.DateTimeFormat.AbbreviatedDayNames[(i + 1) % 7], 12, C.Muted, null, false, HorizontalAlignment.Center).Raw().MinSize(40));
+			grid.AddChild(U.Text(En.DateTimeFormat.AbbreviatedDayNames[(i + 1) % 7], 12, C.Muted, null, false, HorizontalAlignment.Center).Raw().MinSize(40));
 		var blanks = ((int)_month.DayOfWeek + 6) % 7;
 		for (var i = 0; i < blanks; i++) grid.AddChild(new Control());
 		var today = DateTime.Today;

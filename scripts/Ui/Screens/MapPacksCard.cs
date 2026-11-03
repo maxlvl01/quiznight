@@ -35,6 +35,9 @@ public static class MapPacksCard
 			var here = 0;
 			foreach (var preset in MapPresets.All)
 			{
+				// (the race tracks under their own heading, after the game maps)
+				if (preset.Category != null && preset == MapPresets.All.First(m => m.Category == preset.Category))
+					list.AddChild(U.Eyebrow(preset.Category));
 				var downloaded = MapPacks.IsDownloaded(preset.Id);
 				var size = MapPacks.SizeOnDisk(preset);
 				onDisk += size;

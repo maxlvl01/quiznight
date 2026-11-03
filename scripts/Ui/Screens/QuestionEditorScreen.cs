@@ -981,55 +981,82 @@ public partial class QuestionEditorScreen : Control
 		if (credit != null) _mapCol.AddChild(U.Muted(credit, 12));
 	}
 
+	/// <summary>The map grid's tab last looked at (game maps, race tracks, your maps), kept while the game runs.</summary>
+	internal static string? MapTab;
+
 	/// <summary>
-	/// The maps to pick from as picture cards: this quiz's own uploaded maps, every built-in one (A–Z, with its width) and
-	/// "Upload a new map". Scrolls when there are more than fit.
+	/// The maps to pick from as picture cards, on tabs side by side: the game maps (A–Z, with their width), the race tracks
+	/// (0.14) and this quiz's own uploaded maps with "Upload a new map". Scrolls when there are more than fit.
 	/// </summary>
 	Control MapGrid(MapAsset? current)
 	{
-		var grid = new GridContainer { Columns = 3 };
-		grid.AddThemeConstantOverride("h_separation", 8);
-		grid.AddThemeConstantOverride("v_separation", 8);
+		var sections = U.V(0);
+		var tabs = new List<(string Id, string Label)>();
+		GridContainer Section(string title)
+		{
+			var grid = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+			grid.AddThemeConstantOverride("h_separation", 8);
+			grid.AddThemeConstantOverride("v_separation", 8);
+			grid.Name = title;
+			tabs.Add((title, title));
+			sections.AddChild(grid);
+			return grid;
+		}
 		void Pick(Action choose)
 		{
 			_pickingMap = false;
 			choose();
 			BuildMapColumn();
 		}
+		foreach (var group in MapPresets.All.GroupBy(p => p.Category))
+		{
+			var grid = Section(group.Key ?? "Game maps");
+			foreach (var p in group.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
+			{
+				var preset = p;
+				var width = preset.WidthKm is { } km ? Lang.F("{0} km wide", Km(km)) : preset.Id == WowAtlas.PresetId ? Lang.T("World → continents → zones") : "";
+				// (not on this PC yet: downloaded when picked, MapPacks)
+				var here = MapPacks.Has(preset.Id);
+				if (!here) width = (width == "" ? "" : width + " · ") + Lang.T("⬇ downloads when picked");
+				grid.AddChild(MapCard(Images.MapThumb(preset.ImagePath), preset.Name, width, current?.PresetId == preset.Id, MapPresets.IsNew(preset, App.Version),
+					async () =>
+					{
+						if (!here && (!await MapDownload.Ensure(this, new[] { preset }) || !IsInstanceValid(this))) return;
+						Pick(() => ChoosePreset(preset.Id));
+					}));
+			}
+		}
+		var own = Section("Your maps");
 		foreach (var m in _maps.Where(m => MapPresets.Get(m.PresetId) == null))
 		{
-			var own = m;
-			grid.AddChild(MapCard(MapTexture(own), own.Name, own.WidthKm is { } km ? Lang.F("{0} km wide", Km(km)) : Lang.T("Your map"), own == current, false, () => Pick(() =>
+			var map = m;
+			own.AddChild(MapCard(MapTexture(map), map.Name, map.WidthKm is { } km ? Lang.F("{0} km wide", Km(km)) : Lang.T("Your map"), map == current, false, () => Pick(() =>
 			{
-				_draft.MapId = own.Id;
+				_draft.MapId = map.Id;
 				_draft.Target = null;
 				Changed();
 			})));
 		}
-		foreach (var p in MapPresets.All.OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase))
-		{
-			var preset = p;
-			var width = preset.WidthKm is { } km ? Lang.F("{0} km wide", Km(km)) : preset.Id == WowAtlas.PresetId ? Lang.T("World → continents → zones") : "";
-			// (not on this PC yet: downloaded when picked, MapPacks)
-			var here = MapPacks.Has(preset.Id);
-			if (!here) width = (width == "" ? "" : width + " · ") + Lang.T("⬇ downloads when picked");
-			grid.AddChild(MapCard(Images.MapThumb(preset.ImagePath), preset.Name, width, current?.PresetId == preset.Id, MapPresets.IsNew(preset, App.Version),
-				async () =>
-				{
-					if (!here && (!await MapDownload.Ensure(this, new[] { preset }) || !IsInstanceValid(this))) return;
-					Pick(() => ChoosePreset(preset.Id));
-				}));
-		}
-		grid.AddChild(MapCard(null, Lang.T("+ Upload a new map"), Lang.T("Any picture of a map"), false, false, () =>
+		own.AddChild(MapCard(null, Lang.T("+ Upload a new map"), Lang.T("Any picture of a map"), false, false, () =>
 		{
 			_pickingMap = false;
 			_addingMap = true;
 			BuildMapColumn();
 		}));
 		var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
-		grid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-		scroll.AddChild(grid);
-		var box = U.V(8, scroll);
+		sections.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		scroll.AddChild(sections);
+		// (opens on the chosen map's tab, else the one looked at last)
+		var open = current == null ? MapTab : MapPresets.Get(current.PresetId) is { } chosen ? chosen.Category ?? "Game maps" : "Your maps";
+		if (open == null || tabs.All(t => t.Id != open)) open = tabs[0].Id;
+		void Show(string id)
+		{
+			MapTab = id;
+			foreach (var grid in sections.GetChildren().OfType<GridContainer>()) grid.Visible = grid.Name == id;
+			scroll.ScrollVertical = 0;
+		}
+		Show(open);
+		var box = U.V(8, U.Segmented(tabs.ToArray(), open, Show), scroll);
 		box.SizeFlagsVertical = SizeFlags.ExpandFill;
 		if (current != null)
 			box.AddChild(U.Link(Lang.F("← Keep {0}", current.Name), () =>
@@ -1037,7 +1064,7 @@ public partial class QuestionEditorScreen : Control
 				_pickingMap = false;
 				BuildMapColumn();
 			}, 14).Raw());
-		else box.AddChild(U.Muted("Pick a game map or upload your own.", 13));
+		else box.AddChild(U.Muted("Pick a game map, a race track or upload your own.", 13));
 		return box;
 	}
 
@@ -1071,9 +1098,14 @@ public partial class QuestionEditorScreen : Control
 			var badge = U.Text(Lang.T("NEW"), 10, C.AccentInk, Fonts.Black, false, HorizontalAlignment.Center);
 			var pill = U.Panel(badge, "Clear");
 			pill.AddThemeStyleboxOverride("panel", UiTheme.Box(C.Accent, 6, null, 0, 6, 1));
+			// (on a plain layer over the picture: inside the picture's PanelContainer it was stretched over all of it)
+			var layer = new Control { MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = image.CustomMinimumSize };
+			image.SetAnchorsPreset(LayoutPreset.FullRect);
+			layer.AddChild(image);
+			layer.AddChild(pill);
 			pill.SetAnchorsAndOffsetsPreset(LayoutPreset.TopRight, LayoutPresetMode.KeepSize, 4);
 			pill.GrowHorizontal = GrowDirection.Begin;
-			image.AddChild(pill);
+			image = layer;
 		}
 		// (long names wrap onto a second line instead of being cut off)
 		var label = U.Bold(name, 12).Raw();

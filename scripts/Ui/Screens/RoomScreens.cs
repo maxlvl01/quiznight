@@ -39,6 +39,8 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 	readonly HostSession _host;
 	readonly VBoxContainer _content = U.V(12);
 	string? _error;
+	/// <summary>A team name the host is typing (0.14).</summary>
+	readonly TeamParts.Rename _teamRename = new();
 	// (the host was told some players' games are too old and starts anyway)
 	bool _versionsOk;
 
@@ -84,6 +86,7 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 	/// </summary>
 	public void Refresh(RoomState room)
 	{
+		_teamRename.Detach();
 		_content.Clear();
 		var connected = room.Players.Count(p => p.Connected);
 		// (more than one row of big seat cards pushed Start below the window: from 7 seats on they're small cards, one line
@@ -124,7 +127,7 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 				continue;
 			}
 			var seat = U.V(4, new Avatar(p, 44).Center(), U.PlayerName(p.Name, 15, HorizontalAlignment.Center, tags));
-			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(team).Center());
+			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(room, team).Center());
 			if (room.ResumeFrom != null) seat.AddChild(U.Muted(room.Score(id) == 1 ? Lang.T("1 point") : Lang.F("{0} points", room.Score(id)), 12, false, HorizontalAlignment.Center));
 			seat.AddChild(
 				U.H(4, GameParts.SeatStatus(p, room, false).With(s => s.SizeFlagsVertical = SizeFlags.ShrinkCenter),
@@ -246,6 +249,18 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 		}).On(Glyph.Kind.Dice, 15).Tip("Everyone is put in a team at random, with a show on every screen.");
 		// (no team may have fewer than 3/4 of another's players: 3 or 5 players can't be split fairly)
 		draw.Disabled = !fair;
+		// (after the draw: each team's name, which the host can change too)
+		// (four teams and more: two columns, double-click to rename, so the lobby still fits without scrolling)
+		if (drawn)
+		{
+			var many = room.Teams!.Count > 3;
+			var names = new GridContainer { Columns = many ? 2 : 1 };
+			names.AddThemeConstantOverride("h_separation", 16);
+			names.AddThemeConstantOverride("v_separation", 6);
+			foreach (var team in room.Teams!.OrderBy(t => t.Index))
+				names.AddChild(TeamParts.NameEditor(room, team.Index, _teamRename, (t, name) => _host.RenameTeam(t, name), () => Refresh(_host.State), many ? 13 : 15, !many));
+			col.AddChild(names);
+		}
 		col.AddChild(U.H(10, draw,
 			U.Muted(drawn ? Lang.F("{0} teams drawn. Draw again to change the split.", room.Settings.Teams)
 				: !fair ? Lang.F("{0} players can't be split into fair teams. 4, 6 or more work.", players)
@@ -267,7 +282,7 @@ public partial class HostLobbyScreen : Control, IRoomScreen
 			c.MouseFilter = MouseFilterEnum.Stop;
 			return c;
 		}
-		if (p.Team is { } team) row.AddChild(Centered(U.Text("●", 12, TeamParts.ColorOf(team), null, false).Raw().Tip(TeamNames.Name(team))));
+		if (p.Team is { } team) row.AddChild(Centered(U.Text("●", 12, TeamParts.ColorOf(team), null, false).Raw().Tip(TeamParts.NameOf(room, team))));
 		row.AddChild(U.PlayerName(p.Name, 14, HorizontalAlignment.Left).With(n => { n.SizeFlagsHorizontal = SizeFlags.ExpandFill; n.SizeFlagsVertical = SizeFlags.ShrinkCenter; n.CustomMinimumSize = new Vector2(40, 0); }));
 		if (VersionCheck.Older(p.Version, App.Version))
 			row.AddChild(Centered(Glyph.Rect(Glyph.Kind.Warning, 13, C.Orange).With(r => r.MouseFilter = MouseFilterEnum.Stop)
@@ -337,11 +352,14 @@ public partial class WaitingRoomScreen : Control, IRoomScreen
 
 	/// <summary>While you change your name: the field (kept across updates, so typing isn't lost).</summary>
 	LineEdit? _rename;
+	/// <summary>Your team's name while you type it (0.14).</summary>
+	readonly TeamParts.Rename _teamRename = new();
 	string? _renameError;
 
 	public void Refresh(RoomState room)
 	{
 		_rename?.GetParent()?.RemoveChild(_rename);
+		_teamRename.Detach();
 		_content.Clear();
 		_content.AddChild(U.H(8, U.Heading("Waiting room", 28, false).Grow(),
 			_client.Mode == NetMode.Steam ? new RoomCodeButton(room.Code) : U.Pill(Lang.F("Host {0}", _client.Target)),
@@ -362,7 +380,7 @@ public partial class WaitingRoomScreen : Control, IRoomScreen
 				me && room.Downloads.GetValueOrDefault(p.Id, 100) >= 100 ? U.Muted("You · double-click your name to change it", 13, true, HorizontalAlignment.Center)
 					: GameParts.SeatStatus(p, room, true).Center());
 			if (me && _renameError != null) seat.AddChild(U.Text(_renameError, 12, C.Coral, null, true, HorizontalAlignment.Center));
-			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(team).Center());
+			if (p.Team is { } team) seat.AddChild(TeamParts.Pill(room, team).Center());
 			grid.AddChild(U.Panel(seat, me ? "Scored" : "Card2").Grow());
 		}
 		// Everyone who's in, plus one open seat (while the room isn't full): the grid grows as people join.
@@ -373,6 +391,11 @@ public partial class WaitingRoomScreen : Control, IRoomScreen
 			grid.AddChild(U.Panel(empty, "Card2").With(p => p.Modulate = new Color(1, 1, 1, 0.5f)).Grow());
 		}
 		_content.AddChild(grid);
+		// (after the draw: your team names itself; anyone in it can change the name or roll a new one)
+		if (room.Phase == Phase.Lobby && room.Players.FirstOrDefault(p => p.Id == _client.MyId)?.Team is { } myTeam && room.Teams != null)
+			_content.AddChild(U.Panel(U.H(14, U.Eyebrow("Your team").With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter),
+				TeamParts.NameEditor(room, myTeam, _teamRename, (t, name) => _client.RenameTeam(t, name), () => Refresh(_client.State ?? room)),
+				U.Muted("Anyone in the team can name it.", 12, false).With(l => { l.SizeFlagsVertical = SizeFlags.ShrinkCenter; l.Grow(); })), "Inset"));
 		// (the mini games need a version from 0.12 on on both sides: the host sends their part of the state)
 		if (room.Arcade != null) _content.AddChild(Arcade.ArcadeWindow.LobbyStrip(_arcadeLink, OpenArcade));
 		if (_arcade != null && IsInstanceValid(_arcade)) _arcade.Refresh();
