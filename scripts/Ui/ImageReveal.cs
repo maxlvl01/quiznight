@@ -251,6 +251,7 @@ public partial class HostImageReveal : VBoxContainer
 		_bar.Value = progress;
 		_toggle.Text = Lang.T(_played >= _duration ? "Again" : _paused && _autoPaused ? "▶ Resume" : _paused ? "Play" : "Pause");
 		_toggle.Visible = _host == null || _open && _played < _duration;
-		_time.Text = $"{Math.Floor(_played)} / {_duration} s";
+		var time = $"{Math.Floor(_played)} / {_duration} s";
+		if (_time.Text != time) _time.Text = time;
 	}
 }

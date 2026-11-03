@@ -31,7 +31,7 @@ public sealed class ClientMedia : IDisposable
 	static int _count;
 	readonly string _dir = Path.Combine(OS.GetUserDataDir(), "cache", "media", $"{OS.GetProcessId()}-{System.Threading.Interlocked.Increment(ref _count)}");
 	readonly Dictionary<string, Incoming> _incoming = new();
-	readonly Dictionary<string, Task<string?>> _unlocking = new();
+	readonly Dictionary<string, Task<(string? Path, object? Prepared)>> _unlocking = new();
 	readonly Dictionary<string, Resource?> _ready = new();
 	/// <summary>How much the host has said it will send (Guard.MaxSharedTotalBytes at most: a host can't fill the disk).</summary>
 	long _promised;
@@ -96,18 +96,24 @@ public sealed class ClientMedia : IDisposable
 
 	/// <summary>The playable video once it's all here and unlocked; null until then (call again next frame).</summary>
 	public VideoStream? GetVideo(string id, string key) =>
-		Get(id, key, ".ogv", path => new VideoStreamTheora { File = path }) as VideoStream;
+		Get(id, key, ".ogv", (path, _) => new VideoStreamTheora { File = path }) as VideoStream;
 
-	/// <summary>A picture (question image, slide or map), the same way.</summary>
+	/// <summary>A picture (question image, slide or map), the same way. It's decoded in the background with the unlocking
+	/// (a big picture took a frame or more on the main thread when its question was shown); only the texture is made here.</summary>
 	public Texture2D? GetImage(string id, string key, string mime) =>
-		Get(id, key, ".img", path => Images.TextureFromBytes(System.IO.File.ReadAllBytes(path), mime)) as Texture2D;
+		Get(id, key, ".img", (_, image) => image is Image img ? ImageTexture.CreateFromImage(img) : null, path =>
+		{
+			var img = Images.Decode(System.IO.File.ReadAllBytes(path), mime);
+			img?.GenerateMipmaps();
+			return img;
+		}) as Texture2D;
 
 	/// <summary>
 	/// A built-in map of many files (WoW) the host sent as a zip: unpacked into this game's folder for MapPacks, the same
 	/// way. Returns a stand-in texture once it's usable (the map draws itself from the files).
 	/// </summary>
 	public Texture2D? GetMapPack(string id, string key) =>
-		Get(id, key, ".zip", path => UnpackMapPack(System.IO.File.ReadAllBytes(path))) as Texture2D;
+		Get(id, key, ".zip", (path, _) => UnpackMapPack(System.IO.File.ReadAllBytes(path))) as Texture2D;
 
 	/// <summary>Unpacks a map zip from the host (null if it isn't one we know).</summary>
 	public Texture2D? UnpackMapPack(byte[] zip)
@@ -133,9 +139,11 @@ public sealed class ClientMedia : IDisposable
 
 	/// <summary>The sound, the same way (mime: its file type, from the question).</summary>
 	public AudioStream? GetSound(string id, string key, string mime) =>
-		Get(id, key, ".sound", path => Storage.Media.LoadSound(System.IO.File.ReadAllBytes(path), mime)) as AudioStream;
+		Get(id, key, ".sound", (path, _) => Storage.Media.LoadSound(System.IO.File.ReadAllBytes(path), mime)) as AudioStream;
 
-	Resource? Get(string id, string key, string ext, Func<string, Resource?> load)
+	/// <summary>The file once it's here and unlocked: prepare (if any) runs in the background right after unlocking, load on
+	/// the main thread with what it made.</summary>
+	Resource? Get(string id, string key, string ext, Func<string, object?, Resource?> load, Func<string, object?>? prepare = null)
 	{
 		if (_ready.TryGetValue(id, out var res)) return res;
 		if (!_incoming.TryGetValue(id, out var file) || file.Received < file.Total) return null;
@@ -143,13 +151,18 @@ public sealed class ClientMedia : IDisposable
 		{
 			file.File.Flush();
 			var enc = Path.Combine(_dir, id + ".enc");
-			_unlocking[id] = Task.Run(() => Unlock(enc, Path.Combine(_dir, id + ext), key));
+			var target = Path.Combine(_dir, id + ext);
+			_unlocking[id] = Task.Run(() =>
+			{
+				var path = Unlock(enc, target, key);
+				return (path, path != null && prepare != null ? prepare(path) : null);
+			});
 			return null;
 		}
 		if (!task.IsCompleted) return null;
 		_unlocking.Remove(id);
-		var path = task.IsCompletedSuccessfully ? task.Result : null;
-		return _ready[id] = path != null ? load(path) : null;
+		var (path, prepared) = task.IsCompletedSuccessfully ? task.Result : (null, null);
+		return _ready[id] = path != null ? load(path, prepared) : null;
 	}
 
 	static string? Unlock(string encrypted, string target, string key)

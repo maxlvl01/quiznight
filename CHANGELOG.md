@@ -14,6 +14,12 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **Smoother running:** pictures sent by the host are now decoded in the background, so a big picture no longer makes
+  the screen stutter when its question is shown. The host's game saves the night at most once a second instead of on
+  every click at a reveal, and a few things the game checked every frame (settings, the Windows "reduce motion" option,
+  idle sound bars) are now looked up once and remembered.
+
 ## [0.14.1b]
 
 ### Changed

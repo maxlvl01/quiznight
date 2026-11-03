@@ -23,11 +23,20 @@ public static class Settings
 		}
 	}
 
-	static string Get(string key, string fallback) => Cfg.GetValue("app", key, fallback).AsString();
+	// (what each key holds, null = not set: some are read every frame, and asking the ConfigFile goes through Godot each time)
+	static readonly System.Collections.Generic.Dictionary<string, string?> _values = new();
+
+	static string Get(string key, string fallback)
+	{
+		if (!_values.TryGetValue(key, out var value))
+			_values[key] = value = Cfg.HasSectionKey("app", key) ? Cfg.GetValue("app", key).AsString() : null;
+		return value ?? fallback;
+	}
 
 	static void Set(string key, string value)
 	{
 		Cfg.SetValue("app", key, value);
+		_values[key] = value;
 		Cfg.Save(FilePath);
 	}
 
@@ -38,7 +47,11 @@ public static class Settings
 	public static bool ResetVolumesOnce(bool firstStart)
 	{
 		if (Get("volumes_reset", "") == "0.10.2b") return false;
-		foreach (var key in new[] { "volume_master", "volume_music", "volume_game_music", "volume_sfx" }) Cfg.SetValue("app", key, "50");
+		foreach (var key in new[] { "volume_master", "volume_music", "volume_game_music", "volume_sfx" })
+		{
+			Cfg.SetValue("app", key, "50");
+			_values[key] = "50";
+		}
 		Set("volumes_reset", "0.10.2b");
 		return !firstStart;
 	}
