@@ -12,6 +12,7 @@ public partial class TitleScreen : Control
 	public readonly LogoField Logo;
 	public readonly Label Prompt;
 	public readonly TextureRect Glow;
+	public readonly TheaterCurtain Curtain;
 	public readonly Button Sponsor;
 	/// <summary>Started: the prompt and logo are the glide's now.</summary>
 	public bool Leaving;
@@ -32,6 +33,9 @@ public partial class TitleScreen : Control
 		};
 		Glow.SetAnchorsPreset(LayoutPreset.FullRect);
 		AddChild(Glow);
+		// (the curtain hangs behind the logo and the prompt; pressing a button draws it aside, IntroSequence.Start)
+		Curtain = new TheaterCurtain();
+		AddChild(Curtain);
 		Logo = new LogoField(104);
 		var center = new CenterContainer { MouseFilter = MouseFilterEnum.Ignore };
 		center.SetAnchorsPreset(LayoutPreset.FullRect);

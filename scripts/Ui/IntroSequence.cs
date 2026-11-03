@@ -196,6 +196,10 @@ public partial class IntroSequence : Control
 			t.TweenProperty(logo, "scale", new Vector2(scale, scale), glide).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
 			t.TweenProperty(home, "modulate:a", 1f, glide * 0.7).SetDelay(glide * 0.35);
 		}
+		// (the curtain opens with the voice line, which _started has just begun)
+		// (Open is a plain C# property, which tweens can't reach by name: a method tween sets it instead)
+		var curtain = _title.Curtain;
+		t.TweenMethod(Callable.From<float>(v => curtain.Open = v), 0f, 1f, 1.4).SetTrans(Tween.TransitionType.Cubic).SetEase(Tween.EaseType.InOut);
 		t.TweenProperty(_title.Prompt, "modulate:a", 0f, 0.2);
 		t.TweenProperty(_title.Glow, "modulate:a", 0f, glide * 0.6);
 		t.TweenProperty(_bg, "modulate:a", 0f, glide * 0.7).SetDelay(glide * 0.3);
