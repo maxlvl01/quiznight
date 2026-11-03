@@ -131,11 +131,12 @@ public static class Tutorial
 		Wait(id, screen);
 	}
 
-	/// <summary>Starts the tour once the screen has its layout, and once the intro (title screen, welcome) is over.</summary>
+	/// <summary>Starts the tour once the screen has its layout, and once the intro (title screen, welcome) and any window over
+	/// it (What's new, the update prompt) are gone: on a first start the tour opened on top of the patch notes.</summary>
 	static void Wait(string id, Control screen) => screen.GetTree().CreateTimer(0.5).Timeout += () =>
 	{
 		if (!GodotObject.IsInstanceValid(screen) || App.I.Screen != screen || TutorialOverlay.Current != null) return;
-		if (App.I.GetChildren().OfType<IntroSequence>().Any())
+		if (App.I.GetChildren().Any(c => c is IntroSequence or Screens.VideoGuide.GuideOverlay))
 		{
 			Wait(id, screen);
 			return;
