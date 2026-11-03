@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.3b]
+
 ### Changed
 - **The home screen's spotlights are real lights now, for everyone.** The buttons and the logo throw shadows where the
   beams hit them. This used to be an experiment you had to switch on in the settings; it turned out cheap enough to run
