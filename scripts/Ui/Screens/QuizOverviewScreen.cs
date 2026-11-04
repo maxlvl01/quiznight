@@ -23,7 +23,7 @@ public partial class QuizOverviewScreen : Control
 	readonly Label _error = U.Error();
 	readonly LineEdit _title;
 	/// <summary>Ctrl+Z / Ctrl+Y: moving, deleting and renaming, back and forth (the questions themselves aren't copied).</summary>
-	readonly EditHistory<(string Title, List<Question> Questions, List<string> Categories)> _history;
+	readonly EditHistory<(string Title, List<Question> Questions, List<string> Categories, List<string> Types)> _history;
 	/// <summary>The questions picked with Ctrl+click or Shift+click: they move (drag, to top/bottom) and delete together.</summary>
 	readonly HashSet<Question> _picked = new();
 	/// <summary>Where a Shift+click's range starts: the last question clicked with Ctrl or Shift.</summary>
@@ -51,7 +51,7 @@ public partial class QuizOverviewScreen : Control
 		title.AddThemeFontSizeOverride("font_size", 22);
 
 		var sidebar = U.V(12,
-			U.Link("← My quizzes", App.I.GoQuizzes, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin),
+			U.Link("← My Quiznights", App.I.GoQuizzes, 14).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin),
 			U.Eyebrow("Quiz"),
 			Tutorial.Mark(title, "overview.title"),
 			_sortBar,
@@ -65,11 +65,11 @@ public partial class QuizOverviewScreen : Control
 		var types = Tutorial.Mark(new GridContainer { Columns = 3 }, "overview.types");
 		types.AddThemeConstantOverride("h_separation", 12);
 		types.AddThemeConstantOverride("v_separation", 12);
-		// (alphabetical by the name shown, so also in German)
+		// (alphabetical by the name shown)
 		foreach (var type in QuestionType.All.OrderBy(t => Lang.T(QuestionType.Infos[t].Label), System.StringComparer.CurrentCultureIgnoreCase))
 		{
 			var info = QuestionType.Infos[type];
-			// Layers: the clickable card, the name on top (it sets the height: long names wrap, e.g. in German), and the "?"
+			// Layers: the clickable card, the name on top (it sets the height: long names wrap), and the "?"
 			// on the right, level with the name, which tells what the type does (hover) and its variants (click).
 			var card = new MarginContainer { MouseFilter = MouseFilterEnum.Ignore }.Grow();
 			var button = new Button { ThemeTypeVariation = "", MouseDefaultCursorShape = CursorShape.PointingHand, CustomMinimumSize = new Vector2(0, 76) };
@@ -107,11 +107,12 @@ public partial class QuizOverviewScreen : Control
 		spot.Size = spot.CustomMinimumSize;
 		spot.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, (int)ButtonDock.Margin);
 		RefreshList();
-		_history = new(() => (_quiz.Title, _quiz.Questions.ToList(), _quiz.CategoryOrder.ToList()), state =>
+		_history = new(() => (_quiz.Title, _quiz.Questions.ToList(), _quiz.CategoryOrder.ToList(), _quiz.TypeOrder.ToList()), state =>
 		{
 			_quiz.Title = state.Title;
 			_quiz.Questions = state.Questions.ToList();
 			_quiz.CategoryOrder = state.Categories.ToList();
+			_quiz.TypeOrder = state.Types.ToList();
 			_title.Text = state.Title;
 			_titleDirty = false;
 			Save();
@@ -158,11 +159,16 @@ public partial class QuizOverviewScreen : Control
 		string? group = null;
 		foreach (var i in Shown())
 		{
-			// (by category: a heading for each, with arrows that change the categories' order)
+			// (by category or type: a heading for each, with arrows that change their order)
 			if (_sort == "category" && _quiz.Questions[i].Category is var cat && cat != group)
 			{
 				group = cat;
 				_questions.AddChild(CategoryHead(cat));
+			}
+			else if (_sort == "type" && KindOf(_quiz.Questions[i]) is var kind && kind != group)
+			{
+				group = kind;
+				_questions.AddChild(TypeHead(kind));
 			}
 			_questions.AddChild(Row(i));
 		}
@@ -182,21 +188,47 @@ public partial class QuizOverviewScreen : Control
 	/// <summary>A category's heading in "By category": its name, how many, and ▲ ▼ to move it before or after the next one.</summary>
 	Control CategoryHead(string category)
 	{
-		var count = _quiz.Questions.Count(q => q.Category == category);
 		var name = category == "" ? U.Text(Lang.T("No category yet"), 15, new Color(C.Gold, 0.85f), Fonts.Bold) : U.Bold(Categories.Label(category), 15).Raw();
+		return GroupHead(name, _quiz.Questions.Count(q => q.Category == category), category == "" ? -1 : CategoryList().IndexOf(category), CategoryList().Count,
+			by => MoveCategory(category, by), "Play this category earlier", "Play this category later");
+	}
+
+	/// <summary>A type's heading in "By type", like a category's.</summary>
+	Control TypeHead(string kind) =>
+		GroupHead(U.Bold(QuestionType.Infos[kind].Label, 15), _quiz.Questions.Count(q => KindOf(q) == kind), TypeList().IndexOf(kind), TypeList().Count,
+			by => MoveType(kind, by), "Play this type earlier", "Play this type later");
+
+	/// <summary>A group's heading: its name, how many, and ▲ ▼ (none for at = -1, a group that can't move).</summary>
+	static Control GroupHead(Control name, int count, int at, int groups, System.Action<int> move, string earlier, string later)
+	{
 		var row = GameParts.Row(6, name, U.Muted(Lang.F("· {0}", count), 13, false), U.Fill());
-		if (category != "")
+		if (at >= 0)
 		{
-			var list = CategoryList();
-			var at = list.IndexOf(category);
-			var up = U.Small("▲", () => MoveCategory(category, -1)).Tip("Play this category earlier");
-			var down = U.Small("▼", () => MoveCategory(category, 1)).Tip("Play this category later");
+			var up = U.Small("▲", () => move(-1)).Tip(earlier);
+			var down = U.Small("▼", () => move(1)).Tip(later);
 			up.Disabled = at <= 0;
-			down.Disabled = at >= list.Count - 1;
+			down.Disabled = at >= groups - 1;
 			row.AddChild(up);
 			row.AddChild(down);
 		}
 		return U.Pad(row, 2, 8, 2, 0);
+	}
+
+	/// <summary>The quiz's question types in its order (TypeOrder first, the others in the editor's order).</summary>
+	List<string> TypeList() => _quiz.Questions.Select(KindOf).Distinct().OrderBy(TypeRank).ToList();
+
+	int TypeRank(string kind) => _quiz.TypeOrder.IndexOf(kind) is var k and >= 0 ? k : 1000 + System.Array.IndexOf(QuestionType.All, kind);
+
+	void MoveType(string kind, int by)
+	{
+		var list = TypeList();
+		var at = list.IndexOf(kind);
+		if (at < 0 || at + by < 0 || at + by >= list.Count) return;
+		(list[at], list[at + by]) = (list[at + by], list[at]);
+		_quiz.TypeOrder = list;
+		Save();
+		_history.Record();
+		Callable.From(RefreshList).CallDeferred();
 	}
 
 	void MoveCategory(string category, int by)
@@ -217,7 +249,7 @@ public partial class QuizOverviewScreen : Control
 		var all = Enumerable.Range(0, _quiz.Questions.Count);
 		return (_sort switch
 		{
-			"type" => all.OrderBy(i => System.Array.IndexOf(QuestionType.All, KindOf(_quiz.Questions[i]))),
+			"type" => all.OrderBy(i => TypeRank(KindOf(_quiz.Questions[i]))),
 			// (in the quiz's category order, then A–Z by the category as it's shown; questions without one last, where they stand out)
 			"category" => all.OrderBy(i => CategoryRank(_quiz.Questions[i].Category))
 				.ThenBy(i => Categories.Label(_quiz.Questions[i].Category), System.StringComparer.CurrentCultureIgnoreCase),

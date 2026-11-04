@@ -6,13 +6,13 @@ using QuizNight.Storage;
 namespace QuizNight.Ui.Screens;
 
 /// <summary>
-/// Audio (master, music, video/sound questions, sound effects, buzzer), video (window mode, size) and language.
-/// Changes are a draft until Apply: volumes and the language preview right away, the window changes on
+/// Audio (master, music, video/sound questions, sound effects, buzzer), video (window mode, size) and what the game sends.
+/// Changes are a draft until Apply: volumes play right away, the window changes on
 /// Apply. Discard goes back to what's saved, Reset fills in the defaults (still to be applied).
 /// </summary>
 public partial class SettingsScreen : Control
 {
-	// Kept across rebuilds of this screen (a language change rebuilds it so all text switches).
+	// Kept across rebuilds of this screen (a screen change rebuilds it).
 	static Settings.Values? _draft;
 	static string? _note;
 
@@ -136,7 +136,7 @@ public partial class SettingsScreen : Control
 			U.Muted("The joke parts are the anti-cheat window, the World Premiere video, the publisher and the sponsor. \"Skip it all\" goes straight to the title screen.", 12),
 			U.Field("Theme", U.Small("Switch to light mode", HomeScreen.LightMode).On(Glyph.Kind.Sun, 15).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin)),
 			// (saved at once, like the seasonal skins; the home screen picks it up when it's built again)
-			new CheckBox { Text = Lang.T("Real spotlights with shadows (experimental)"), ButtonPressed = Settings.RealSpotlights, MouseDefaultCursorShape = CursorShape.PointingHand }
+			new CheckBox { Text = Lang.T("Real spotlights with shadows"), ButtonPressed = Settings.RealSpotlights, MouseDefaultCursorShape = CursorShape.PointingHand }
 				.With(b => b.Toggled += on => Settings.RealSpotlights = on),
 			U.Muted("The home screen's two spotlights as real lights: the buttons and the logo throw shadows. May cost frame rate on older PCs.", 12),
 			U.Muted("Frame rate is capped at 60 FPS.", 12),
@@ -160,16 +160,7 @@ public partial class SettingsScreen : Control
 			U.Muted(Fonts.DyslexicAvailable ? "All text in OpenDyslexic: letters with heavy bottoms, so they don't flip or swim."
 				: "The dyslexia-friendly font isn't installed with this version yet.", 12));
 
-		var language = U.Card(12,
-			U.Eyebrow("Language"),
-			U.Segmented(Lang.All, d.Language, code =>
-			{
-				Change(Draft with { Language = code });
-				// Rebuild so text made from parts (Lang.F) switches too.
-				Callable.From(Rebuild).CallDeferred();
-			}),
-			U.Muted("Changes all menus and game screens. Quiz questions stay in the language they were written in.", 12),
-			U.Gap(4),
+		var sends = U.Card(12,
 			U.Eyebrow("What the game sends"),
 			U.Muted("If Quiznight crashes or runs into an error, the next start sends the end of its log to Max, so he can fix it. Your Windows user name is left out.", 12),
 			U.Muted("When a quiz night over Steam ends, the host's game sends its results (everyone's name, Steam ID and points) to Max's private results list, for the eternal table. \"Copy share code\" uploads that quiz (without its sounds and videos), and the game asks GitHub if there's an update. Nothing else leaves your PC.", 12),
@@ -207,7 +198,7 @@ public partial class SettingsScreen : Control
 			? U.H(16, U.Heading("Settings", 34).Grow(), U.Small("Close", () => Leave()).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter))
 			: U.H(16, U.Link("← Home", () => Leave()).With(b => b.SizeFlagsVertical = SizeFlags.ShrinkCenter), U.Heading("Settings", 34));
 		// (map packs from the home screen's Settings only: deleting a map a running night uses would pull it away)
-		var right = inWindow ? U.V(14, video, language) : U.V(14, video, language, MapPacksCard.Make());
+		var right = inWindow ? U.V(14, video, sends) : U.V(14, video, sends, MapPacksCard.Make());
 		var columns = U.H(14, U.V(14, audio, accessibility).Grow(), right.Grow());
 		// The buttons stay at the bottom of the screen; the settings scroll above them. In the window over a lobby or game
 		// the title and Close stay at the top too, outside the scrolling page, so nothing can push Close out of sight; and
@@ -244,7 +235,7 @@ public partial class SettingsScreen : Control
 		UpdateBar();
 	}
 
-	/// <summary>A new draft: hear the volumes and see the language now, keep the rest for Apply.</summary>
+	/// <summary>A new draft: hear the volumes now, keep the rest for Apply.</summary>
 	void Change(Settings.Values draft)
 	{
 		_draft = draft;
@@ -256,7 +247,6 @@ public partial class SettingsScreen : Control
 	static void Preview()
 	{
 		Prefs.ApplyAudio(Draft);
-		Lang.Use(Draft.Language);
 	}
 
 	/// <summary>Ctrl+S: Apply (when there's something to apply).</summary>
@@ -272,13 +262,12 @@ public partial class SettingsScreen : Control
 			|| Draft.FullscreenResolution != Settings.FullscreenResolution || Draft.Screen != Settings.Screen;
 		Settings.Save(Draft);
 		Prefs.ApplyAudio();
-		Lang.Use(Settings.Language);
 		if (windowChanged) Prefs.ApplyWindow();
 		_note = "applied";
 		UpdateBar();
 	}
 
-	/// <summary>This screen again (a language or screen change shows new text and sizes), here or in the window.</summary>
+	/// <summary>This screen again (a screen change shows new text and sizes), here or in the window.</summary>
 	void Rebuild()
 	{
 		if (_inWindow) SettingsWindow.Rebuild();
@@ -293,7 +282,6 @@ public partial class SettingsScreen : Control
 			_draft = null;
 			_note = null;
 			Prefs.ApplyAudio();
-			Lang.Use(Settings.Language);
 			if (_inWindow) SettingsWindow.Close();
 			else App.I.GoHome();
 		}

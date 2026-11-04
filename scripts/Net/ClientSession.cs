@@ -219,6 +219,10 @@ public sealed class ClientSession : IDisposable
 		_net?.Send(Msg.Encode(Msg.Rename, new RenameRequest { Name = name }));
 	}
 
+	/// <summary>Name your team after the draw (waiting room only); null rolls a new name.</summary>
+	public void RenameTeam(int team, string? name) =>
+		_net?.Send(Msg.Encode(Msg.TeamName, new TeamNameRequest { Team = team, Name = name ?? "", Roll = name == null }));
+
 	/// <summary>Play a joker for the next question, or take it back.</summary>
 	public void PlayJoker(string kind, bool on) => _net?.Send(Msg.Encode(Msg.Joker, new JokerRequest { Kind = kind, On = on }));
 

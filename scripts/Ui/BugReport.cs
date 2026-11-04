@@ -55,7 +55,7 @@ public partial class BugButton : Control
 		var where = app.Screen switch
 		{
 			HomeScreen => "Home",
-			QuizListScreen => "My quizzes",
+			QuizListScreen => "My Quiznights",
 			QuizOverviewScreen => "Quiz overview",
 			QuestionEditorScreen editor => "Editor › " + Lang.T(editor.TypeLabel),
 			HostLobbyScreen => "Lobby (host)",

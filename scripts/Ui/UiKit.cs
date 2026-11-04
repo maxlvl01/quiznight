@@ -462,6 +462,9 @@ public static class UiTheme
 		// (a small key in teal: the home screen's update key when a newer version is out)
 		t.SetTypeVariation("SmallTealButton", "Button");
 		ButtonType(t, "SmallTealButton", C.Teal, C.TealInk, null, 10, 10, 4, outline: 2, depth: 3);
+		// (a small red key: My quizzes' delete button)
+		t.SetTypeVariation("SmallCoralButton", "Button");
+		ButtonType(t, "SmallCoralButton", C.Coral, new Color("#2a0a0e"), null, 10, 10, 4, outline: 2, depth: 3);
 		t.SetTypeVariation("ToggleOn", "Button");
 		ButtonType(t, "ToggleOn", C.Blue, C.Ink, null, 14, 14, 7, outline: 2, depth: 3);
 		t.SetTypeVariation("ToggleOff", "Button");
@@ -1052,7 +1055,12 @@ public partial class Column : Container
 	{
 		if (what != NotificationSortChildren) return;
 		var w = Mathf.Min(Size.X - PadX * 2, MaxWidth);
-		var x = (Size.X - w) / 2;
-		foreach (var c in GetChildren().OfType<Control>()) FitChildInRect(c, new Rect2(x, PadTop, w, Size.Y - PadTop - PadBottom));
+		// (content that needs more than MaxWidth is centred at its own width: placed at the MaxWidth column's left edge it
+		// stuck out on the right only, leaving a wide gap on the left, e.g. My quizzes' two columns of cards)
+		foreach (var c in GetChildren().OfType<Control>())
+		{
+			var cw = Mathf.Max(w, c.GetCombinedMinimumSize().X);
+			FitChildInRect(c, new Rect2(Mathf.Max(0, (Size.X - cw) / 2), PadTop, cw, Size.Y - PadTop - PadBottom));
+		}
 	}
 }

@@ -61,6 +61,7 @@ public static class Changelog
 		public string Shown => Title.StartsWith('"') && Version is { } v ? $"{v.Major}.{v.Minor}" : VersionText;
 	}
 
+	static readonly Regex LinkLine = new(@"^[[^]]+]:s*https?://S+$");
 	static readonly Regex ReleaseLine = new(@"^##\s+\[([^\]]+)\]\s*(?:[—–-]\s*(.*))?$");
 
 	public static List<Release> Parse(string markdown)
@@ -85,7 +86,8 @@ public static class Changelog
 				release.Sections.Add(section);
 				continue;
 			}
-			if (section == null || line.Trim() == "") continue;
+			// (the link lines at the end of CHANGELOG.md, "[0.13.5b]: https://…", make the version headings links on GitHub)
+			if (section == null || line.Trim() == "" || LinkLine.IsMatch(line)) continue;
 			if (line.StartsWith("- ")) section.Items.Add(line[2..].Trim());
 			// An indented "- " is a sub-point of the item above; other indented lines continue it.
 			else if (section.Items.Count > 0 && line.TrimStart().StartsWith("- ")) section.Items[^1] += "\n• " + line.TrimStart()[2..].Trim();

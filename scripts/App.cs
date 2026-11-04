@@ -73,7 +73,7 @@ public partial class App : Control
 		CrashReports.Start();
 		BugReports.SendWaiting();
 		DesktopShortcut.MakeOnFirstStart(firstStart);
-		Trace.Log("start", $"Quiznight {Version} test build · {OS.GetName()} {OS.GetVersion()} · {DisplayServer.ScreenGetSize()} · skin {Settings.Skin} · {Settings.Language} · {Settings.WindowMode} {Settings.WindowSize}");
+		Trace.Log("start", $"Quiznight {Version} test build · {OS.GetName()} {OS.GetVersion()} · {DisplayServer.ScreenGetSize()} · skin {Settings.Skin} · {Settings.WindowMode} {Settings.WindowSize}");
 		// (dev runs: --skin ID, --dyslexic and --colour-vision MODE try them without saving)
 		var devArgs = OS.GetCmdlineUserArgs();
 		var skinArg = Array.IndexOf(devArgs, "--skin");
@@ -128,7 +128,6 @@ public partial class App : Control
 		var ownWindow = window && !OS.GetCmdlineArgs().Contains("--resolution") && !args.Contains("--shot") && !args.Contains("--shots");
 		_followScreen = ownWindow;
 		Prefs.ApplyAll(ownWindow && !antiCheat);
-		if (args.Contains("--selftest")) Lang.Use("en");
 		// (shows the exported game's home screen, LAN hidden, when run from the editor)
 		if (args.Contains("--lan-locked")) LanUnlocked = false;
 		// (built-in maps like an export: from user://maps/, downloaded when missing; QUIZNIGHT_MAPS_FEED for a local list)
@@ -271,8 +270,10 @@ public partial class App : Control
 
 	DiscordPresence.Status PresenceStatus()
 	{
-		if (Host?.State is { } hosted) return Night(hosted, "Hosting a quiz night");
-		if (Client?.State is { } joined) return Night(joined, "At a quiz night");
+		if (Host?.Room is { } room)
+			return Night(room.Phase, room.Game is { } g ? (g.Index, room.Quiz.Questions.Count) : null, room.Players.Count(p => p.Connected), "Hosting a quiz night");
+		if (Client?.State is { } joined)
+			return Night(joined.Phase, joined.Game is { } g ? (g.Index, g.Total) : null, joined.Players.Count(p => p.Connected), "At a quiz night");
 		return _screen switch
 		{
 			QuizListScreen or QuizOverviewScreen or QuestionEditorScreen => new("make", "Making a quiz"),
@@ -280,13 +281,13 @@ public partial class App : Control
 			_ => new("menu", "In the menus"),
 		};
 
-		static DiscordPresence.Status Night(RoomState s, string what)
+		static DiscordPresence.Status Night(string phase, (int Index, int Total)? question, int connected, string what)
 		{
-			var players = Math.Min(s.Players.Count(p => p.Connected), Limits.MaxPlayers);
-			return s.Phase switch
+			var players = Math.Min(connected, Limits.MaxPlayers);
+			return phase switch
 			{
 				Phase.Lobby => new("lobby", what, Lang.T("In the lobby"), players, Limits.MaxPlayers),
-				Phase.Playing when s.Game is { } g => new("game", what, Lang.F("Question {0} of {1}", g.Index + 1, g.Total), players, Limits.MaxPlayers),
+				Phase.Playing when question is { } q => new("game", what, Lang.F("Question {0} of {1}", q.Index + 1, q.Total), players, Limits.MaxPlayers),
 				_ => new("podium", what, Lang.T("At the podium")),
 			};
 		}
@@ -562,7 +563,7 @@ public partial class App : Control
 				else GoHome();
 				return true;
 		}
-		// (every other screen has a "← Home", "← My quizzes" … link: Escape presses it)
+		// (every other screen has a "← Home", "← My Quiznights" … link: Escape presses it)
 		if (BackLink(screen) is { } link)
 		{
 			link.EmitSignal(BaseButton.SignalName.Pressed);

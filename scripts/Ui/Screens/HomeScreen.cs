@@ -60,7 +60,7 @@ public partial class HomeScreen : Control
 		var host = Tutorial.Mark(U.Card(10,
 			U.Eyebrow("Quizmaster"),
 			U.Heading("Host a quiz night", 30),
-			U.Btn("My quizzes  ▶", "AccentButton", App.I.GoQuizzes, 22).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin)), "home.host");
+			U.Btn("My Quiznights  ▶", "AccentButton", App.I.GoQuizzes, 22).With(b => b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin)), "home.host");
 		// (under it the music player, filling the rest of the column next to "Join a game")
 		var music = U.Card(10, U.Fill(), new MusicPlayer(), U.Fill()).GrowV();
 

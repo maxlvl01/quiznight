@@ -170,6 +170,25 @@ public static class TeamNames
 		("Trivia Newton-John", "#8b7cf6"), ("Les Quizérables", "#4cc06a"), ("The Brainy Bunch", "#e8634a"),
 	};
 	public static string Name(int team) => All[Math.Clamp(team, 0, All.Length - 1)].Name;
+
+	/// <summary>A team name a team types itself (0.14): at most this long.</summary>
+	public const int NameMaxLength = 24;
+
+	/// <summary>More names to roll (the dice next to a team's name), on top of the six above.</summary>
+	public static readonly string[] More =
+	{
+		"Quiz Khalifa", "Quizteama Aguilera", "The Smartinis", "Agatha Quiztie", "Let's Get Quizzical", "The Mighty Quizzers",
+		"Universally Challenged", "Quiz Akabusi", "The Answer Is 42", "Les Misérabrains", "Pub Quizlings", "The Fact Hunt",
+		"Quizzard of Oz", "Tequila Mockingbird", "The Usual Suspects", "Wrong Again", "Sherlock Homies", "The Know Nothings",
+		"Ctrl Alt Defeat", "Victorious Secret", "Spice Quirls", "Dumbledore's Army", "The Buzzer Beaters", "Quizzy Rascals",
+	};
+
+	/// <summary>A team's name typed by a player or the host: one line, single spaces, at most NameMaxLength.</summary>
+	public static string Clean(string raw)
+	{
+		var name = string.Join(' ', raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+		return name.Length > NameMaxLength ? name[..NameMaxLength].TrimEnd() : name;
+	}
 	public static string Color(int team) => All[Math.Clamp(team, 0, All.Length - 1)].Color;
 
 	/// <summary>RoomSettings.Teams sent by "Play in teams": the room picks the number itself (Suggest) and follows the players.</summary>
@@ -610,6 +629,7 @@ public static class Msg
 	public const string MediaProgress = "mediaProgress";
 	public const string Joker = "joker";
 	public const string Rename = "rename";
+	public const string TeamName = "teamName";
 	/// <summary>Part of an interactive question's recording (RecordingPart).</summary>
 	public const string Recording = "recording";
 	/// <summary>The lobby's mini games (ArcadeRequest).</summary>
@@ -634,9 +654,21 @@ public static class Msg
 
 	public static byte[] Encode(string type, object? payload = null)
 	{
-		var o = new JsonObject { ["t"] = type };
-		if (payload != null) o["d"] = JsonSerializer.SerializeToNode(payload, payload.GetType(), Json);
-		return Encoding.UTF8.GetBytes(o.ToJsonString());
+		// (written straight to UTF-8: the state goes out to every player many times a minute, and going through a
+		// JsonNode tree and a string first cost three copies of it)
+		var buffer = new System.Buffers.ArrayBufferWriter<byte>(1024);
+		using (var w = new Utf8JsonWriter(buffer))
+		{
+			w.WriteStartObject();
+			w.WriteString("t", type);
+			if (payload != null)
+			{
+				w.WritePropertyName("d");
+				JsonSerializer.Serialize(w, payload, payload.GetType(), Json);
+			}
+			w.WriteEndObject();
+		}
+		return buffer.WrittenSpan.ToArray();
 	}
 
 	/// <summary>Splits a message into its type and payload. Null if it isn't valid.</summary>
@@ -687,6 +719,14 @@ public sealed class JoinReply
 	public bool Ok;
 	public string? Error;
 	public string PlayerId = "";
+}
+
+/// <summary>A team changes its name after the draw (0.14): Name, or a new one rolled (Roll).</summary>
+public sealed class TeamNameRequest
+{
+	public int Team;
+	public string Name = "";
+	public bool Roll;
 }
 
 /// <summary>A player changes their name in the waiting room.</summary>

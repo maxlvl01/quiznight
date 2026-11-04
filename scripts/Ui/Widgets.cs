@@ -213,6 +213,11 @@ public partial class Countdown : HBoxContainer
 		SizeFlagsVertical = SizeFlags.ShrinkCenter;
 		if (label != null) AddChild(U.Text(label, 15, ink ?? C.Muted, Fonts.Bold).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter));
 		_time = U.Mono("", size);
+		// (as wide as the widest time it can show: the font's digits aren't all the same width, so "0:19" → "0:18" made the
+		// question next to it wrap differently and jump every second, issue #10)
+		var widest = Enumerable.Range(0, 10).Max(d => Fonts.Mono.GetStringSize($"{d}:{d}{d}", HorizontalAlignment.Left, -1, size).X);
+		_time.CustomMinimumSize = new Vector2(Mathf.Ceil(widest), 0);
+		_time.HorizontalAlignment = HorizontalAlignment.Right;
 		AddChild(_time);
 		Visible = endsAt != null;
 		Update();
@@ -399,9 +404,9 @@ public partial class NumberField : LineEdit
 		TextSubmitted += _ => Clamp();
 	}
 
-	// (every digit typed after the point; a comma in German, though both a dot and a comma are read)
+	// (every digit typed after the point; both a dot and a comma are read)
 	static string Format(double? v) => v is { } n
-		? n.ToString("0.###############", TranslationServer.GetLocale() == "de" ? CultureInfo.GetCultureInfo("de-DE") : CultureInfo.InvariantCulture)
+		? n.ToString("0.###############", CultureInfo.InvariantCulture)
 		: "";
 
 	public static double? Parse(string raw)
@@ -502,6 +507,28 @@ public static class Dialogs
 		d.Confirmed += () => onYes();
 		d.Confirmed += d.QueueFree;
 		d.Canceled += d.QueueFree;
+		owner.AddChild(d);
+		d.PopupCentered();
+	}
+
+	/// <summary>A question with a few answers (the first on the OK button); picked hears the answer's index, or -1 when the
+	/// window is closed.</summary>
+	public static void Choose(Node owner, string text, string title, string[] answers, Action<int> picked)
+	{
+		var d = new AcceptDialog { Title = Lang.T(title), DialogText = Lang.T(text), OkButtonText = Lang.T(answers[0]), DialogAutowrap = true };
+		d.MinSize = new Vector2I(520, 0);
+		var done = false;
+		void Pick(int i)
+		{
+			if (done) return;
+			done = true;
+			picked(i);
+			d.QueueFree();
+		}
+		for (var i = 1; i < answers.Length; i++) d.AddButton(Lang.T(answers[i]), false, i.ToString());
+		d.Confirmed += () => Pick(0);
+		d.CustomAction += action => Pick(int.Parse(action.ToString()));
+		d.Canceled += () => Pick(-1);
 		owner.AddChild(d);
 		d.PopupCentered();
 	}
@@ -646,7 +673,7 @@ public static class Bolt
 /// </summary>
 public static class Glyph
 {
-	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right }
+	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right, Cloud }
 
 	// (24 × 24, white; holes by even-odd, so one path can carry the details)
 	static string Body(Kind kind) => kind switch
@@ -668,6 +695,8 @@ public static class Glyph
 		Kind.Refresh => "<path fill='none' stroke='#fff' stroke-width='2.6' stroke-linecap='round' d='M19.4 13.2A7.6 7.6 0 1 1 17 6.3'/><path d='M14.2 2.6h7.2v7.2z'/>",
 		Kind.Left => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M15 4.5 7.5 12l7.5 7.5'/>",
 		Kind.Right => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M9 4.5 16.5 12 9 19.5'/>",
+		// (a cloud with an arrow up and an arrow down cut out of it: Sync)
+		Kind.Cloud => "<path fill-rule='evenodd' d='M6.5 21A5.5 5.5 0 0 1 5.4 10.1 7 7 0 0 1 18.6 9.1 6 6 0 0 1 18 21zM9 9.5l3.4 4h-2.1v5H7.7v-5H5.6zM15 18.5l-3.4-4h2.1v-5h2.6v5h2.1z'/>",
 		_ => "",
 	};
 

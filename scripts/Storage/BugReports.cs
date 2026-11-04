@@ -1,5 +1,6 @@
 // Bug reports, sent by hand (the 🐞 button, Ui/BugReport), from the same template every time. Since 0.12.9 a bug report is
-// a GitHub Issue in Max's private results repo (title "<category> (<version>)", label "bug", the log folded into a
+// a GitHub Issue (since 0.15.2 on the public repo maxlvl01/quiznight with issues-token.txt, no screenshot in it; the private
+// results repo's issue with the screenshot is the fallback, then a file) in Max's private results repo (title "<category> (<version>)", label "bug", the log folded into a
 // <details> block: IssueTitle/IssueBody); its screenshot is still a file, bugs/Reported/<date> <version> <category> <id>.png,
 // shown in the issue. Max adds wip/pending labels and closes the issue once the fix is out. If the issue can't be made
 // (the token lacks "Issues: read and write" → 403/404), the report goes as a Markdown file next to the screenshot as before
@@ -7,7 +8,7 @@
 // Feedback (ideas: maps, question types, quality of life …) stays a file in features/Requested/ (<kind> in the name),
 // without the log; Max moves those on by hand (WIP, Pending, Resolved). If sending fails (no internet), the report waits in
 // user://bug-reports and goes on the next start (a bug trying the issue first again).
-// Every report says who sent it (Steam name and ID, so ideas can be credited in the changelog), and once it's in a push
+// Every report says who sent it (Steam name, no ID, so ideas can be credited in the changelog), and once it's in a push
 // goes to Max's phone and PC through ntfy.sh (Push), opening the issue (or the file) when tapped.
 
 using System;
@@ -35,6 +36,19 @@ public static class BugReports
 	/// <summary>GitHub takes at most 65 536 characters in an issue body; the log is cut from its start to stay under this.</summary>
 	const int IssueBodyMax = 60_000;
 
+	const string PublicRepo = "maxlvl01/quiznight", IssuesTokenFile = "res://issues-token.txt";
+
+	/// <summary>The token that can only open issues on the public repo (issues-token.txt, shipped like the results token).</summary>
+	static string? IssuesToken
+	{
+		get
+		{
+			if (!Godot.FileAccess.FileExists(IssuesTokenFile)) return null;
+			var token = Godot.FileAccess.GetFileAsString(IssuesTokenFile).Trim();
+			return token == "" ? null : token;
+		}
+	}
+
 	/// <summary>Reports can be sent (the game has the results token).</summary>
 	public static bool Enabled => ResultsUpload.Token != null;
 
@@ -48,7 +62,7 @@ public static class BugReports
 			using var stream = new FileStream(path, FileMode.Open, System.IO.FileAccess.Read, FileShare.ReadWrite);
 			using var reader = new StreamReader(stream);
 			var lines = reader.ReadToEnd().Split('\n');
-			return CrashReports.Anonymise(string.Join('\n', lines.Skip(Math.Max(0, lines.Length - LogLines))), System.Environment.UserName);
+			return NoSteamIds(CrashReports.Anonymise(string.Join('\n', lines.Skip(Math.Max(0, lines.Length - LogLines))), System.Environment.UserName));
 		}
 		catch (Exception e)
 		{
@@ -56,13 +70,16 @@ public static class BugReports
 		}
 	}
 
-	/// <summary>Who sent it: the Steam name and ID with a link to the profile (to credit ideas), or the game's name without Steam.</summary>
+	/// <summary>Takes Steam IDs out of text (the join messages in the log name them): "steam:7656...", "steam-7656...", "Steam ID 7656..."
+	/// or a bare 17-digit ID all become "&lt;steam id&gt;", so a report can be read by anyone.</summary>
+	public static string NoSteamIds(string text) =>
+		System.Text.RegularExpressions.Regex.Replace(text, @"(?i)(steam[:\- ]|steam id )?\b7656119\d{10}\b", "<steam id>");
+
+	/// <summary>Who sent it: the Steam name only (to credit ideas), no ID, so reports could be public.</summary>
 	public static string Sender()
 	{
-		if (Net.SteamService.MySteamId is var id && id != 0)
-			return $"{Net.SteamService.PlayerName} · Steam ID {id} (https://steamcommunity.com/profiles/{id})";
-		var name = Settings.PlayerName.Trim();
-		return $"{(name == "" ? "(no name)" : name)} · no Steam ID (Steam wasn't running)";
+		var name = (Net.SteamService.MySteamId != 0 ? Net.SteamService.PlayerName : Settings.PlayerName).Trim();
+		return name == "" ? "(no name)" : name;
 	}
 
 	/// <summary>The report from the template: what the game knows, then the player's text, then the log.</summary>
@@ -73,7 +90,7 @@ public static class BugReports
 		.AppendLine($"- **Version:** {App.Version}{(Updater.TestChannel ? " (test build)" : OS.HasFeature("template") ? "" : " (editor)")}")
 		.AppendLine($"- **Date:** {DateTime.Now:yyyy-MM-dd HH:mm} ({DateTime.UtcNow:HH:mm} UTC)")
 		.AppendLine($"- **System:** {OS.GetName()} {OS.GetVersion()} · window {DisplayServer.WindowGetSize().X}×{DisplayServer.WindowGetSize().Y}")
-		.AppendLine($"- **Language / skin:** {Settings.Language} / {Settings.Skin}")
+		.AppendLine($"- **Skin:** {Settings.Skin}")
 		.Append(details)
 		.AppendLine()
 		.AppendLine("## What happened")
@@ -94,7 +111,7 @@ public static class BugReports
 		.AppendLine($"- **Sent by:** {Sender()}")
 		.AppendLine($"- **Version:** {App.Version}{(Updater.TestChannel ? " (test build)" : OS.HasFeature("template") ? "" : " (editor)")}")
 		.AppendLine($"- **Date:** {DateTime.Now:yyyy-MM-dd HH:mm} ({DateTime.UtcNow:HH:mm} UTC)")
-		.AppendLine($"- **Language / skin:** {Settings.Language} / {Settings.Skin}")
+		.AppendLine($"- **Skin:** {Settings.Skin}")
 		.AppendLine($"- **Sent from:** {where}")
 		.AppendLine()
 		.AppendLine("## Idea")
@@ -166,7 +183,20 @@ public static class BugReports
 		{
 			try
 			{
-				return await CreateIssue(IssueTitle(report), IssueBody(report, png != null ? name + ".png" : null));
+				// (public first: its text has no screenshot, that stays in the private repo; the private issue shows it)
+				if (IssuesToken is { } issues)
+				{
+					try
+					{
+						var shot = png != null ? "\n\n_A screenshot was sent too; Max has it._" : "";
+						return await CreateIssue(PublicRepo, issues, IssueTitle(report), IssueBody(report, null) + shot);
+					}
+					catch (Exception e)
+					{
+						GD.PrintErr($"Couldn't open a public issue for the bug report, trying the private repo: {e.Message}");
+					}
+				}
+				return await CreateIssue(ResultsUpload.Repo, ResultsUpload.Token!, IssueTitle(report), IssueBody(report, png != null ? name + ".png" : null));
 			}
 			catch (Exception e)
 			{
@@ -221,11 +251,11 @@ public static class BugReports
 	}
 
 	/// <summary>Opens the issue (label "bug", which GitHub makes if it's missing) and returns its page.</summary>
-	static async Task<string> CreateIssue(string title, string body)
+	static async Task<string> CreateIssue(string repo, string token, string title, string body)
 	{
-		using var http = ResultsUpload.Client(ResultsUpload.Token!);
+		using var http = ResultsUpload.Client(token);
 		var json = new JsonObject { ["title"] = title, ["body"] = body, ["labels"] = new JsonArray("bug") }.ToJsonString();
-		using var response = await http.PostAsync($"https://api.github.com/repos/{ResultsUpload.Repo}/issues", new StringContent(json, Encoding.UTF8, "application/json"));
+		using var response = await http.PostAsync($"https://api.github.com/repos/{repo}/issues", new StringContent(json, Encoding.UTF8, "application/json"));
 		if (!response.IsSuccessStatusCode) throw new HttpRequestException($"GitHub said {(int)response.StatusCode}");
 		return JsonNode.Parse(await response.Content.ReadAsStringAsync())?["html_url"]?.GetValue<string>()
 			?? throw new HttpRequestException("GitHub's answer had no html_url");

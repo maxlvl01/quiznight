@@ -91,8 +91,13 @@ public static class Images
 	}
 
 	static readonly Dictionary<string, Texture2D?> Builtin = new();
+	/// <summary>The big map pictures in the cache, the one used last at the end (thumbnails aren't counted).</summary>
+	static readonly List<string> BuiltinUsed = new();
+	/// <summary>How many big map pictures stay decoded: most are 4096 px, about 90 MB of video memory each with their
+	/// mipmaps. Before 0.15.1 every map ever opened stayed (issue #12: 2.2 → 3.5 GB after a while in the editor).</summary>
+	internal const int KeepMaps = 4;
 
-	/// <summary>An image that ships with the game (built-in maps). Cached.</summary>
+	/// <summary>An image that ships with the game (built-in maps). Cached: thumbnails all, big maps the last few.</summary>
 	public static Texture2D? BuiltinTexture(string path)
 	{
 		if (!Builtin.TryGetValue(path, out var tex))
@@ -100,8 +105,27 @@ public static class Images
 			tex = LoadBuiltinImage(path) is { } img ? ImageTexture.CreateFromImage(img) : null;
 			Builtin[path] = tex;
 		}
+		if (!path.Contains("/map-thumbs/"))
+		{
+			BuiltinUsed.Remove(path);
+			BuiltinUsed.Add(path);
+			if (BuiltinUsed.Count > KeepMaps)
+			{
+				foreach (var old in BuiltinUsed.Take(BuiltinUsed.Count - KeepMaps).ToList())
+				{
+					Builtin.Remove(old);
+					BuiltinUsed.Remove(old);
+				}
+				// (a screen still showing a dropped map keeps it; the rest goes once nothing holds it, which the collector
+				// otherwise only notices much later: these are a few small objects holding a lot of video memory)
+				GC.Collect();
+			}
+		}
 		return tex;
 	}
+
+	/// <summary>Self-test: how many big map pictures are cached.</summary>
+	internal static int CachedMaps => BuiltinUsed.Count(Builtin.ContainsKey);
 
 	/// <summary>
 	/// A small picture of a built-in map for the map picker (assets/map-thumbs/, 400 px wide, made from the map files
@@ -119,7 +143,11 @@ public static class Images
 	/// <summary>Drops cached built-in pictures under this path (map files came or went).</summary>
 	public static void ForgetBuiltin(string prefix)
 	{
-		foreach (var key in Builtin.Keys.Where(k => k.StartsWith(prefix)).ToList()) Builtin.Remove(key);
+		foreach (var key in Builtin.Keys.Where(k => k.StartsWith(prefix)).ToList())
+		{
+			Builtin.Remove(key);
+			BuiltinUsed.Remove(key);
+		}
 	}
 
 	/// <summary>

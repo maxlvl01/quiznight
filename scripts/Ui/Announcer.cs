@@ -36,16 +36,24 @@ public partial class Announcer : Label
 	{
 		get
 		{
+			// (read every frame by the spotlights and logos: Windows is asked again once a second)
+			var now = Time.GetTicksMsec();
+			if (now < _motionAskedAt + 1000 && _motionAskedAt != 0) return _reduceMotion;
+			_motionAskedAt = now;
 			try
 			{
-				return DisplayServer.GetName() != "headless" && DisplayServer.AccessibilityShouldReduceAnimation() != 0;
+				_reduceMotion = DisplayServer.GetName() != "headless" && DisplayServer.AccessibilityShouldReduceAnimation() != 0;
 			}
 			catch (Exception)
 			{
-				return false;
+				_reduceMotion = false;
 			}
+			return _reduceMotion;
 		}
 	}
+
+	static bool _reduceMotion;
+	static ulong _motionAskedAt;
 
 	/// <summary>
 	/// A player's game, as words: called on every state update, it announces what changed: a new question (its number,

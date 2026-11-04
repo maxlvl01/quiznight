@@ -458,6 +458,11 @@ public sealed class Quiz
 	/// and its "Play in this order". Categories not in it come after, A–Z.
 	/// </summary>
 	public List<string> CategoryOrder = new();
+	/// <summary>
+	/// The quizmaker's order of the question types (a picture reveal counts as a picture), for the overview's "By type"
+	/// and its "Play in this order". Types not in it come after, in the editor's order.
+	/// </summary>
+	public List<string> TypeOrder = new();
 
 	public MapAsset? MapById(string? id) => id == null ? null : Maps.FirstOrDefault(m => m.Id == id);
 
@@ -537,8 +542,9 @@ public static class QuizRules
 	/// 14: every question can have its answer as a picture (answerImage), shown at the reveal.
 	/// 15: quizzes remember the order of their categories (categoryOrder), for the overview's "By category".
 	/// 16: estimation questions can have an info line and the date their data ends (info, dataAsOf).
+	/// 17: quizzes remember the order of their question types (typeOrder), for the overview's "By type".
 	/// </summary>
-	public const int FormatVersion = 16;
+	public const int FormatVersion = 17;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 

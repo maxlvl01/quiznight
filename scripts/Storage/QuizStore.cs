@@ -106,7 +106,8 @@ public static class QuizStore
 	}
 
 	/// <summary>Saves a quiz. Throws UserError when the disk says no.</summary>
-	public static Quiz Save(Quiz quiz)
+	/// <param name="touch">Whether this is a change (its last-saved time moves on); not for a quiz synced from the cloud as it was.</param>
+	public static Quiz Save(Quiz quiz, bool touch = true)
 	{
 		// (the guided tour's sample quiz only lives in memory: never written to My quizzes, even by Ctrl+S during the tour)
 		if (quiz.Id == TourDownload.Id) return quiz;
@@ -117,7 +118,7 @@ public static class QuizStore
 		// Built-in maps ship with the game; their pictures don't need to be in the file.
 		foreach (var m in quiz.Maps)
 			if (MapPresets.Get(m.PresetId) != null) m.Image.DataUrl = "";
-		quiz.UpdatedAt = NowMs();
+		if (touch) quiz.UpdatedAt = NowMs();
 		Directory.CreateDirectory(FolderPath);
 		var path = PathFor(quiz.Id);
 		var tmp = path + ".tmp";
@@ -135,13 +136,76 @@ public static class QuizStore
 		return quiz;
 	}
 
+	/// <summary>A quiz from the cloud (QuizSync), as it was saved on the other PC. If this PC had deleted it, the deleted copy
+	/// goes: it's back in the list.</summary>
+	public static Quiz SaveSynced(Quiz quiz)
+	{
+		Save(quiz, touch: false);
+		var deleted = Path.Combine(DeletedPath, quiz.Id + Extension);
+		if (File.Exists(deleted)) File.Delete(deleted);
+		return quiz;
+	}
+
+	/// <summary>Deleted quizzes wait here for <see cref="KeepDeletedDays"/> days (0.14), so a delete can be undone.</summary>
+	static string DeletedPath => Path.Combine(FolderPath, "deleted");
+	public const int KeepDeletedDays = 30;
+
+	/// <summary>
+	/// Deletes a quiz: into the "deleted" folder, from where <see cref="Restore"/> brings it back (before 0.14 the file was
+	/// gone for good, and with "Don't ask again" one click lost a quiz). Its saved night stays until it's purged.
+	/// </summary>
 	public static void Delete(string id)
 	{
 		Cache.Remove(id);
 		Stamps.Remove(id);
 		var path = PathFor(id);
-		if (File.Exists(path)) File.Delete(path);
-		NightSaves.Delete(id);
+		if (!File.Exists(path)) return;
+		try
+		{
+			Directory.CreateDirectory(DeletedPath);
+			var to = Path.Combine(DeletedPath, id + Extension);
+			File.Move(path, to, true);
+			// (the date it was deleted, for the 30 days)
+			File.SetLastWriteTimeUtc(to, DateTime.UtcNow);
+		}
+		catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+		{
+			throw new UserError(Lang.F("Couldn't delete the quiz: {0}", e.Message));
+		}
+	}
+
+	/// <summary>The deleted quizzes still kept, newest first: id, title and when.</summary>
+	public static List<(string Id, string Title, DateTime DeletedAt)> Deleted()
+	{
+		var list = new List<(string, string, DateTime)>();
+		if (!Directory.Exists(DeletedPath)) return list;
+		foreach (var file in Directory.GetFiles(DeletedPath, "*" + Extension))
+		{
+			var at = File.GetLastWriteTimeUtc(file);
+			var id = Path.GetFileName(file)[..^Extension.Length];
+			if (at < DateTime.UtcNow.AddDays(-KeepDeletedDays))
+			{
+				// (older than 30 days: gone for good now, with its saved night)
+				try { File.Delete(file); NightSaves.Delete(id); } catch (IOException) { }
+				continue;
+			}
+			try
+			{
+				if (QuizJson.Parse(File.ReadAllText(file), out _) is { } quiz) list.Add((id, quiz.Title, at.ToLocalTime()));
+			}
+			catch (IOException) { }
+		}
+		return list.OrderByDescending(d => d.Item3).ToList();
+	}
+
+	/// <summary>Brings a deleted quiz back into My quizzes.</summary>
+	public static Quiz? Restore(string id)
+	{
+		var from = Path.Combine(DeletedPath, id + Extension);
+		if (!File.Exists(from) || File.Exists(PathFor(id))) return null;
+		File.Move(from, PathFor(id));
+		Rescan();
+		return Get(id);
 	}
 
 	public static Quiz Create(string title = "New quiz")

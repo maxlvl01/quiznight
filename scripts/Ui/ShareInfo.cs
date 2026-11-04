@@ -28,7 +28,7 @@ public static class ShareInfo
 				Dialogs.Close(wait);
 				DisplayServer.ClipboardSet(shortCode);
 				if (GodotObject.IsInstanceValid(owner))
-					Dialogs.Info(owner, Lang.F("Share code copied: {0}\n\nSend it to a friend or use it on your other PC: My quizzes → Paste share code.", shortCode) + mediaNote, "Share code");
+					Dialogs.Info(owner, Lang.F("Share code copied: {0}\n\nSend it to a friend or use it on your other PC: My Quiznights → Paste share code.", shortCode) + mediaNote, "Share code");
 				return;
 			}
 			catch (System.Exception e)
@@ -42,7 +42,7 @@ public static class ShareInfo
 		var code = ShareCode.Make(quiz);
 		DisplayServer.ClipboardSet(code);
 		var text = (uploadFailed ? Lang.T("Couldn't upload the quiz (no internet?), so this is the long code with the whole quiz in it.") + "\n\n" : "")
-			+ Lang.F("Share code copied ({0} KB). On the other PC, press Paste share code in My quizzes.", System.Math.Max(1, code.Length / 1024));
+			+ Lang.F("Share code copied ({0} KB). On the other PC, press Paste share code in My Quiznights.", System.Math.Max(1, code.Length / 1024));
 		if (code.Length > ChatLimit)
 			text += "\n\n" + Lang.T("It's too long for one Discord message: paste it anyway and Discord sends it as a file (message.txt), which Import file reads.");
 		Dialogs.Info(owner, text + mediaNote, "Share code");

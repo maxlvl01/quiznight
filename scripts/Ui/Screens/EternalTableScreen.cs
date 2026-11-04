@@ -411,10 +411,13 @@ public partial class EternalTableScreen : Control
 		var places = Places(lines, cols);
 		var placesBefore = before.Count > 0 ? Places(before, cols) : null;
 
-		// Two grids side by side: place and name stay put, only the numbers scroll sideways (Max's idea), so you always
-		// see whose row you're reading. Their rows are made the same height once both are built (MatchRows).
-		var names = new LinedGrid { Columns = 2 };
-		var grid = new LinedGrid { Columns = cols.Count };
+		// Two grids side by side: place, name and the main (yellow) column stay put, only the other numbers scroll sideways
+		// (Max's ideas), so you always see whose row you're reading and their total. Their rows are made the same height once
+		// both are built (MatchRows).
+		var main = MainColumn;
+		var pinned = cols.Any(c => c.Id == main);
+		var names = new LinedGrid { Columns = pinned ? 3 : 2 };
+		var grid = new LinedGrid { Columns = Math.Max(1, cols.Count - (pinned ? 1 : 0)) };
 		names.AddThemeConstantOverride("h_separation", 22);
 		grid.AddThemeConstantOverride("h_separation", cols.Count > 10 ? 16 : 22);
 		foreach (var g in new[] { names, grid }) g.AddThemeConstantOverride("v_separation", 12);
@@ -438,7 +441,7 @@ public partial class EternalTableScreen : Control
 			foreach (var state in new[] { "normal", "hover", "pressed", "focus" }) head.AddThemeStyleboxOverride(state, new StyleBoxEmpty());
 			head.Alignment = id == "player" ? HorizontalAlignment.Left : HorizontalAlignment.Center;
 			head.AutowrapMode = TextServer.AutowrapMode.Off;
-			(id == "player" ? names : grid).AddChild(head);
+			(id == "player" || id == main ? names : grid).AddChild(head);
 		}
 		static Label Num(string text, int size, Color? color = null) =>
 			U.Mono(text, size, color).With(l =>
@@ -446,7 +449,6 @@ public partial class EternalTableScreen : Control
 				l.HorizontalAlignment = HorizontalAlignment.Center;
 				l.VerticalAlignment = VerticalAlignment.Center;
 			});
-		var main = MainColumn;
 		var puppy = _kind == "" ? Results.FavouritePuppy(Results.Table(csvs, until, from)) : null;
 		foreach (var line in Sorted(lines))
 		{
@@ -459,10 +461,14 @@ public partial class EternalTableScreen : Control
 			{
 				var text = line.V.GetValueOrDefault(c.Id) is { } v ? KindStats.Format(c.Format, v) : "–";
 				// (the main number last and bright, quiz points beside championship points a little quieter)
-				grid.AddChild(c.Id == main ? Num(text, 16, C.Accent) : c.Id == "points" ? Num(text, 15) : Num(text, 15, C.Muted));
+				if (c.Id == main) names.AddChild(Num(text, 16, C.Accent));
+				else grid.AddChild(c.Id == "points" ? Num(text, 15) : Num(text, 15, C.Muted));
 			}
 		}
 		// (the numbers scroll sideways when they're wider than the page: before, the table pushed the page past the window)
+		// When they're narrower, their columns share the card's width, so no blank strip is left on the right (issue #13).
+		grid.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		foreach (var cell in grid.GetChildren().OfType<Control>()) cell.SizeFlagsHorizontal = SizeFlags.ExpandFill;
 		var stats = U.SideScroll(grid);
 		page.AddChild(U.Card(0, U.H(22, names, stats)));
 		AddChild(U.Page(page, 1180, 20));

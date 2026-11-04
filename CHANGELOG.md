@@ -10,33 +10,147 @@ Versions follow **MAJOR.MINOR.HOTFIX**:
 `0.x.y` means the game is still in development: a letter `a` is an alpha, `b` a beta (from 0.7.1b on).
 `1.0.0` will be the first complete, playable quiz night.
 Versions up to 0.3.2a were the website; the history of those is in the website's CHANGELOG.md.
+On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
-## [0.13.6d4]
+## [0.15.3b]
 
 ### Changed
-- The test builds are renumbered: 0.13.5d1 to d3 are 0.13.6d1 to d3 now, because 0.13.5b went out on its own with only
-  the move of the downloads to github.com/maxlvl01/quiznight. This build has that too.
+- **The home screen's spotlights are real lights now, for everyone.** The buttons and the logo throw shadows where the
+  beams hit them. This used to be an experiment you had to switch on in the settings; it turned out cheap enough to run
+  on any PC, so it's on by default. You can still switch it off there ("Real spotlights with shadows"), and if you had
+  switched it off before, it stays off.
 
-## [0.13.6d3]
+### Fixed
+- **The Eternal table had a big empty strip on its right** (reported by Max). With only a few columns, the numbers
+  were all squeezed to the left side of the table and the rest of the card stayed blank. The columns now share the
+  table's whole width; with many columns, they still scroll sideways like before.
+
+## [0.15.2b]
 
 ### Changed
+- **Bug reports no longer contain your Steam ID.** They still say your Steam name (so ideas can be credited), but the ID
+  and the profile link are gone, and any Steam ID that turns up in the log part (the "someone joined" lines) is replaced
+  by "<steam id>".
 
-- The guided tour now walks through a real quiz: "Test Night", 30 questions with one of every question type, pictures, sound and video (Max's idea). It's too big to ship with the game (13 MB), so it downloads in the background while the tour's first steps are on the home screen and the quiz list, and it's deleted again when the tour ends. It only lives in memory: it never shows up in My quizzes, and saving during the tour (Ctrl+S) writes nothing. If it hasn't arrived by the time the tour opens the quiz (slow internet, offline), the tour uses the small built-in sample quiz as before.
+## [0.15.1b]
 
-## [0.13.6d2]
+### Fixed
+- **The game took more and more video memory the longer it was open** (reported by Max: 2.2 GB at the start, 3.5 GB
+  later). Every built-in map that was shown (in the editor, the map picker, or a game) stayed in video memory until the
+  game was closed, and the big ones take about 50 to 90 MB each, so clicking through map questions added up fast. Now
+  only the last four maps stay loaded and the others are let go. Opening ten maps in a row used to end at 575 MB of
+  textures and kept climbing; now it stays at about 260 MB.
+- **The background music kept playing over a sound you previewed in the editor** (reported by Max). Pressing ▶ Play on
+  a sound or video question's file now fades the music out like a sound question does in the game, and it comes back
+  when the preview stops.
+- **The question jumped around while the timer counted down** (reported by Max, in the Interactive preview). The
+  timer's digits aren't all the same width, so each second the question next to it had a little more or less room and
+  a long one wrapped differently. The timer now always takes the room of its widest time.
+
+## [0.15.0b] — "Cloud Nine": sync your quiz nights between your PCs, My Quiznights and a lighter host
 
 ### Added
+- **Sync your quiz nights between your PCs** (idea by Max). My Quiznights has a new **Sync** button: it sends the quiz
+  nights on this PC to the cloud and brings the ones from your other PCs here, sounds and videos included, so you can
+  work on a quiz night on your desktop and finish it on your laptop. They're kept under your Steam account, so you never
+  get a friend's half-finished quiz (or they yours); Sync needs Steam running. You press it yourself, nothing syncs
+  behind your back. If a quiz night was changed on both PCs since the last sync, the game asks which one to keep (this
+  PC's, the other PC's, or both). Deleting a quiz night only deletes it on that PC: the cloud keeps its copy, and this PC
+  won't bring it back unless it's changed on another PC later.
+  The guided tour shows the Sync button too.
+
+### Changed
+- **"My quizzes" is now "My Quiznights"** (idea by Max): the list's heading, the Home button, the quiz page's back link,
+  the tour and the help texts.
+- **Smoother running:** pictures sent by the host are now decoded in the background, so a big picture no longer makes
+  the screen stutter when its question is shown. The host's game saves the night at most once a second instead of on
+  every click at a reveal, and a few things the game checked every frame (settings, the Windows "reduce motion" option,
+  idle sound bars) are now looked up once and remembered.
+- **Less work for the host when lots happens at once:** every answer, buzz, joker and click used to send the whole room
+  to every player straight away, and the host's game worked out the scoreboard, teams and stats again for each player.
+  Now everything that changes within one frame goes out together, once, and the parts that are the same for everyone are
+  worked out once per send. With many players answering at the same moment the host's game stays smooth, and the
+  messages themselves are made with less copying.
+
+## [0.14.3b]
+
+### Fixed
+- **Installing FFmpeg or LibreOffice from the converter could stop on some PCs:** when Windows' Microsoft Store source for
+  winget was broken (certificate errors), winget stopped and asked which source to use. The converter's install buttons
+  now tell winget to use its own source.
+
+## [0.14.2b]
+
+### Fixed
+- **On a first start, the guided tour opened on top of "What's new"** (reported by Max). Both showed up as soon as the
+  intro ended, with the tour covering the patch notes, so you had to skip one to read the other. The tour now waits
+  until "What's new" (or the update window) is closed, then starts.
+
+## [0.14.1b]
+
+### Changed
+- **Race tracks show more of what's around them:** lakes, rivers, bays and parks that were missing are now drawn, like
+  the lake inside Albert Park, the river around Montreal's island, Singapore's Marina Bay and the marina at Yas Marina.
+
+## [0.14.0b] — "Lights Out": Formula 1 race tracks, team names, deleted quizzes you can bring back and grouping by question type
+
+### Added
+- **Group your quiz by question type:** on the quiz page, "By type" now shows a heading for each type with ▲ ▼, just
+  like "By category", so you can move all the map questions before the music ones and then press "Play in this order".
+  The quiz remembers the order. Asked for by Max.
+- **Race tracks for map questions:** all 22 circuits of the 2026 Formula 1 calendar (Bahrain and Jeddah are off it this
+  year), from Albert Park to Yas Marina, each drawn true to scale so players see how many metres off their pin was. The
+  editor's map list now has three tabs: Game maps, Race tracks and Your maps. Each track is drawn the same way, light
+  and clear so it stands out in every skin: the track in dark grey with the pit lane beside it, a chequered start/finish
+  line, an orange arrow showing which way the race runs, and the land around it (trees, water, buildings, roads). No
+  corner names are written on it, so "Where is Eau Rouge?" stays a real question. Like the game maps, each track
+  downloads the first time it's used. Track lines by Tomislav Bacinger (f1-circuits), map data © OpenStreetMap
+  contributors. Other racing series come next.
+- **Name your team:** after the draw, every team can give itself a name. In the waiting room your team shows under the
+  seats: double-click the name (or press Rename) and type a new one, or roll the dice for a new name picked at random
+  (there are 30 now, from Quiz Khalifa to Sherlock Homies). Anyone in the team can change it, and the host can rename
+  any team. Names stay when a saved night continues; a new draw starts over with the drawn names. Asked for by Max.
+- **Deleted quizzes can come back:** deleting a quiz in My quizzes now keeps it for 30 days. Right after deleting there
+  is an Undo, and "Recently deleted" (under the buttons) lists them with a Restore button each.
 - **Arrows in the question editor to go to the previous or next question.** Top right, next to "Preview": the left
   arrow opens the question before this one in the play order, the right arrow the one after it, and between them
   you see where you are ("3 / 15"). Ctrl+Page Up and Ctrl+Page Down do the same. If the question has changes you
   haven't saved, it asks first, with "Save them first" ticked (untick it to leave them behind). Before, you had to
   go back to the quiz page for every question. (Thanks for the idea, Max!)
 
-## [0.13.6d1]
+### Changed
+- **Ewige Tabelle:** the yellow column (the one the table is ranked by) now stays next to the place and the name while
+  the other numbers scroll sideways, so you can always see who has what. Asked for by Max.
+- **My quizzes:** the delete button is a small red key with a trash can, like the other buttons on the card, instead
+  of a loose can that said "Delete?" under the mouse. Hold the mouse on it to read what it does. Asked for by Max.
+- The test builds are renumbered: 0.13.5d1 to d3 are 0.13.6d1 to d3 now, because 0.13.5b went out on its own with only
+  the move of the downloads to github.com/maxlvl01/quiznight. This build has that too.
+- The guided tour now walks through a real quiz: "Test Night", 30 questions with one of every question type, pictures, sound and video (Max's idea). It's too big to ship with the game (13 MB), so it downloads in the background while the tour's first steps are on the home screen and the quiz list, and it's deleted again when the tour ends. It only lives in memory: it never shows up in My quizzes, and saving during the tour (Ctrl+S) writes nothing. If it hasn't arrived by the time the tour opens the quiz (slow internet, offline), the tour uses the small built-in sample quiz as before.
+- **My quizzes reads the folder again every time you open it**, and has a "Refresh" button. The list used to be read
+  once per run, so a quiz file you copied into the quizzes folder yourself only showed up after restarting the game.
+  New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
+- **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
+  is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
 
 ### Fixed
+- **"My quizzes" broke onto two lines when an update was out** (reported by Max). The "Update to …" button sat in the
+  same row as the heading and the five buttons, squeezing the heading and stretching the buttons. It now sits above
+  them, next to "← Home".
+- **Deleting a quiz could lose it for good without asking** (reported by Max). Once "Don't ask me again" was ticked on
+  the delete question, one click on the red trash key deleted the quiz straight away, and the file was gone. Now a
+  deleted quiz is kept for 30 days and can be restored (see above), and the question says so.
+- **Short drop-downs still showed a scrollbar for a moment when they opened** (reported by Max). The fix in 0.13.5 looked
+  for the list's scroll area in the wrong place (it sits one level deeper), so it never hid the bar. Now it finds it:
+  no scrollbar while a short list unfolds, and long lists still scroll.
+- **The NEW badge on a new map in the editor's map list covered the whole picture** instead of sitting in its corner.
+- **The question editor froze when stepping through the questions with the arrows** past a video question (reported by
+  Max). Every time a video question was shown, the editor unpacked the whole video and wrote it to the disk again, before
+  you had even pressed Play. Now the video is only loaded when you press Play, and the same video isn't unpacked twice.
+- **My quizzes sat off to the right**, with a wide empty strip on the left (spotted by Max). The two columns of quiz cards
+  needed a little more room than the page gives them, and the extra width all went to the right side. The page is
+  centred again (this fixes every page that is wider than usual).
 - **The host's buttons no longer slip off the bottom of the screen.** On a long question with a picture and four
   answers (found in a test night with the paella question), "Reveal answer", "Hold to peek" and "+5 s" were pushed below
   the window, so the host saw only their top edges and had to scroll down to reveal. The question card and the buttons
@@ -55,12 +169,11 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
   one rivalry ended and the next began. Each is now one row: the names and score, the game small on the right and a
   streak as "×2" (hover for the whole line). (Thanks for the report, Max!)
 
-### Changed
-- **My quizzes reads the folder again every time you open it**, and has a "Refresh" button. The list used to be read
-  once per run, so a quiz file you copied into the quizzes folder yourself only showed up after restarting the game.
-  New and changed files now show at once, and deleted ones disappear. (Thanks for the idea, Max!)
-- **"Sound" questions are called "Audio", and "Map pin" questions "Map"**, in the editor and everywhere else the type
-  is named. Nothing else changes: your quizzes keep working as they are. (Thanks for the idea, Max!)
+### Removed
+- **German menus:** Quiznight is English only now, so the Language choice is gone from the welcome screen and the
+  settings. Keeping every screen in two languages took a lot of work for each new feature. Your quizzes can still be in
+  German (or any language): questions, answers and names are shown exactly as you wrote them, and units like "Tage" or
+  dates like "1. November 2026" in older quizzes still work.
 
 ## [0.13.5b]
 
@@ -1012,3 +1125,62 @@ Versions up to 0.3.2a were the website; the history of those is in the website's
 - Videos have to be `.ogv` files (Godot can't play MP4 or WebM). Sound can be MP3, OGG or WAV.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
+
+[0.15.3b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.3b
+[0.15.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.2b
+[0.15.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.1b
+[0.15.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.0b
+[0.14.3b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.3b
+[0.14.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.2b
+[0.14.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.1b
+[0.14.0b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.14.0b
+[0.13.5b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.13.5b
+[0.13.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.4b
+[0.13.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.3b
+[0.13.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.2b
+[0.13.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.1b
+[0.13.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.13.0b
+[0.12.8b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.8b
+[0.12.7b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.7b
+[0.12.6b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.6b
+[0.12.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.5b
+[0.12.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.4b
+[0.12.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.3b
+[0.12.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.2b
+[0.12.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.1b
+[0.12.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.12.0b
+[0.11.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.11.5b
+[0.11.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.11.4b
+[0.11.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.11.3b
+[0.10.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.10.2b
+[0.10.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.10.1b
+[0.10.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.10.0b
+[0.9.6b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.6b
+[0.9.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.5b
+[0.9.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.4b
+[0.9.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.3b
+[0.9.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.2b
+[0.9.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.1b
+[0.9.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.9.0b
+[0.8.12b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.12b
+[0.8.11b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.11b
+[0.8.10b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.10b
+[0.8.9b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.9b
+[0.8.8b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.8b
+[0.8.7b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.7b
+[0.8.6b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.6b
+[0.8.5b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.5b
+[0.8.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.4b
+[0.8.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.3b
+[0.8.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.2b
+[0.8.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.1b
+[0.8.0b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.8.0b
+[0.7.4b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.4b
+[0.7.3b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.3b
+[0.7.2b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.2b
+[0.7.1b]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.7.1b
+[0.6.1a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.6.1a
+[0.6.0a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.6.0a
+[0.5.2a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.5.2a
+[0.5.1a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.5.1a
+[0.5.0a]: https://github.com/maxlvl01/quiznight-releases/releases/tag/v0.5.0a

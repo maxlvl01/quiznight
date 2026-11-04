@@ -160,9 +160,11 @@ public partial class MediaField : VBoxContainer
 			_audio = new AudioStreamPlayer { Stream = stream, Bus = Prefs.MusicBus };
 			_body.AddChild(_audio);
 		}
-		else if (Media.LoadVideo(_media, "editor-preview") is { } video)
+		// (the video itself is only loaded when Play is pressed: decoding and writing it here froze the editor's arrows
+		// on every video question)
+		else if (Media.CanPlayVideo(_media))
 		{
-			_video = new VideoStreamPlayer { Stream = video, Bus = Prefs.MusicBus };
+			_video = new VideoStreamPlayer { Bus = Prefs.MusicBus };
 			_body.AddChild(U.Panel(new VideoFrame(_video) { CustomMinimumSize = new Vector2(0, 220) }, "Inset"));
 			// (bigger than 720p: more to send to every player than it needs; the convert guide shrinks it)
 			if (Media.VideoSize(_media) is { } size && (size.W > Media.MaxVideo.W || size.H > Media.MaxVideo.H))
@@ -192,7 +194,19 @@ public partial class MediaField : VBoxContainer
 		else if (_video != null)
 		{
 			if (_video.IsPlaying()) _video.Stop();
-			else _video.Play();
+			else
+			{
+				if (_video.Stream == null && _media != null)
+				{
+					if (Media.LoadVideo(_media, "editor-preview") is not { } video)
+					{
+						Fail(Media.VideoHelp);
+						return;
+					}
+					_video.Stream = video;
+				}
+				_video.Play();
+			}
 		}
 	}
 
@@ -201,6 +215,8 @@ public partial class MediaField : VBoxContainer
 		if (_play == null) return;
 		var playing = _audio?.Playing == true || _video?.IsPlaying() == true;
 		_play.Text = playing ? "■ Stop" : "▶ Play";
+		if (playing) UiAudio.Previewing = this;
+		else if (UiAudio.Previewing == this) UiAudio.Previewing = null;
 	}
 
 	void Set(MediaAsset? media)

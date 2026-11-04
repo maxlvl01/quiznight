@@ -538,6 +538,16 @@ public static class SelfTest
 		Check(!room.Start().Ok, "team mode: no start before the teams are drawn");
 		Check(room.DrawTeams(new Random(3)).Ok && room.TeamDraw == 1, "the host draws the teams");
 		Check(Enumerable.Range(0, 2).All(t => room.Players.Count(p => p.Team == t) == 2), "four players, two teams of two");
+		var annTeam = room.GetPlayer("ann")!.Team!.Value;
+		var otherTeam = 1 - annTeam;
+		Check(room.RenameTeam("ann", annTeam, "  The   Ann  Squad ").Ok && room.TeamName(annTeam) == "The Ann Squad"
+			&& room.ToState("bob").Teams!.First(t => t.Index == annTeam).Name == "The Ann Squad", "a team names itself after the draw");
+		Check(!room.RenameTeam("ann", otherTeam, "Not Ours").Ok && room.RenameTeam("host", otherTeam, "Host Pick").Ok, "only its own team, or the host for any");
+		Check(!room.RenameTeam("host", otherTeam, "the ann squad").Ok && !room.RenameTeam("host", otherTeam, "  ").Ok, "no name twice, none empty");
+		Check(room.RenameTeam("host", otherTeam, null, new Random(1)).Ok && room.TeamName(otherTeam) is var rolled && rolled != "Host Pick" && rolled != room.TeamName(annTeam),
+			"the dice rolls a name no other team has");
+		Check(room.Snapshot(0).TeamNames![annTeam] == "The Ann Squad", "a saved night keeps the team names");
+		Check(room.DrawTeams(new Random(4)).Ok && room.TeamName(annTeam) == TeamNames.Name(annTeam), "a new draw: the drawn names again");
 		room.Join("eve", "eve");
 		Check(room.GetPlayer("eve")!.Team is not null, "a newcomer joins a team without a new draw");
 		Check(room.Start().Ok, "starts once the teams are drawn");
@@ -591,6 +601,12 @@ public static class SelfTest
 		var reread = QuizJson.Parse(QuizJson.Write(ordered), out _);
 		Check(reread != null && reread.CategoryOrder.SequenceEqual(ordered.CategoryOrder) && QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.CategoryOrder.Count == 0,
 			"a quiz keeps its categories' order (and one without stays without)");
+		ordered.TypeOrder = new() { QuestionType.Sound, QuestionType.MapPin };
+		var typed = SampleQuiz.Build();
+		typed.TypeOrder = new() { QuestionType.Sound, "nonsense", QuestionType.MapPin };
+		Check(QuizJson.Parse(QuizJson.Write(ordered), out _)!.TypeOrder.SequenceEqual(ordered.TypeOrder)
+			&& QuizJson.Parse(QuizJson.Write(typed), out _)!.TypeOrder.SequenceEqual(ordered.TypeOrder),
+			"a quiz keeps its question types' order (unknown types are dropped)");
 
 		var informed = SampleQuiz.Build();
 		var est = informed.Questions.First(q => q.Type == QuestionType.Estimation);
@@ -654,18 +670,20 @@ public static class SelfTest
 	/// <summary>A bug report as a GitHub Issue (Storage/BugReports): title and body made from the report's text, no network.</summary>
 	static void BugIssue()
 	{
-		var report = "# Bug: Map pin\r\n\r\n- **Sent by:** Ann · Steam ID 7656 (https://steamcommunity.com/profiles/7656)\r\n"
+		var report = "# Bug: Map pin\r\n\r\n- **Sent by:** Ann\r\n"
 			+ "- **Version:** 0.12.9d1 (test build)\r\n- **System:** Windows 11\r\n\r\n## What happened\r\n\r\nThe pin vanished.\r\n\r\n"
 			+ "## Log (last 200 lines)\r\n\r\n```\r\nline one\r\nline two\r\n```\r\n";
 		Eq(Storage.BugReports.IssueTitle(report), "Map pin (0.12.9d1)", "a bug issue's title is the category and the version");
 		var body = Storage.BugReports.IssueBody(report, "bugs/Reported/2026-11-01 12-00 0.12.9d1 Map pin abc123.png");
-		Check(!body.Contains("# Bug:") && body.StartsWith("- **Sent by:** Ann · Steam ID 7656") && body.Contains("- **Version:** 0.12.9d1 (test build)")
+		Check(!body.Contains("# Bug:") && body.StartsWith("- **Sent by:** Ann") && body.Contains("- **Version:** 0.12.9d1 (test build)")
 			&& body.Contains("- **System:** Windows 11") && body.Contains("The pin vanished."), "the issue keeps the report's text, not its heading");
 		Check(body.Contains("<details><summary>Log (last 200 lines)</summary>") && body.Contains("````\nline one\nline two\n````\n\n</details>")
 			&& !body.Contains("\r") && !body.Contains("## Log"), "the log is folded into a <details> block");
 		Check(body.Contains("Map%20pin%20abc123.png?raw=true") && body.IndexOf("Screenshot") > body.IndexOf("The pin vanished.")
 			&& body.IndexOf("Screenshot") < body.IndexOf("<details>"), "the screenshot (a file in the repo) is shown under the text");
 		Check(!Storage.BugReports.IssueBody(report, null).Contains("Screenshot"), "no screenshot, no picture");
+		var scrubbed = Storage.BugReports.NoSteamIds("Join: \"Ann\" (Steam ID 76561198038635340, client id \"steam-76561198038635340\") -> steam:76561198038635340 and 76561198038635341");
+		Check(!scrubbed.Contains("7656119") && scrubbed.Contains("Join: \"Ann\""), "Steam IDs are taken out of a report's log");
 		var huge = Storage.BugReports.IssueBody(report.Replace("line two", new string('x', 100_000)), null);
 		Check(huge.Length < 65_536 && huge.Contains("line one") == false && huge.EndsWith("````\n\n</details>\n"), "a huge log is cut from its start to fit an issue");
 	}
@@ -715,6 +733,38 @@ public static class SelfTest
 		{
 			if (System.IO.Directory.Exists(dir)) System.IO.Directory.Delete(dir, true);
 		}
+	}
+
+	/// <summary>Sync (Storage/Storage.QuizSync.Decide): which side wins, conflicts, and deleted quizzes staying deleted.</summary>
+	static void Sync()
+	{
+		Storage.QuizSync.Remote R(string id, long at) => new(1, id, at, id);
+		var local = new Dictionary<string, (long, string)>
+		{
+			["new-here"] = (5, "a"), ["same"] = (7, "b"), ["changed-here"] = (9, "c"), ["changed-there"] = (3, "d"),
+			["changed-both"] = (4, "e"), ["never-synced"] = (6, "f"),
+		};
+		var remote = new Dictionary<string, Storage.QuizSync.Remote>
+		{
+			["same"] = R("same", 7), ["changed-here"] = R("changed-here", 2), ["changed-there"] = R("changed-there", 8),
+			["changed-both"] = R("changed-both", 5), ["never-synced"] = R("never-synced", 1), ["new-there"] = R("new-there", 2),
+			["deleted-here"] = R("deleted-here", 4), ["deleted-then-changed"] = R("deleted-then-changed", 6),
+		};
+		var synced = new Dictionary<string, long>
+		{
+			["same"] = 7, ["changed-here"] = 2, ["changed-there"] = 3, ["changed-both"] = 1, ["deleted-here"] = 4, ["deleted-then-changed"] = 5,
+		};
+		var (steps, same) = Storage.QuizSync.Decide(local, remote, synced);
+		Storage.QuizSync.Kind? KindOf(string id) => steps.FirstOrDefault(s => s.QuizId == id)?.Kind;
+		Eq(KindOf("new-here"), Storage.QuizSync.Kind.Upload, "sync: a quiz only on this PC goes up");
+		Eq(KindOf("new-there"), Storage.QuizSync.Kind.Download, "sync: a quiz only in the cloud comes down");
+		Check(KindOf("same") == null && same.ContainsKey("same"), "sync: the same on both sides: nothing to do");
+		Eq(KindOf("changed-here"), Storage.QuizSync.Kind.Upload, "sync: changed on this PC only: this PC's goes up");
+		Eq(KindOf("changed-there"), Storage.QuizSync.Kind.Download, "sync: changed on the other PC only: the cloud's comes down");
+		Eq(KindOf("changed-both"), Storage.QuizSync.Kind.Conflict, "sync: changed on both: asked");
+		Eq(KindOf("never-synced"), Storage.QuizSync.Kind.Conflict, "sync: on both sides but never synced here, and different: asked");
+		Eq(KindOf("deleted-here"), null, "sync: deleted on this PC: the cloud's copy doesn't come back");
+		Eq(KindOf("deleted-then-changed"), Storage.QuizSync.Kind.Download, "sync: deleted here but changed on the other PC since: it comes back");
 	}
 
 	static void Safety()
@@ -825,6 +875,7 @@ public static class SelfTest
 		PodiumAndAwards();
 		TeamMode();
 		Safety();
+		Sync();
 		Undo();
 		Files();
 		// Load, not just Exists: an Opus .ogg exists but Godot can't import it.
@@ -1186,6 +1237,14 @@ public static class SelfTest
 
 	static void Files()
 	{
+		// (0.14) a deleted quiz waits in "deleted" and comes back; real files in the quizzes folder, cleaned up after
+		var gone = Storage.QuizStore.Create("Selftest delete me");
+		Storage.QuizStore.Delete(gone.Id);
+		Check(Storage.QuizStore.Get(gone.Id) == null && Storage.QuizStore.Deleted().Any(d => d.Id == gone.Id), "a deleted quiz leaves the list but is kept");
+		Check(Storage.QuizStore.Restore(gone.Id)?.Title == "Selftest delete me" && Storage.QuizStore.Deleted().All(d => d.Id != gone.Id), "and comes back");
+		Storage.QuizStore.Delete(gone.Id);
+		System.IO.File.Delete(System.IO.Path.Combine(Storage.QuizStore.Folder, "deleted", gone.Id + Storage.QuizStore.Extension));
+
 		// A quiz file as the web version exported it (format 1: classic without mode).
 		const string old = """
 		{"version":1,"id":"abc","title":"Old quiz","createdAt":1,"updatedAt":2,

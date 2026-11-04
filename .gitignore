@@ -9,3 +9,6 @@
 # The token that lets the game upload results to maxlvl01/quiznight-results (shipped in builds, never in git)
 /results-token.txt
 __pycache__/
+
+# The token that lets the game open bug issues on maxlvl01/quiznight (Issues only; shipped in builds, never in git)
+/issues-token.txt

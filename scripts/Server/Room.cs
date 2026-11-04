@@ -280,8 +280,42 @@ public sealed class Room : IGameHooks
 		var start = rng.Next(Settings.Teams);
 		for (var i = 0; i < order.Count; i++) order[i].Team = (start + i) % Settings.Teams;
 		foreach (var p in Players.Except(here)) p.Team = null;
+		// (new teams: the names they gave themselves go)
+		_teamNames.Clear();
 		TeamDraw++;
 		Trace.Log("room", $"teams drawn: {string.Join(" | ", Enumerable.Range(0, Settings.Teams).Select(t => string.Join(", ", order.Where(p => p.Team == t).Select(p => p.Name))))}");
+		return Result.Success();
+	}
+
+	/// <summary>Names the teams gave themselves (0.14), by team; the rest have their drawn name (TeamNames.Name).</summary>
+	readonly Dictionary<int, string> _teamNames = new();
+
+	public string TeamName(int team) => _teamNames.TryGetValue(team, out var name) ? name : TeamNames.Name(team);
+
+	/// <summary>
+	/// After the draw, in the waiting room, a team names itself: anyone in it, or the host for any team. Null rolls a new
+	/// name (one no other team has). Two teams can't share a name.
+	/// </summary>
+	public Result RenameTeam(string by, int team, string? rawName, Random? rng = null)
+	{
+		if (Phase != Shared.Phase.Lobby) return Result.Fail("Team names can only be changed in the waiting room.");
+		if (!Settings.TeamMode || team < 0 || team >= Settings.Teams || !Players.Any(p => p.Team != null)) return Result.Fail("The teams aren't drawn yet.");
+		if (by != "host" && GetPlayer(by)?.Team != team) return Result.Fail("Only the team itself can change its name.");
+		var others = Enumerable.Range(0, Settings.Teams).Where(t => t != team).Select(TeamName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+		string name;
+		if (rawName == null)
+		{
+			var free = TeamNames.All.Select(n => n.Name).Concat(TeamNames.More).Where(n => !others.Contains(n) && n != TeamName(team)).ToList();
+			name = free[(rng ?? Random.Shared).Next(free.Count)];
+		}
+		else
+		{
+			name = TeamNames.Clean(rawName);
+			if (name == "") return Result.Fail("Please enter a name.");
+			if (others.Contains(name)) return Result.Fail("Another team already has that name.");
+		}
+		_teamNames[team] = name;
+		Trace.Log("room", $"team {team} is now called {name} (by {by})");
 		return Result.Success();
 	}
 
@@ -319,7 +353,7 @@ public sealed class Room : IGameHooks
 		if (!Settings.TeamMode || !Players.Any(p => p.Team != null)) return null;
 		var teams = Enumerable.Range(0, Settings.Teams).Select(t => new PublicTeam
 		{
-			Index = t, Name = TeamNames.Name(t), Color = TeamNames.Color(t),
+			Index = t, Name = TeamName(t), Color = TeamNames.Color(t),
 			Members = Players.Where(p => p.Team == t).Select(p => p.Id).ToList(),
 			Score = Players.Where(p => p.Team == t).Sum(p => Score(p.Id)),
 		}).OrderByDescending(t => t.Score).ThenBy(t => t.Index).ToList();
@@ -329,6 +363,17 @@ public sealed class Room : IGameHooks
 
 	/// <summary>The room as one viewer may see it: "host", or a player id.</summary>
 	public RoomState ToState(string viewer)
+	{
+		var state = SharedState();
+		state.Game = ViewFor(viewer);
+		return state;
+	}
+
+	/// <summary>The current question as one viewer sees it (null outside the game).</summary>
+	public GameView? ViewFor(string viewer) => Game != null && Phase == Shared.Phase.Playing ? Game.View(viewer) : null;
+
+	/// <summary>The state without the game view: the same for every viewer, so a broadcast makes it once (HostSession).</summary>
+	public RoomState SharedState()
 	{
 		var (order, places) = Ranking();
 		return new()
@@ -342,7 +387,6 @@ public sealed class Room : IGameHooks
 			}),
 			Code = Code,
 			Quiz = new QuizInfo { Id = Quiz.Id, Title = Quiz.Title, QuestionCount = Quiz.Questions.Count },
-			Game = Game != null && Phase == Shared.Phase.Playing ? Game.View(viewer) : null,
 			Scores = new Dictionary<string, int>(Scores),
 			ServerNow = Now(),
 			Phase = Phase,
@@ -549,7 +593,7 @@ public sealed class Room : IGameHooks
 		: _openSave;
 
 	/// <summary>Everything up to question <paramref name="next"/> (0-based; it and the ones after it are still to play).</summary>
-	SavedNight Snapshot(int next) => new()
+	internal SavedNight Snapshot(int next) => new()
 	{
 		Version = Godot.ProjectSettings.GetSetting("application/config/version").AsString(),
 		QuizId = Quiz.Id,
@@ -565,6 +609,7 @@ public sealed class Room : IGameHooks
 		QuestionStats = QuestionStats.Where(q => q.Key.Question < next)
 			.Select(q => new SavedQuestionStat { Question = q.Key.Question, Player = q.Key.Player, Stat = q.Value }).ToList(),
 		Jokers = Game?.UsedJokers(next) ?? new(),
+		TeamNames = _teamNames.Count == 0 ? null : Enumerable.Range(0, Settings.Teams).Select(t => _teamNames.GetValueOrDefault(t)).ToList(),
 	};
 
 	/// <summary>
@@ -591,6 +636,9 @@ public sealed class Room : IGameHooks
 			Stats[p.Id] = p.Stats ?? new PlayerStats();
 		}
 		foreach (var q in save.QuestionStats.Where(q => q.Stat != null)) QuestionStats[(q.Question, q.Player)] = q.Stat;
+		_teamNames.Clear();
+		for (var t = 0; t < (save.TeamNames?.Count ?? 0); t++)
+			if (save.TeamNames![t] is { } name && TeamNames.Clean(name) is { Length: > 0 } clean) _teamNames[t] = clean;
 	}
 
 	/// <summary>

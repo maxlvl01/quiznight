@@ -2,6 +2,7 @@
 // Godot plays MP3, Ogg Vorbis and WAV sound, and Ogg Theora (.ogv) video — not MP4 or WebM.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Godot;
 using QuizNight.Server;
@@ -123,19 +124,27 @@ public static class Media
 
 	public static bool CanPlayVideo(MediaAsset media) => media.Mime == "video/ogg" || DataUrl.TryParse(media.DataUrl, out var m, out _) && m == "video/ogg";
 
-	/// <summary>Theora streams need a file, so the video is written to the cache folder first.</summary>
+	/// <summary>Which video each cache file holds (its data text's length and hash), so the same one isn't decoded and
+	/// written again (the editor's arrows go back and forth over the same questions).</summary>
+	static readonly Dictionary<string, (int Length, int Hash)> CachedVideos = new();
+
+	/// <summary>Theora streams need a file, so the video is written to the cache folder first (unless it's there already).</summary>
 	public static VideoStream? LoadVideo(MediaAsset media, string cacheName)
 	{
 		if (!CanPlayVideo(media)) return null;
+		var path = $"user://cache/{cacheName}.ogv";
+		var key = (media.DataUrl.Length, media.DataUrl.GetHashCode());
+		if (CachedVideos.TryGetValue(cacheName, out var had) && had == key && Godot.FileAccess.FileExists(path))
+			return new VideoStreamTheora { File = path };
 		var bytes = DataUrl.Bytes(media.DataUrl, out _);
 		if (bytes == null) return null;
 		DirAccess.MakeDirRecursiveAbsolute("user://cache");
-		var path = $"user://cache/{cacheName}.ogv";
 		using (var f = Godot.FileAccess.Open(path, Godot.FileAccess.ModeFlags.Write))
 		{
 			if (f == null) return null;
 			f.StoreBuffer(bytes);
 		}
+		CachedVideos[cacheName] = key;
 		return new VideoStreamTheora { File = path };
 	}
 

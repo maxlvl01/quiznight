@@ -49,12 +49,31 @@ public sealed class HostSession : IDisposable
 	/// </summary>
 	RoomState StateFor(string viewer)
 	{
-		var state = Room.ToState(viewer);
+		var state = SharedState();
+		state.Game = ViewFor(viewer, CurrentProgress());
+		return state;
+	}
+
+	/// <summary>Everything but the game view: the same for every viewer.</summary>
+	RoomState SharedState()
+	{
+		var state = Room.SharedState();
 		if (Room.Phase == Phase.Lobby) state.Arcade = Arcade.View();
 		if (Room.SharedFiles.Count > 0) state.Downloads = Room.Players.ToDictionary(p => p.Id, p => DownloadPercent(p.Id, Room.SharedFiles));
-		if (state.Game is { Stage: Stage.Open } view && Playing() && Room.Game!.CurrentFiles().ToList() is { Count: > 0 } current)
-			view.MediaProgress = Room.Players.ToDictionary(p => p.Id, p => DownloadPercent(p.Id, current));
 		return state;
+	}
+
+	/// <summary>How much of the open question's pictures, sound or video each player has (null: it has none).</summary>
+	Dictionary<string, int>? CurrentProgress() =>
+		Playing() && Room.Game!.Stage == Stage.Open && Room.Game.CurrentFiles().ToList() is { Count: > 0 } current
+			? Room.Players.ToDictionary(p => p.Id, p => DownloadPercent(p.Id, current))
+			: null;
+
+	GameView? ViewFor(string viewer, Dictionary<string, int>? progress)
+	{
+		var view = Room.ViewFor(viewer);
+		if (view is { Stage: Stage.Open } && progress != null) view.MediaProgress = progress;
+		return view;
 	}
 
 	/// <summary>How much of these files a player has, 0–100, weighted by size.</summary>
@@ -81,7 +100,6 @@ public sealed class HostSession : IDisposable
 		_net.Poll();
 		if (Room.Tick()) Broadcast();
 		if (Room.Phase == Phase.Lobby) ArcadeDone(Arcade.Tick(Godot.Engine.GetMainLoop() is Godot.SceneTree tree ? tree.Root.GetProcessDeltaTime() : 1 / 60.0));
-		SendMedia();
 		var now = Godot.Time.GetTicksMsec() / 1000.0;
 		if (_progressChanged && now - _progressSentAt > 0.4)
 		{
@@ -89,6 +107,10 @@ public sealed class HostSession : IDisposable
 			_progressSentAt = now;
 			Broadcast();
 		}
+		// (the state before this frame's files: a file part never holds it up)
+		SendState();
+		SendMedia();
+		if (_saveDue && now - _savedAt >= 1) SaveNow();
 	}
 
 	// ---------- the quiz's files for the players' screens ----------
@@ -124,9 +146,7 @@ public sealed class HostSession : IDisposable
 			// (at most 8 MB per frame and connection; usually the connection says "full" much sooner)
 			for (var n = 0; n < 32; n++)
 			{
-				var next = files.Where(v => v.Index >= from)
-					.Select(v => (v.Id, Data: _encrypted[v.Id] is { IsCompletedSuccessfully: true } t ? t.Result : null))
-					.FirstOrDefault(v => v.Data != null && sent.GetValueOrDefault(v.Id) < v.Data.Length);
+				var next = NextToSend(files, from, sent);
 				if (next.Data == null) break;
 				var offset = sent.GetValueOrDefault(next.Id);
 				var size = (int)Math.Min(MediaChunk.MaxData, next.Data.Length - offset);
@@ -134,6 +154,16 @@ public sealed class HostSession : IDisposable
 				sent[next.Id] = offset + size;
 			}
 		}
+	}
+
+	/// <summary>The first file (from this question on) that's encrypted and not all sent yet. A plain loop: this runs every
+	/// frame for every player, also long after everything has gone.</summary>
+	(string Id, byte[]? Data) NextToSend(IReadOnlyList<Game.SharedMedia> files, int from, Dictionary<string, long> sent)
+	{
+		foreach (var v in files)
+			if (v.Index >= from && _encrypted[v.Id] is { IsCompletedSuccessfully: true } t && sent.GetValueOrDefault(v.Id) < t.Result.Length)
+				return (v.Id, t.Result);
+		return ("", null);
 	}
 
 	/// <summary>The video encrypted with AES-CBC, the 16-byte IV first.</summary>
@@ -152,12 +182,30 @@ public sealed class HostSession : IDisposable
 
 	string? PeerOf(string playerId) => _peerPlayer.FirstOrDefault(kv => kv.Value == playerId).Key;
 
-	/// <summary>Everyone gets their own view. The host's screen reads the state directly.</summary>
-	public void Broadcast()
+	/// <summary>Something changed: everyone gets the new state at the end of this frame (Poll), once however many things
+	/// changed (every answer, buzz and click used to send it to everyone right away).</summary>
+	public void Broadcast() => _stateDue = true;
+
+	bool _stateDue;
+
+	/// <summary>Everyone gets their own view; the parts that are the same for all are made once. The host's screen reads
+	/// the state directly. Anything sent to a player in this frame before (a join reply, an answer's result) still
+	/// arrives before this state, as it did when every change was sent at once.</summary>
+	void SendState()
 	{
+		if (!_stateDue || _disposed) return;
+		_stateDue = false;
 		Autosave();
 		Changed?.Invoke();
-		foreach (var (peer, playerId) in _peerPlayer.ToList()) _net.Send(peer, Msg.Encode(Msg.State, StateFor(playerId)));
+		if (_peerPlayer.Count == 0) return;
+		var state = SharedState();
+		var progress = CurrentProgress();
+		// (one state object, its game view swapped per player: each is turned into bytes before the next is made)
+		foreach (var (peer, playerId) in _peerPlayer.ToList())
+		{
+			state.Game = ViewFor(playerId, progress);
+			_net.Send(peer, Msg.Encode(Msg.State, state));
+		}
 	}
 
 	void OnPeerDisconnected(string peer)
@@ -215,6 +263,9 @@ public sealed class HostSession : IDisposable
 				break;
 			case Msg.Rename when playerId != null:
 				if (Msg.Read<RenameRequest>(msg.Data) is { } rr && Room.Rename(playerId, rr.Name).Ok) Broadcast();
+				break;
+			case Msg.TeamName when playerId != null:
+				if (Msg.Read<TeamNameRequest>(msg.Data) is { } tn && Room.RenameTeam(playerId, tn.Team, tn.Roll ? null : tn.Name).Ok) Broadcast();
 				break;
 			case Msg.Joker when playerId != null && Playing():
 				if (Msg.Read<JokerRequest>(msg.Data) is { } jr && Room.Game!.PlayJoker(playerId, jr.Kind, jr.On).Ok) Broadcast();
@@ -377,6 +428,14 @@ public sealed class HostSession : IDisposable
 	}
 
 	/// <summary>Team mode: the host draws the teams (every lobby screen plays the draw).</summary>
+	/// <summary>The host names a team (null: rolls a new name).</summary>
+	public Result RenameTeam(int team, string? name)
+	{
+		var result = Room.RenameTeam("host", team, name);
+		if (result.Ok) Broadcast();
+		return result;
+	}
+
 	public Result DrawTeams()
 	{
 		var result = Room.DrawTeams();
@@ -523,9 +582,21 @@ public sealed class HostSession : IDisposable
 	/// <summary>This room has a save on disk (written or continued): it goes when the night ends.</summary>
 	bool _hasSave;
 
+	/// <summary>Something changed since the last save; when it was written (it's written at most once a second, then soon after).</summary>
+	bool _saveDue;
+	double _savedAt = double.NegativeInfinity;
+
 	void Autosave()
 	{
 		if (!Autosaves) return;
+		_saveDue = true;
+		if (Room.Phase == Phase.Finished || Godot.Time.GetTicksMsec() / 1000.0 - _savedAt >= 1) SaveNow();
+	}
+
+	void SaveNow()
+	{
+		_saveDue = false;
+		_savedAt = Godot.Time.GetTicksMsec() / 1000.0;
 		if (Room.Phase == Phase.Finished)
 		{
 			if (_hasSave) Storage.NightSaves.Delete(Room.Quiz.Id);
@@ -577,6 +648,8 @@ public sealed class HostSession : IDisposable
 	{
 		if (_disposed) return;
 		_disposed = true;
+		// (the last changes, if they waited for their second)
+		if (_saveDue) SaveNow();
 		_net.Dispose();
 	}
 }

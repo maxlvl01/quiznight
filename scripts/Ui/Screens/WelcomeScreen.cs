@@ -33,15 +33,6 @@ public partial class WelcomeScreen : Control
 			U.Heading("Welcome to Quiznight?", 40),
 			U.Text("Before the show starts: does anything make the game easier for you to see or read?", 17, C.Text, Fonts.Bold, true),
 			U.Card(14,
-				U.Eyebrow("Language"),
-				U.Segmented(Lang.All, Settings.Language, code =>
-				{
-					Settings.Language = code;
-					Lang.Use(code);
-					// (built again so text made from parts switches too)
-					Callable.From(App.I.ShowWelcomeAgain).CallDeferred();
-				}),
-				U.Gap(4),
 				U.Eyebrow("Accessibility"),
 				U.Field("Colour vision", U.Select(ColourFilter.Modes, Settings.ColourVision, App.I.UseColourVision),
 					"Shifts the colours of the whole game so the ones you can't tell apart become different: right and wrong, the A–D answers, medals and player colours."),
