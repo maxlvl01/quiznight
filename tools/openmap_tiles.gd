@@ -1,5 +1,6 @@
 # Converts OpenMap's baked zone tiles (BLP2, DXT5) to WebP for assets/maps/wow/stitched/.
-# OpenMap: https://www.curseforge.com/wow/addons/openmap (code MIT; the art is Blizzard's map art).
+# OpenMap: https://www.curseforge.com/wow/addons/openmap (code MIT; the art is Blizzard's map art,
+# its gap fills baked into the tiles are by Santiago Reyes, ko-fi.com/sr433_20, used with his permission).
 # Run: Godot --headless --path . --script res://tools/openmap_tiles.gd -- "<OpenMap>/Media/Textures/MapZones" "<project>/assets/maps/wow/stitched"
 extends SceneTree
 func _init():

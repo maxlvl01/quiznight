@@ -195,8 +195,8 @@ public static class WowAtlas
 	/// <summary>
 	/// WoW Forever's zones that Classic doesn't have (its zone art from OpenMap shows them, the zone list above doesn't):
 	/// rough outlines on the world map (in its pixels, 1002 × 668), found with DevTools' --unzoned-mask, so hovering and
-	/// "Jump to zone…" name them. Only names: distances stay in Classic's yards. Replace with Forever's own zone data once
-	/// it's out (after 4 November 2026).
+	/// "Jump to zone…" name them. Only names: distances stay in Classic's yards. Forever's zone rects aren't in OpenMap's
+	/// files (it asks the game while it runs), so these stay hand-placed; real yards would need the game's UiMap tables.
 	/// </summary>
 	public static readonly IReadOnlyList<(string Name, (double X, double Y)[] Outline)> ExtraZones = new[]
 	{

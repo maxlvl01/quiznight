@@ -3,8 +3,9 @@
 // Pins are placed anywhere and stored as a point on the world map image, as before (WowAtlas).
 //
 // Layers, bottom to top, and the zoom each fades in at (zoom 1 = the whole world fits; OpenMap's):
-//   world map           always
-//   continent maps      1.3–2.2   soft edges, so their parchment frame never shows (what's left of them shows
+//   OpenMap's sea       3–5       its colour and tiled paper (assets/maps/wow/sea), as the world and continent maps go
+//   world map           until 3–5
+//   continent maps      1.3–2.2, out again at 3–5   soft edges, so their parchment frame never shows (what's left of them shows
 //                                 only where the zone art has gaps)
 //   zone art, whole     1.1–1.5   all the stitched zones as one map, downsized (assets/maps/wow/overview-2/-4,
 //                                 tools/openmap_overview.py): the sharper one once a world-map pixel is over 2 px
@@ -48,6 +49,13 @@ public static class WowMapArt
 
 	/// <summary>All the tiles as one map, downsized to px pixels per world-map pixel (2 or 4; tools/openmap_overview.py).</summary>
 	public static string Overview(int px) => $"res://assets/maps/wow/overview-{px}.webp";
+
+	/// <summary>OpenMap's sea (assets/maps/wow/sea, from its Media/Textures): "field" is the sea's colour as the world map
+	/// paints it, stretched over the whole world; "dark" and "light" its paper mottling, tiled.</summary>
+	public static string Sea(string name) => $"res://assets/maps/wow/sea/{name}.webp";
+
+	/// <summary>The mottling's tile in world-map pixels (OpenMap: 128 continent-art pixels, a continent pixel ≈ 0.4 of the world map's).</summary>
+	public const float SeaTile = 128 * 0.4f;
 
 	static List<Tile> FindTiles()
 	{
@@ -162,6 +170,8 @@ public partial class WowMapCanvas : MapCanvas
 	{
 		MaxZoom = 40;
 		WheelStep = 0.2f;
+		// (for the sea's tiled mottling; everything else is drawn from inside its texture, where repeat changes nothing)
+		TextureRepeat = TextureRepeatEnum.Enabled;
 		HoverLabel = PlaceName;
 	}
 
@@ -200,14 +210,38 @@ public partial class WowMapCanvas : MapCanvas
 	{
 		// (no renderer without a window, e.g. bots: nothing to draw)
 		if (Headless) return;
-		var world = Images.BuiltinTexture(WowAtlas.ImagePath(WowAtlas.World));
-		if (world != null) DrawTextureRect(world, rect, false);
 		var view = VisibleNorm();
 		var zoom = Zoom;
 		Rect2 OnScreen(Rect2 n) => new(rect.Position + n.Position * rect.Size, n.Size * rect.Size);
 		static Rect2 R((double X, double Y, double W, double H) r) => new((float)r.X, (float)r.Y, (float)r.W, (float)r.H);
+		var waiting = false;
 
-		var continents = Ramp(1.3f, 2.2f, zoom);
+		// OpenMap's own sea, taking over from the world map's (a 1002 px picture: blurry once zoomed in, and its coasts
+		// soft) as the zone art comes in. The land is the zone art's by then (overview, then tiles), which carries its
+		// coasts and the sea just off them.
+		var sea = Ramp(3f, 5f, zoom);
+		if (sea > 0)
+		{
+			if (WowMapArt.TileTexture(WowMapArt.Sea("field")) is { } field) DrawTextureRect(field, rect, false);
+			else waiting = true;
+			// Its paper mottling, fixed on the world; past zoom 4 the tile halves each time the zoom doubles,
+			// crossfading to the finer one, so it keeps its size on screen (OpenMap's octaves).
+			var octave = Mathf.Max(0, Mathf.Log(zoom / 4f) / Mathf.Log(2));
+			var n = Mathf.FloorToInt(octave);
+			var fine = octave - n;
+			var size = WowMapArt.SeaTile / Mathf.Pow(2, n);
+			var part = view.Intersection(new Rect2(0, 0, 1, 1));
+			foreach (var name in new[] { "dark", "light" })
+			{
+				if (WowMapArt.TileTexture(WowMapArt.Sea(name)) is not { } paper) { waiting = true; continue; }
+				SeaPaper(paper, OnScreen(part), part, size, sea * (1 - fine), n);
+				SeaPaper(paper, OnScreen(part), part, size / 2, sea * fine, n + 1);
+			}
+		}
+		if (sea < 1 && Images.BuiltinTexture(WowAtlas.ImagePath(WowAtlas.World)) is { } world)
+			DrawTextureRect(world, rect, false, new Color(1, 1, 1, 1 - sea));
+
+		var continents = Ramp(1.3f, 2.2f, zoom) * (1 - sea);
 		if (continents > 0)
 			foreach (var c in Continents)
 			{
@@ -217,7 +251,6 @@ public partial class WowMapCanvas : MapCanvas
 
 		// The zone art put together (tools/openmap_overview.py), the size that's sharp enough for this zoom: from the
 		// first zoom steps on, the land looks the same as in the zone tiles, only less detailed.
-		var waiting = false;
 		var perWorldPx = rect.Size.X * GetViewport().GetFinalTransform().Scale.X / WowAtlas.ImageWidth;
 		var overview = Ramp(1.1f, 1.5f, zoom);
 		if (overview > 0)
@@ -252,6 +285,21 @@ public partial class WowMapCanvas : MapCanvas
 
 		// Tiles still loading: look again next frame.
 		if (waiting) Callable.From(QueueRedraw).CallDeferred();
+	}
+
+	/// <summary>One octave of the sea's mottling over <paramref name="part"/> of the world (0–1), in tiles of
+	/// <paramref name="size"/> world-map pixels. Each octave has its own offset, so the finer one taking over as the zoom
+	/// doubles is the same pattern in the same place (OpenMap's shift).</summary>
+	void SeaPaper(Texture2D tex, Rect2 at, Rect2 part, float size, float alpha, int octave)
+	{
+		if (alpha <= 0.01f || part.Size.X <= 0 || part.Size.Y <= 0) return;
+		var shift = octave * 0.37f % 1;
+		var tw = tex.GetWidth();
+		var th = tex.GetHeight();
+		float u0 = part.Position.X * WowAtlas.ImageWidth / size + shift, v0 = part.Position.Y * WowAtlas.ImageHeight / size + shift * 1.6f;
+		float u1 = part.End.X * WowAtlas.ImageWidth / size + shift, v1 = part.End.Y * WowAtlas.ImageHeight / size + shift * 1.6f;
+		// (the canvas repeats textures, so a source past the texture's edge tiles it)
+		DrawTextureRectRegion(tex, at, new Rect2(u0 * tw, v0 * th, (u1 - u0) * tw, (v1 - v0) * th), new Color(1, 1, 1, alpha));
 	}
 }
 
