@@ -205,6 +205,7 @@ the original design decisions; most still apply.
 | `assets/maps/wow/stitched/` | OpenMap's baked zone art (223 tiles, OpenMap v0.7.5-beta for Forever, `E:World of Warcraft_forever_InterfaceAddOnsOpenMap`), converted by `tools/openmap_tiles.gd` from the addon's `Media/Textures/MapZones` (BLP); then `py -I tools/openmap_overview.py`. `assets/maps/wow/sea/` = its sea textures (`MapSeaField/947`, `MapSeaDark/Light`) |
 | `scripts/Ui/Screens/` | Home, QuizList, QuizOverview, QuestionEditor, HostLobby, WaitingRoom, HostGame (+ Curtain, HostNotes window), PlayerGame, Podium, Settings |
 | `scripts/Dev/` | `SelfTest`, `SampleQuiz`, `DevTools` (bots, autopilot, screenshots) |
+| `docs/game-graph.yaml` | How the game works as graphs (architecture, screens, question loop, messages, types), drawn on the "Quiznight? Game Graph" design canvas; update it when the flow changes |
 
 User data: `%APPDATA%\Quiznight\` (quizzes, settings.cfg, cache).
 
