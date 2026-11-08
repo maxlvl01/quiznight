@@ -1,4 +1,4 @@
-# Quiznight! (Godot)
+# Quiznight? (Godot)
 
 Host quiz nights with friends, everyone on their own PC (talking on Discord). The host is the quizmaster
 (builds the quiz and runs the show, doesn't play); players join with a 4-character room code. Everyone sees and
@@ -19,6 +19,23 @@ test app, so everyone needs Steam running) or over **LAN** (same Wi-Fi, or sever
   - **Map pin** — show a screenshot, players pin the spot on a map; scored by real distance on game maps
     (Skyrim, Oblivion, GTA IV/V, WoW Classic with zones).
 - **Play** — buzz queue with Correct / Wrong, timers, reveals, scores and a final podium.
+
+## System requirements
+
+Quiznight is a 2D game, so it runs on modest hardware. The minimum is a real test machine (a 2023 thin-and-light laptop with
+integrated graphics, 1080p at 60 fps, with the odd hiccup); the recommended spec is a step up from it.
+
+| | Minimum | Recommended |
+|---|---|---|
+| **System** | Windows 10 or 11, 64-bit | Windows 10 or 11, 64-bit |
+| **CPU** | AMD Ryzen 7 7735U (8 cores, 2.7 GHz) or similar | A recent 6-core or better (Ryzen 5 5600, Core i5-12400 or similar) |
+| **Graphics** | Integrated: AMD Radeon 680M (what the 7735U has) | A dedicated card of about GTX 1660 / RX 6500 XT class or better |
+| **RAM** | 16 GB | 16 GB (the host needs the most headroom: it keeps the quiz's pictures, sounds and videos ready for everyone) |
+| **Storage** | About 1 GB free (the download is ~110 MB; map packs and the media cache come on top) | An SSD with a few GB free |
+| **Screen** | 1920 x 1080 | 1920 x 1080 or higher |
+| **Also needed** | Steam running (to play over Steam), internet connection | A microphone for interactive questions; for hosting, a good upload speed (files go to every player at the start) |
+
+The minimum is what we measured; the recommended spec is our estimate of a machine that never hiccups, not a tested one.
 
 ## Run it
 
