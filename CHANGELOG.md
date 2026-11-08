@@ -17,7 +17,17 @@ On GitHub, each version heading links to its release, where the download is.
 ### Added
 - **Satellite detail on the WoW map.** Zoom in past 16× and the game's own minimap fades in over the painted map, like
   the OpenMap addon does in the game: you see the real ground, trees and roads under the drawing. It gets a bit
-  stronger the further you zoom in. (Max's idea.)
+  stronger the further you zoom in. It's the real minimap from the game's files at full sharpness, so at 30–40× you can
+  make out single houses and paths. (Max's idea.)
+- **Dungeons and raids on the WoW map.** Once you zoom in a bit, every dungeon and raid entrance shows as a small archway
+  (blue for dungeons, orange for raids). Click one and you go inside, to Blizzard's own map of that dungeon, with a list of
+  its floors (and, at Blackrock Mountain or Ahn'Qiraj, of the other places behind the same entrance). "Back to the map" or a
+  right-click takes you out again. So map questions can now show a screenshot from inside a dungeon: put the right spot on
+  its floor, and players have to find the right entrance, go in and pick the right floor themselves. The right floor always
+  beats the wrong floor, and the wrong floor always beats being outside or in another dungeon; within those, closer still
+  wins. At the reveal, the map opens on the right floor, and the floor list says how many pins are on each floor. All 25
+  dungeons and raids with a map in the game (63 floors); WoW Forever's brand-new dungeons will follow once their maps are
+  sorted out. (Max's idea.)
 
 ## [0.15.4b]
 

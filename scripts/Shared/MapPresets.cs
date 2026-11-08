@@ -120,7 +120,7 @@ public static class MapPresets
 		new("pubg-deston", "PUBG – Deston", 8.16, "res://assets/maps/pubg-deston.webp", "Official map © KRAFTON (PUBG API assets)."),
 		new("pubg-sanhok", "PUBG – Sanhok", 4.08, "res://assets/maps/pubg-sanhok.webp", "Official map © KRAFTON (PUBG API assets)."),
 		new(WowAtlas.PresetId, "WoW Forever", null, WowAtlas.ImagePath(WowAtlas.World),
-			"Maps © Blizzard Entertainment; zones stitched by the OpenMap addon (MIT), gap fills by Santiago Reyes. Distances in game yards, exact per zone."),
+			"Maps © Blizzard Entertainment; zones stitched by the OpenMap addon (MIT), gap fills by Santiago Reyes; dungeon maps and minimap from the game's files. Distances in game yards, exact per zone."),
 		// The 2026 Formula 1 calendar (Bahrain and Jeddah were cancelled), widths from tools/race_tracks.py
 		Track("melbourne", "Albert Park – Melbourne", 2.047),
 		Track("shanghai", "Shanghai", 1.826),

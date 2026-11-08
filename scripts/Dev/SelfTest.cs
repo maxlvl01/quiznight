@@ -1600,14 +1600,37 @@ public static class SelfTest
 		Check(Math.Abs(WowAtlas.DistanceKm(a, b) - 100 * 0.9144 / 1000) < 0.001, "same-continent distance in yards");
 		var kalimdor = WowAtlas.LocationToWorld(new WowAtlas.Location(1, 0, 0));
 		Check(WowAtlas.DistanceKm(a, kalimdor) > WowAtlas.DistanceKm(a, b) * 100, "wrong continent is far");
+
+		// Dungeons: pins inside are stored past 1 (dungeon × 10 + x, floor × 10 + y), measured inside, ranked by place.
+		Eq(WowDungeons.List.Count, 25, "the WoW map has its dungeons and raids (tools/wow_dungeons.py)");
+		Check(WowDungeons.List.All(d => d.Floors.Length > 0 && WowDungeons.Entrances.Any(e => e.Ways.Any(w => w.Id == d.Id))), "every dungeon has floors and an entrance");
+		Check(WowDungeons.Entrances.All(e => WowAtlas.WorldToLocation(e.OnWorld) is { } l && WowAtlas.ZoneAt(l) != null), "every dungeon entrance lies in a zone");
+		var vc = WowDungeons.Encode(36, 1, new NormPoint(0.25, 0.75));
+		Check(WowDungeons.Decode(vc) is { Dungeon: 36, Floor: 1 } s1 && Math.Abs(s1.At.X - 0.25) < 1e-9 && Math.Abs(s1.At.Y - 0.75) < 1e-9, "a dungeon pin round-trips");
+		Check(WowDungeons.Decode(new NormPoint(0.5, 0.5)) == null && WowDungeons.Decode(new NormPoint(36 * 10 + 0.5, 5 * 10 + 0.5)) == null
+			&& WowDungeons.Decode(new NormPoint(1234 * 10 + 0.5, 0.5)) == null, "world pins and unknown dungeons or floors aren't inside");
+		Check(WowDungeons.Clamp(new NormPoint(1234 * 10 + 0.5, 3)) is { X: 1, Y: 1 } && WowDungeons.Clamp(vc).X == vc.X, "a player's pin is made valid");
+		var deadmines = WowDungeons.EntranceOf(36).OnWorld;
+		Check(WowDungeons.OnWorld(vc).X == deadmines.X && WowDungeons.OnWorld(a).X == a.X, "a dungeon pin stands at its entrance on the world map");
+		var near = WowAtlas.DistanceKm(vc, WowDungeons.Encode(36, 1, new NormPoint(0.3, 0.75)));
+		var farSameFloor = WowAtlas.DistanceKm(vc, WowDungeons.Encode(36, 1, new NormPoint(0.99, 0.01)));
+		var otherFloor = WowAtlas.DistanceKm(vc, WowDungeons.Encode(36, 0, new NormPoint(0.25, 0.75)));
+		var atEntrance = WowAtlas.DistanceKm(vc, deadmines);
+		var otherDungeon = WowAtlas.DistanceKm(vc, WowDungeons.Encode(33, 0, new NormPoint(0.25, 0.75)));
+		Check(near > 0 && near < farSameFloor && farSameFloor < otherFloor && otherFloor < atEntrance && atEntrance < otherDungeon,
+			"inside a dungeon: the right floor beats the wrong one, which beats outside or another dungeon");
+		Check(Math.Abs(WowAtlas.DistanceKm(deadmines, vc) - atEntrance) < 1e-9, "dungeon distances are the same both ways");
+		Check(QuizRules.MapDistance(WowAtlas.ImageWidth, WowAtlas.ImageHeight, null, WowAtlas.PresetId, vc, deadmines).Percent < 0.001, "a dungeon pin's % off is measured at its entrance");
 		if (!MapFilesHere) return;
+		Check(WowDungeons.List.All(d => Enumerable.Range(0, d.Floors.Length).All(i => Godot.FileAccess.FileExists(Storage.Images.BuiltinFile(WowDungeons.ArtPath(d.Id, i))))), "every dungeon floor has its map");
+		Check(Storage.Images.LoadBuiltinImage(WowDungeons.ArtPath(36, 0)) is { } dm && dm.GetWidth() == WowAtlas.ImageWidth, "a dungeon floor's map loads");
 		Eq(Ui.WowMapArt.Tiles.Count, 223, "seamless map tiles are in the game (OpenMap v0.7.5-beta, Forever)");
 		Check(Storage.Images.LoadBuiltinImage(WowAtlas.ImagePath(WowAtlas.World)) != null && Storage.Images.LoadBuiltinImage(Ui.WowMapArt.Tiles[0].Path) != null, "WoW world map and a zone tile load");
 		Check(new[] { "field", "dark", "light" }.All(s => Storage.Images.LoadBuiltinImage(Ui.WowMapArt.Sea(s)) != null), "WoW map's sea textures load");
-		Eq(Ui.WowMapArt.Minimap.Count, 104, "the WoW map's minimap pieces are in the game (tools/openmap_minimap.py)");
+		Eq(Ui.WowMapArt.Minimap.Count, 1165, "the WoW map's minimap tiles are in the game (tools/wow_minimap.py)");
 		var goldshire = WowAtlas.LocationToWorld(new WowAtlas.Location(0, -9465, 64));
 		Check(Ui.WowMapArt.Tiles.Any(t => t.World.HasPoint(new Godot.Vector2((float)goldshire.X, (float)goldshire.Y))), "Goldshire lies on a tile");
-		Check(Ui.WowMapArt.Minimap.Any(t => t.World.HasPoint(new Godot.Vector2((float)goldshire.X, (float)goldshire.Y))), "Goldshire lies on a minimap piece");
+		Check(Ui.WowMapArt.Minimap.Any(t => t.World.HasPoint(new Godot.Vector2((float)goldshire.X, (float)goldshire.Y))), "Goldshire lies on a minimap tile");
 	}
 
 	static void Protocol()

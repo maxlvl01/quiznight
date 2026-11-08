@@ -241,6 +241,8 @@ public static class WowAtlas
 	/// </summary>
 	public static double DistanceKm(NormPoint a, NormPoint b)
 	{
+		// (pins inside a dungeon: WowDungeons)
+		if (WowDungeons.DistanceKm(a, b) is { } inside) return inside;
 		var la = WorldToLocation(a);
 		var lb = WorldToLocation(b);
 		if (la is { } x && lb is { } y && x.Continent == y.Continent) return Hypot(x.X - y.X, x.Y - y.Y) * YardKm;

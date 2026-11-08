@@ -84,6 +84,12 @@ the original design decisions; most still apply.
   changed; both = asked (this PC's / the other's / both). Deleting stays local (the cloud keeps it; this PC doesn't take it
   back unless it changed elsewhere). Downloads keep UpdatedAt (`QuizStore.SaveSynced`). `--sync-check` = a real round trip
   under the account "selftest"; `--sync-only ID` syncs one quiz with your Steam account.
+- **WoW dungeons** (`Shared/WowDungeons.cs`): entrances drawn on `WowMapCanvas` (`OnEntrance`), clicking one opens the
+  floor view in `WowAtlasView` (`Enter`/`Leave`, dev `--open wow --dungeon ID[,FLOOR]`). A pin inside is one NormPoint
+  past 1 (X = 10 × map id + x, Y = 10 × floor + y), so no format/protocol change; `Game` keeps it via `WowDungeons.Clamp`,
+  `WowAtlas.DistanceKm` asks `WowDungeons.DistanceKm` first (a nominal 500 yd floor; wrong floor +700 yd, outside +2000 yd).
+  WoW Forever's own four dungeons (Dalaran, Wetlands dig, Ruins of Lordaeron, Hall of Thanes) have only an addon author's
+  drawn maps, left out until they say yes.
 - **Steam avatars** (`Net/SteamAvatars`): every app asks Steam for the picture of "steam:<id>" players; `Avatar` draws it.
 - **The host runs the pace.** Questions open hidden (`Game.Shown`) until the host shows them; buzzers stay
   locked (`BuzzersOpen`) until unlocked — both lobby rules. Players get no content of a hidden question, and
@@ -202,7 +208,7 @@ the original design decisions; most still apply.
 | `scripts/Net/` | `SteamTransport` (lobbies + relay), `LanTransport` (TCP), `ClientSession` (player side, auto-reconnect), `Assets`, `ServerClock` |
 | `scripts/Storage/` | `QuizStore` (user://quizzes), `Images`, `Media`, `Settings` |
 | `scripts/Ui/` | `UiKit` (theme, colours, builders), `Widgets`, `MapView` (zoom/pan map), `WowMap` (seamless WoW map: world → continents → stitched zone tiles → cities), `ImageReveal` (zoom/pixel reveal) |
-| `assets/maps/wow/stitched/` | OpenMap's baked zone art (223 tiles, OpenMap v0.7.5-beta for Forever, `E:/World of Warcraft/_forever_/Interface/AddOns/OpenMap`), converted by `tools/openmap_tiles.gd` from the addon's `Media/Textures/MapZones` (BLP); then `py -I tools/openmap_overview.py`. `assets/maps/wow/sea/` = its sea textures (`MapSeaField/947`, `MapSeaDark/Light`); `assets/maps/wow/mini/` = its small copies of the game's minimap (`MapMiniLOD`, 4×4 tiles a piece, 64 px a tile), graded and cut to the land by `tools/openmap_minimap.py`, drawn from zoom 16 (sharper would need the real tiles from the game's CASC, file ids in OpenMap's `Data/Minimap.lua`) |
+| `assets/maps/wow/stitched/` | OpenMap's baked zone art (223 tiles, OpenMap v0.7.5-beta for Forever, `E:/World of Warcraft/_forever_/Interface/AddOns/OpenMap`), converted by `tools/openmap_tiles.gd` from the addon's `Media/Textures/MapZones` (BLP); then `py -I tools/openmap_overview.py`. `assets/maps/wow/sea/` = its sea textures (`MapSeaField/947`, `MapSeaDark/Light`); `assets/maps/wow/mini/` = the game's minimap (1165 land tiles, 256 px, `<continent>_<tx>_<ty>`), graded and cut to the land by `tools/wow_minimap.py`, drawn from zoom 16. `assets/maps/wow/dungeons/<map id>_<floor>.webp` = Blizzard's dungeon maps (63 floors), data in `WowDungeons.Data.cs` by `py -I tools/wow_dungeons.py <OpenMap>`. Both were taken from the install with TACTSharp (github.com/wowdev/TACTSharp, `TACTTool -p wowf -m list -i LIST.txt -o DIR -d "E:/World of Warcraft"`, LIST = `fileDataId;name` lines; FileDataIDs in OpenMap's `Data/Minimap.lua` and `Data/DungeonMaps.lua`; BLPs open in Pillow, a dungeon floor = 4×3 tiles of 256 px cropped to 1002×668) |
 | `scripts/Ui/Screens/` | Home, QuizList, QuizOverview, QuestionEditor, HostLobby, WaitingRoom, HostGame (+ Curtain, HostNotes window), PlayerGame, Podium, Settings |
 | `scripts/Dev/` | `SelfTest`, `SampleQuiz`, `DevTools` (bots, autopilot, screenshots) |
 | `docs/game-graph.yaml` | How the game works as graphs (architecture, screens, question loop, messages, types), drawn on the "Quiznight? Game Graph" design canvas; update it when the flow changes |

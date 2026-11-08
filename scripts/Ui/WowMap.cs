@@ -55,25 +55,24 @@ public static class WowMapArt
 	/// paints it, stretched over the whole world; "dark" and "light" its paper mottling, tiled.</summary>
 	public static string Sea(string name) => $"res://assets/maps/wow/sea/{name}.webp";
 
-	/// <summary>The game's minimap, OpenMap's small copies of it (tools/openmap_minimap.py): each piece covers 4 × 4
-	/// minimap tiles of 533⅓ yards, at 64 px a tile; with the part of the world map (0–1) it covers.</summary>
+	/// <summary>The game's minimap (tools/wow_minimap.py): one picture a minimap tile of 533⅓ yards, at 256 px, named
+	/// <continent>_<tx>_<ty>; with the part of the world map (0–1) each covers.</summary>
 	public static IReadOnlyList<Tile> Minimap => _minimap ??= FindMinimap();
 	static List<Tile>? _minimap;
 
 	static List<Tile> FindMinimap()
 	{
-		const double yards = 1600.0 / 3 * 4;
+		const double yards = 1600.0 / 3;
+		const string dir = "res://assets/maps/wow/mini/";
 		var list = new List<Tile>();
-		for (var c = 0; c <= 1; c++)
-		for (var col = 0; col < 16; col++)
-		for (var row = 0; row < 16; row++)
+		foreach (var file in DirAccess.GetFilesAt(Images.BuiltinFile(dir)))
 		{
-			var path = $"res://assets/maps/wow/mini/{c}_{col}_{row}.webp";
-			if (!FileAccess.FileExists(Images.BuiltinFile(path))) continue;
-			// (minimap tile 32 starts at 0 yards; columns run east = west yards falling, rows south = north yards falling)
-			var nw = WowAtlas.LocationToWorld(new WowAtlas.Location(c, 32 * 1600.0 / 3 - row * yards, 32 * 1600.0 / 3 - col * yards));
-			var se = WowAtlas.LocationToWorld(new WowAtlas.Location(c, 32 * 1600.0 / 3 - (row + 1) * yards, 32 * 1600.0 / 3 - (col + 1) * yards));
-			list.Add(new Tile(path, new Rect2((float)nw.X, (float)nw.Y, (float)(se.X - nw.X), (float)(se.Y - nw.Y))));
+			var parts = file.EndsWith(".webp") ? file[..^5].Split('_') : Array.Empty<string>();
+			if (parts.Length != 3 || !int.TryParse(parts[0], out var c) || !int.TryParse(parts[1], out var tx) || !int.TryParse(parts[2], out var ty)) continue;
+			// (tile 32 starts at 0 yards; tx runs east = west yards falling, ty south = north yards falling)
+			var nw = WowAtlas.LocationToWorld(new WowAtlas.Location(c, (32 - ty) * yards, (32 - tx) * yards));
+			var se = WowAtlas.LocationToWorld(new WowAtlas.Location(c, (31 - ty) * yards, (31 - tx) * yards));
+			list.Add(new Tile(dir + file, new Rect2((float)nw.X, (float)nw.Y, (float)(se.X - nw.X), (float)(se.Y - nw.Y))));
 		}
 		return list;
 	}
@@ -196,7 +195,7 @@ public partial class WowMapCanvas : MapCanvas
 		WheelStep = 0.2f;
 		// (for the sea's tiled mottling; everything else is drawn from inside its texture, where repeat changes nothing)
 		TextureRepeat = TextureRepeatEnum.Enabled;
-		HoverLabel = PlaceName;
+		HoverLabel = p => DoorAt(FromNorm(p)) is { } door ? Lang.F("{0} (click to go in)", door.Label) : PlaceName(p);
 	}
 
 	/// <summary>Zooms to a spot, also before the canvas has its final size.</summary>
@@ -325,8 +324,61 @@ public partial class WowMapCanvas : MapCanvas
 			if (a > 0 && WowMapArt.Shaped(city) is { } tex) DrawTextureRect(tex, OnScreen(at), false, new Color(1, 1, 1, a));
 		}
 
+		DrawDoors();
+
 		// Tiles still loading: look again next frame.
 		if (waiting) Callable.From(QueueRedraw).CallDeferred();
+	}
+
+	// ---------- dungeon entrances ----------
+
+	/// <summary>A click on a dungeon entrance (WowAtlasView goes in).</summary>
+	public Action<WowDungeons.Entrance>? OnEntrance;
+	const float DoorSize = 11;
+	// (from the continents on, once there's room between them)
+	float DoorAlpha => Ramp(2.2f, 3.2f, Zoom);
+
+	WowDungeons.Entrance? DoorAt(Vector2 at) =>
+		OnEntrance == null || DoorAlpha < 0.5f ? null
+			: WowDungeons.Entrances.Select(e => (e, d: FromNorm(e.OnWorld).DistanceTo(at))).Where(x => x.d <= DoorSize + 4)
+				.OrderBy(x => x.d).Select(x => x.e).FirstOrDefault();
+
+	protected override bool ClickAt(Vector2 at)
+	{
+		if (DoorAt(at) is not { } door) return false;
+		OnEntrance!(door);
+		return true;
+	}
+
+	/// <summary>Each entrance as a little stone archway with the way in glowing: blue for dungeons, orange for raids.</summary>
+	void DrawDoors()
+	{
+		var alpha = DoorAlpha;
+		if (alpha <= 0.01f || OnEntrance == null) return;
+		var ink = new Color("#14151b", alpha);
+		var stone = new Color("#c9bfa6", alpha);
+		foreach (var door in WowDungeons.Entrances)
+		{
+			var c = FromNorm(door.OnWorld);
+			if (!new Rect2(Vector2.Zero, Size).Grow(DoorSize * 2).HasPoint(c)) continue;
+			var glow = door.Dungeons.Any(d => d.Raid) ? new Color("#ff9a3c", alpha) : new Color("#7fb2ff", alpha);
+			DrawColoredPolygon(Arch(c, DoorSize + 2), ink);
+			DrawColoredPolygon(Arch(c, DoorSize), stone);
+			DrawColoredPolygon(Arch(c + new Vector2(0, 1), DoorSize * 0.55f), ink);
+			DrawColoredPolygon(Arch(c + new Vector2(0, 2), DoorSize * 0.4f), glow);
+		}
+	}
+
+	/// <summary>An archway's outline: a half circle on a square, its bottom edge at the centre's Y + r.</summary>
+	static Vector2[] Arch(Vector2 c, float r)
+	{
+		var points = new List<Vector2> { c + new Vector2(-r, r), c + new Vector2(r, r) };
+		for (var i = 0; i <= 10; i++)
+		{
+			var a = Mathf.Pi * i / 10;
+			points.Add(c + new Vector2(Mathf.Cos(a) * r, -Mathf.Sin(a) * r * 0.9f));
+		}
+		return points.ToArray();
 	}
 
 	/// <summary>One octave of the sea's mottling over <paramref name="part"/> of the world (0–1), in tiles of
@@ -348,11 +400,21 @@ public partial class WowMapCanvas : MapCanvas
 /// <summary>
 /// The WoW Forever map for map pin questions: one seamless map from the whole world down to the cities
 /// (scroll to zoom, drag to move, or jump straight to a zone). Pins are stored as a point on the world
-/// map (see WowAtlas).
+/// map (see WowAtlas), or inside a dungeon: its entrances lead to the floor maps (WowDungeons).
 /// </summary>
 public partial class WowAtlasView : VBoxContainer
 {
 	public readonly WowMapCanvas Canvas = new();
+	// Inside a dungeon: Blizzard's map of the floor, with its own pins (WowDungeons).
+	readonly MapCanvas _floor = new() { MaxZoom = 4 };
+	readonly HBoxContainer _jumpRow;
+	readonly MapView _world;
+	readonly VBoxContainer _inside = new();
+	readonly HBoxContainer _head = U.H(8);
+	readonly List<MapPin> _pins;
+	readonly Action<NormPoint>? _onPick;
+	NormPoint? _target;
+	(int Dungeon, int Floor)? _in;
 
 	public WowAtlasView() : this(null, null) { }
 
@@ -360,6 +422,9 @@ public partial class WowAtlasView : VBoxContainer
 	{
 		AddThemeConstantOverride("separation", 8);
 		SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		_pins = pins ?? new List<MapPin>();
+		_target = target;
+		_onPick = onPick;
 
 		var places = WowAtlas.Maps.Where(m => m.Kind == WowAtlas.Kind.Zone).OrderBy(m => m.Name, StringComparer.Ordinal).ToList();
 		var items = new List<(string, string)> { ("", "Jump to zone…") };
@@ -379,24 +444,46 @@ public partial class WowAtlasView : VBoxContainer
 			Canvas.Show(new NormPoint(r.X + r.W / 2, r.Y + r.H / 2), WowMapCanvas.ZoomFor(r.W, r.H));
 		});
 		jump.CustomMinimumSize = new Vector2(220, 0);
-		AddChild(U.H(8, U.Fill(), jump));
+		_jumpRow = U.H(8, U.Fill(), jump);
+		AddChild(_jumpRow);
 
-		Canvas.Target = target;
-		Canvas.Pins = pins ?? new List<MapPin>();
+		// On the world map a pin inside a dungeon stands at its entrance.
+		Canvas.Pins = _pins.Select(p => p with { At = WowDungeons.OnWorld(p.At) }).ToList();
+		Canvas.Target = target is { } t0 ? WowDungeons.OnWorld(t0) : null;
+		Canvas.OnEntrance = door => Enter(door.Dungeons.First().Id, 0);
 		if (onPick != null)
-			Canvas.OnPick = p =>
+		{
+			Canvas.OnPick = Pick;
+			_floor.OnPick = p =>
 			{
-				Canvas.Target = p;
-				Canvas.QueueRedraw();
-				onPick(p);
+				if (_in is { } at) Pick(WowDungeons.Encode(at.Dungeon, at.Floor, p));
 			};
-		AddChild(new MapView("", null, WowAtlas.ImageWidth, WowAtlas.ImageHeight, maxHeight, Canvas));
-		if (maxHeight <= 0) SizeFlagsVertical = SizeFlags.ExpandFill;
-		if (onPick != null) AddChild(U.Muted("Zoom in for more detail: first the zones, then the cities. Click to place the pin.", 12));
+		}
+		_floor.OnBack = Leave;
+		_world = new MapView("", null, WowAtlas.ImageWidth, WowAtlas.ImageHeight, maxHeight, Canvas);
+		AddChild(_world);
 
-		// Start on what matters: the pin and everyone's guesses, or the zone of an existing pin.
+		_inside.AddThemeConstantOverride("separation", 8);
+		_inside.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+		_inside.AddChild(_head);
+		_inside.AddChild(new MapView("", null, WowAtlas.ImageWidth, WowAtlas.ImageHeight, maxHeight, _floor));
+		_inside.Visible = false;
+		if (maxHeight <= 0) _inside.SizeFlagsVertical = SizeFlags.ExpandFill;
+		AddChild(_inside);
+
+		if (maxHeight <= 0) SizeFlagsVertical = SizeFlags.ExpandFill;
+		if (onPick != null)
+			AddChild(U.Muted("Zoom in for more detail: first the zones, then the cities. The archways are dungeon entrances: click one to go inside. Click to place the pin.", 12));
+
+		// Start on what matters: the pin's dungeon floor, the pin and everyone's guesses, or the zone of an existing pin.
+		if (target is { } tt && WowDungeons.Decode(tt) is { } spot)
+		{
+			Canvas.Show(WowDungeons.EntranceOf(spot.Dungeon).OnWorld, 8);
+			Enter(spot.Dungeon, spot.Floor);
+			return;
+		}
 		var points = Canvas.Pins.Select(p => p.At).ToList();
-		if (target is { } t) points.Add(t);
+		if (Canvas.Target is { } t) points.Add(t);
 		if (points.Count == 1 && WowAtlas.WorldToLocation(points[0]) is { } loc && WowAtlas.ZoneAt(loc) is { } zone)
 		{
 			var r = WowAtlas.WorldRect(zone);
@@ -407,5 +494,92 @@ public partial class WowAtlasView : VBoxContainer
 			double x0 = points.Min(p => p.X), x1 = points.Max(p => p.X), y0 = points.Min(p => p.Y), y1 = points.Max(p => p.Y);
 			Canvas.Show(new NormPoint((x0 + x1) / 2, (y0 + y1) / 2), Math.Min(WowMapCanvas.ZoomFor(x1 - x0, y1 - y0), 16));
 		}
+	}
+
+	/// <summary>The dungeon and floor shown, or null on the world map.</summary>
+	public (int Dungeon, int Floor)? Inside => _in;
+
+	void Pick(NormPoint p)
+	{
+		_target = p;
+		Canvas.Target = WowDungeons.OnWorld(p);
+		Canvas.QueueRedraw();
+		ShowFloorPins();
+		_onPick!(p);
+	}
+
+	/// <summary>Goes into a dungeon's floor (0-based), with a way back, its floors and the other dungeons at the same entrance.</summary>
+	public void Enter(int dungeon, int floor)
+	{
+		var d = WowDungeons.Get(dungeon)!;
+		_in = (dungeon, floor);
+		foreach (var kid in _head.GetChildren())
+		{
+			_head.RemoveChild(kid);
+			kid.QueueFree();
+		}
+		_head.AddChild(U.Small(Lang.T("Back to the map"), Leave).On(Glyph.Kind.Left, 14).Tip("Or right-click the map"));
+		// (the drop-downs share the row and cut their text short rather than widening the screen)
+		static OptionButton Narrow(OptionButton o, float ratio)
+		{
+			o.ClipText = true;
+			o.FitToLongestItem = false;
+			o.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			o.SizeFlagsStretchRatio = ratio;
+			o.CustomMinimumSize = new Vector2(90, 0);
+			return o;
+		}
+		var door = WowDungeons.EntranceOf(dungeon);
+		var others = door.Dungeons.ToList();
+		if (others.Count > 1)
+		{
+			// (its name is in the drop-down: Blackrock Mountain's and Ahn'Qiraj's entrances lead into several places)
+			var pick = Narrow(U.Select(others.Select(o => (o.Id.ToString(), o.Name)).ToArray(), dungeon.ToString(), id => Enter(int.Parse(id), 0)), 1);
+			pick.TooltipText = Lang.T("This entrance leads into more than one place");
+			_head.AddChild(pick);
+		}
+		else
+		{
+			var title = U.Bold(d.Name, 15);
+			title.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+			title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+			title.ClipText = true;
+			_head.AddChild(title);
+		}
+		if (d.Floors.Length > 1)
+		{
+			// (how many pins are on each floor, so a reveal shows where everyone went)
+			var floors = Enumerable.Range(0, d.Floors.Length).Select(i =>
+			{
+				var n = _pins.Count(p => WowDungeons.Decode(p.At) is { } s && s.Dungeon == dungeon && s.Floor == i);
+				return (i.ToString(), n > 0 ? $"{d.FloorLabel(i)}  ({n})" : d.FloorLabel(i));
+			}).ToArray();
+			_head.AddChild(Narrow(U.Select(floors, floor.ToString(), id => Enter(dungeon, int.Parse(id))), 1.6f));
+		}
+		_floor.SetTexture(Images.BuiltinTexture(WowDungeons.ArtPath(dungeon, floor)), WowAtlas.ImageWidth, WowAtlas.ImageHeight);
+		ShowFloorPins();
+		_jumpRow.Visible = false;
+		_world.Visible = false;
+		_inside.Visible = true;
+	}
+
+	void ShowFloorPins()
+	{
+		if (_in is not { } at) return;
+		WowDungeons.Spot? Here(NormPoint p) => WowDungeons.Decode(p) is { } s && s.Dungeon == at.Dungeon && s.Floor == at.Floor ? s : null;
+		_floor.Pins = _pins.Where(p => Here(p.At) != null).Select(p => p with { At = Here(p.At)!.Value.At }).ToList();
+		_floor.Target = _target is { } t && Here(t) is { } spot ? spot.At : null;
+		_floor.QueueRedraw();
+	}
+
+	/// <summary>Back out to the world map, at the dungeon's entrance.</summary>
+	public void Leave()
+	{
+		if (_in is not { } at) return;
+		_in = null;
+		_inside.Visible = false;
+		_world.Visible = true;
+		_jumpRow.Visible = true;
+		Canvas.Show(WowDungeons.EntranceOf(at.Dungeon).OnWorld, Mathf.Max(Canvas.Zoom, 6));
 	}
 }

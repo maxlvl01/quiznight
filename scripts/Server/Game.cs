@@ -550,7 +550,10 @@ public sealed class Game
 		else if (q.Type == QuestionType.MapPin)
 		{
 			if (raw?.Point is not { } p || !double.IsFinite(p.X) || !double.IsFinite(p.Y)) return Result.Fail("Place your pin on the map.");
-			value = AnswerValue.At(new NormPoint(Math.Clamp(p.X, 0, 1), Math.Clamp(p.Y, 0, 1)));
+			// (the WoW map also has pins inside dungeons, stored past 1: WowDungeons)
+			value = AnswerValue.At(_quiz.MapById(q.MapId)?.PresetId == WowAtlas.PresetId
+				? WowDungeons.Clamp(p)
+				: new NormPoint(Math.Clamp(p.X, 0, 1), Math.Clamp(p.Y, 0, 1)));
 		}
 		else return Result.Fail("This question takes no answers.");
 

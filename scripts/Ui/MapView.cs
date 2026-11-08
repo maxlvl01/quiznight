@@ -214,8 +214,12 @@ public partial class MapCanvas : Control
 		}
 	}
 
+	/// <summary>A click the map itself takes (e.g. the WoW map's dungeon entrances) before markers and picking.</summary>
+	protected virtual bool ClickAt(Vector2 at) => false;
+
 	void Click(Vector2 at)
 	{
+		if (ClickAt(at)) return;
 		foreach (var m in Markers)
 			if (MarkerRect(m).HasPoint(at))
 			{

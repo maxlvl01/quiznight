@@ -59,7 +59,7 @@ public static class MapPacks
 			foreach (var root in TempRoots.Values)
 			{
 				var temp = Path.Combine(root, rel);
-				if (File.Exists(temp)) return temp;
+				if (File.Exists(temp) || Directory.Exists(temp)) return temp;   // (a folder too: the WoW map lists its minimap tiles)
 			}
 		return Path.Combine(Dir, rel).Replace('\\', '/');
 	}

@@ -39,6 +39,7 @@ public sealed class DevTools
 	double _time;
 	double? _shotAt;
 	bool _mapZoomed;
+	bool _dungeonOpened;
 	bool _rowDragged;
 	int _introKeys;
 	bool _undoChecked;
@@ -674,6 +675,13 @@ public sealed class DevTools
 				var center = mapAt is { Length: 2 } ? new NormPoint(double.Parse(mapAt[0], System.Globalization.CultureInfo.InvariantCulture), double.Parse(mapAt[1], System.Globalization.CultureInfo.InvariantCulture)) : canvas.Target ?? new NormPoint(0.5, 0.5);
 				canvas.ZoomTo(center, mapZoom);
 			}
+		}
+		// --dungeon ID[,FLOOR] (FLOOR 1-based): the WoW map goes into that dungeon (WowDungeons)
+		if (_time >= 0.6 && !_dungeonOpened && Value("--dungeon")?.Split(',') is { } dungeonArg && int.TryParse(dungeonArg[0], out var dungeonId))
+		{
+			_dungeonOpened = true;
+			var floor = dungeonArg.Length > 1 && int.TryParse(dungeonArg[1], out var f) ? f - 1 : 0;
+			if (Find<Ui.WowAtlasView>(_app) is { } atlas && WowDungeons.Get(dungeonId) != null) atlas.Enter(dungeonId, floor);
 		}
 		// --intro-start (with --splash): Escape skips the cards at 1 s, a key starts from the title screen at 2.5 s
 		if (Has("--intro-start") && _introKeys < 2 && _time >= (_introKeys == 0 ? 1 : 2.5))
