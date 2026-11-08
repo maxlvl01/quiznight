@@ -1604,8 +1604,10 @@ public static class SelfTest
 		Eq(Ui.WowMapArt.Tiles.Count, 223, "seamless map tiles are in the game (OpenMap v0.7.5-beta, Forever)");
 		Check(Storage.Images.LoadBuiltinImage(WowAtlas.ImagePath(WowAtlas.World)) != null && Storage.Images.LoadBuiltinImage(Ui.WowMapArt.Tiles[0].Path) != null, "WoW world map and a zone tile load");
 		Check(new[] { "field", "dark", "light" }.All(s => Storage.Images.LoadBuiltinImage(Ui.WowMapArt.Sea(s)) != null), "WoW map's sea textures load");
+		Eq(Ui.WowMapArt.Minimap.Count, 104, "the WoW map's minimap pieces are in the game (tools/openmap_minimap.py)");
 		var goldshire = WowAtlas.LocationToWorld(new WowAtlas.Location(0, -9465, 64));
 		Check(Ui.WowMapArt.Tiles.Any(t => t.World.HasPoint(new Godot.Vector2((float)goldshire.X, (float)goldshire.Y))), "Goldshire lies on a tile");
+		Check(Ui.WowMapArt.Minimap.Any(t => t.World.HasPoint(new Godot.Vector2((float)goldshire.X, (float)goldshire.Y))), "Goldshire lies on a minimap piece");
 	}
 
 	static void Protocol()

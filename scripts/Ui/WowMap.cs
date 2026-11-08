@@ -41,6 +41,7 @@ public static class WowMapArt
 	public static void Forget()
 	{
 		_tiles = null;
+		_minimap = null;
 		Loaded.Clear();
 		Recent.Clear();
 		Cut.Clear();
@@ -53,6 +54,29 @@ public static class WowMapArt
 	/// <summary>OpenMap's sea (assets/maps/wow/sea, from its Media/Textures): "field" is the sea's colour as the world map
 	/// paints it, stretched over the whole world; "dark" and "light" its paper mottling, tiled.</summary>
 	public static string Sea(string name) => $"res://assets/maps/wow/sea/{name}.webp";
+
+	/// <summary>The game's minimap, OpenMap's small copies of it (tools/openmap_minimap.py): each piece covers 4 × 4
+	/// minimap tiles of 533⅓ yards, at 64 px a tile; with the part of the world map (0–1) it covers.</summary>
+	public static IReadOnlyList<Tile> Minimap => _minimap ??= FindMinimap();
+	static List<Tile>? _minimap;
+
+	static List<Tile> FindMinimap()
+	{
+		const double yards = 1600.0 / 3 * 4;
+		var list = new List<Tile>();
+		for (var c = 0; c <= 1; c++)
+		for (var col = 0; col < 16; col++)
+		for (var row = 0; row < 16; row++)
+		{
+			var path = $"res://assets/maps/wow/mini/{c}_{col}_{row}.webp";
+			if (!FileAccess.FileExists(Images.BuiltinFile(path))) continue;
+			// (minimap tile 32 starts at 0 yards; columns run east = west yards falling, rows south = north yards falling)
+			var nw = WowAtlas.LocationToWorld(new WowAtlas.Location(c, 32 * 1600.0 / 3 - row * yards, 32 * 1600.0 / 3 - col * yards));
+			var se = WowAtlas.LocationToWorld(new WowAtlas.Location(c, 32 * 1600.0 / 3 - (row + 1) * yards, 32 * 1600.0 / 3 - (col + 1) * yards));
+			list.Add(new Tile(path, new Rect2((float)nw.X, (float)nw.Y, (float)(se.X - nw.X), (float)(se.Y - nw.Y))));
+		}
+		return list;
+	}
 
 	/// <summary>The mottling's tile in world-map pixels (OpenMap: 128 continent-art pixels, a continent pixel ≈ 0.4 of the world map's).</summary>
 	public const float SeaTile = 128 * 0.4f;
@@ -270,6 +294,24 @@ public partial class WowMapCanvas : MapCanvas
 				// (a hair larger, so neighbouring tiles overlap instead of leaving a hairline between them)
 				var at = OnScreen(tile.World).Grow(0.5f);
 				if (WowMapArt.TileTexture(tile.Path) is { } tex) DrawTextureRectRegion(tex, at, WowMapArt.TileSource, new Color(1, 1, 1, zones));
+				else waiting = true;
+			}
+
+		// The game's minimap over the painted zones from 16× on, like OpenMap's minimap detail: a plain blend (adding
+		// would blow out pale zones), half strength by 20×, more as you go in. Graded and cut to the land in the bake.
+		var mini = Ramp(16f, 20f, zoom) * 0.5f + Ramp(26f, 40f, zoom) * 0.25f;
+		if (mini > 0)
+			foreach (var piece in WowMapArt.Minimap)
+			{
+				if (!piece.World.Intersects(view)) continue;
+				// (edges on whole pixels, so neighbours meet exactly: half see-through, any overlap would show as a dark
+				// line; and half a pixel in from the texture's edge, as the canvas repeats textures)
+				if (WowMapArt.TileTexture(piece.Path) is { } tex)
+				{
+					var s = OnScreen(piece.World);
+					var at = new Rect2(s.Position.Round(), s.End.Round() - s.Position.Round());
+					DrawTextureRectRegion(tex, at, new Rect2(0.5f, 0.5f, tex.GetWidth() - 1, tex.GetHeight() - 1), new Color(1, 1, 1, mini));
+				}
 				else waiting = true;
 			}
 
