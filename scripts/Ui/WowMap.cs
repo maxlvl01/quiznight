@@ -334,9 +334,9 @@ public partial class WowMapCanvas : MapCanvas
 
 	/// <summary>A click on a dungeon entrance (WowAtlasView goes in).</summary>
 	public Action<WowDungeons.Entrance>? OnEntrance;
-	const float DoorSize = 11;
-	// (from the continents on, once there's room between them)
-	float DoorAlpha => Ramp(2.2f, 3.2f, Zoom);
+	const float DoorSize = 7.5f;
+	// (only zoomed far in, where you'd look for an entrance; Max's call)
+	float DoorAlpha => Ramp(14f, 16f, Zoom);
 
 	WowDungeons.Entrance? DoorAt(Vector2 at) =>
 		OnEntrance == null || DoorAlpha < 0.5f ? null
@@ -350,35 +350,39 @@ public partial class WowMapCanvas : MapCanvas
 		return true;
 	}
 
-	/// <summary>Each entrance as a little stone archway with the way in glowing: blue for dungeons, orange for raids.</summary>
+	/// <summary>Each entrance as a little swirling portal, like the game's own entrance icon: blue for dungeons, orange for raids.</summary>
 	void DrawDoors()
 	{
 		var alpha = DoorAlpha;
 		if (alpha <= 0.01f || OnEntrance == null) return;
 		var ink = new Color("#14151b", alpha);
-		var stone = new Color("#c9bfa6", alpha);
+		var rim = new Color("#d8c9a0", alpha);
 		foreach (var door in WowDungeons.Entrances)
 		{
 			var c = FromNorm(door.OnWorld);
 			if (!new Rect2(Vector2.Zero, Size).Grow(DoorSize * 2).HasPoint(c)) continue;
-			var glow = door.Dungeons.Any(d => d.Raid) ? new Color("#ff9a3c", alpha) : new Color("#7fb2ff", alpha);
-			DrawColoredPolygon(Arch(c, DoorSize + 2), ink);
-			DrawColoredPolygon(Arch(c, DoorSize), stone);
-			DrawColoredPolygon(Arch(c + new Vector2(0, 1), DoorSize * 0.55f), ink);
-			DrawColoredPolygon(Arch(c + new Vector2(0, 2), DoorSize * 0.4f), glow);
+			var raid = door.Dungeons.Any(d => d.Raid);
+			var deep = raid ? new Color("#5a1d08", alpha) : new Color("#10264f", alpha);
+			var glow = raid ? new Color("#ffa040", alpha) : new Color("#8cc4ff", alpha);
+			DrawCircle(c, DoorSize + 1.5f, ink, true, -1, true);
+			DrawCircle(c, DoorSize, rim, true, -1, true);
+			DrawCircle(c, DoorSize - 1.6f, deep, true, -1, true);
+			// Three arms winding in towards a bright eye, thick inside and thinning out.
+			const int arms = 3, steps = 14;
+			for (var k = 0; k < arms; k++)
+			{
+				var prev = c;
+				for (var i = 1; i <= steps; i++)
+				{
+					var t = (float)i / steps;
+					var angle = k * Mathf.Tau / arms + t * Mathf.Pi * 1.35f;
+					var at = c + Vector2.FromAngle(angle) * (DoorSize - 2.4f) * t;
+					DrawLine(prev, at, glow, Mathf.Lerp(2.4f, 0.9f, t), true);
+					prev = at;
+				}
+			}
+			DrawCircle(c, 1.8f, new Color(1, 1, 1, alpha), true, -1, true);
 		}
-	}
-
-	/// <summary>An archway's outline: a half circle on a square, its bottom edge at the centre's Y + r.</summary>
-	static Vector2[] Arch(Vector2 c, float r)
-	{
-		var points = new List<Vector2> { c + new Vector2(-r, r), c + new Vector2(r, r) };
-		for (var i = 0; i <= 10; i++)
-		{
-			var a = Mathf.Pi * i / 10;
-			points.Add(c + new Vector2(Mathf.Cos(a) * r, -Mathf.Sin(a) * r * 0.9f));
-		}
-		return points.ToArray();
 	}
 
 	/// <summary>One octave of the sea's mottling over <paramref name="part"/> of the world (0–1), in tiles of
@@ -473,7 +477,7 @@ public partial class WowAtlasView : VBoxContainer
 
 		if (maxHeight <= 0) SizeFlagsVertical = SizeFlags.ExpandFill;
 		if (onPick != null)
-			AddChild(U.Muted("Zoom in for more detail: first the zones, then the cities. The archways are dungeon entrances: click one to go inside. Click to place the pin.", 12));
+			AddChild(U.Muted("Zoom in for more detail: first the zones, then the cities. From 16× the swirls are dungeon and raid entrances: click one to go inside. Click to place the pin.", 12));
 
 		// Start on what matters: the pin's dungeon floor, the pin and everyone's guesses, or the zone of an existing pin.
 		if (target is { } tt && WowDungeons.Decode(tt) is { } spot)

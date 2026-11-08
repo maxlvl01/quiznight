@@ -14,6 +14,11 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Changed
+- **Prettier dungeon entrances on the WoW map.** The entrances are now small swirling portals, like the entrance icon in
+  the game (blue for dungeons, orange for raids), instead of the stone archways. They're smaller and only show once you've
+  zoomed in to about 16×, so the map further out stays clean. (Max's idea.)
+
 ## [0.15.5b]
 
 ### Added
