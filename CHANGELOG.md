@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.4b]
+
 ## [0.15.4d1]
 
 ### Changed
