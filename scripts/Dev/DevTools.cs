@@ -618,7 +618,7 @@ public sealed class DevTools
 		var error = await MapPacks.EnsureAsync(presets);
 		await _app.ToSignal(_app.GetTree(), SceneTree.SignalName.ProcessFrame);
 		var ok = error == null && before == 0 && presets.All(p => MapPacks.Has(p.Id))
-			&& Images.LoadBuiltinImage(presets[0].ImagePath) != null && Ui.WowMapArt.Tiles.Count == 207
+			&& Images.LoadBuiltinImage(presets[0].ImagePath) != null && Ui.WowMapArt.Tiles.Count == 223 && Images.LoadBuiltinImage(Ui.WowMapArt.Sea("field")) != null
 			&& MapPacks.BundleDataUrl(presets[1])?.StartsWith("data:" + MapPacks.ZipMime) == true;
 		GD.Print($"Map packs check: {(ok ? "downloaded and loaded" : "FAILED")} ({size / 1_000_000} MB{(error != null ? ", " + error : "")})");
 		MapPacks.Delete(presets.Select(p => p.Id));

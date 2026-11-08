@@ -446,6 +446,7 @@ public static class MapPacks
 					var files = Unpack(zip, Dir);
 					lock (Gate)
 					{
+						if (Installed.TryGetValue(preset.Id, out var old)) DropOld(old.Files, files, Dir);
 						Installed[preset.Id] = (pack.Sha256, files);
 						SaveInstalled();
 					}
@@ -462,6 +463,23 @@ public static class MapPacks
 			Forget();
 			return null;
 		});
+	}
+
+	/// <summary>An updated pack can drop files (WoW's tile 27_10 in 0.15.4): the old copies go, or the map would still find
+	/// and draw them (WowMapArt looks for tiles by file).</summary>
+	public static void DropOld(IEnumerable<string> before, IReadOnlyCollection<string> now, string folder)
+	{
+		foreach (var gone in before.Except(now, StringComparer.OrdinalIgnoreCase))
+			try
+			{
+				var path = Path.GetFullPath(Path.Combine(folder, gone));
+				// (only inside the maps folder, whatever installed.json says)
+				if (path.StartsWith(Path.GetFullPath(folder) + Path.DirectorySeparatorChar, StringComparison.Ordinal)) File.Delete(path);
+			}
+			catch (Exception e)
+			{
+				GD.Print($"Couldn't delete the old map file {gone}: {e.Message}");
+			}
 	}
 
 	/// <summary>A pack moved from an older install: is every file the one the list has?</summary>

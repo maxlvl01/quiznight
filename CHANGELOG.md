@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.4d1]
+
 ### Changed
 - **The WoW Forever map has sharp coasts and a real sea now.** Zoomed in, the coasts looked blurry and the sea
   was a smeared, stripy picture. That's because underneath the sharp zone art, the old Classic world map was still
@@ -23,6 +25,10 @@ On GitHub, each version heading links to its release, where the download is.
   sea gives way to OpenMap's own sea as you zoom in. It's a sea texture that stays sharp at every zoom, the same one
   the addon draws in the game. The map downloads again once (a little bigger). Thanks to OpenMap, and to Santiago Reyes
   for the hand-painted gap fills baked into its zone art.
+
+### Fixed
+- **A map update could leave old pieces behind.** When a map download drops a file the old version had, the old copy
+  now goes too. Before, it stayed in your maps folder and the WoW map would still have drawn the outdated piece.
 
 ## [0.15.3b]
 

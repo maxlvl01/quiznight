@@ -728,6 +728,15 @@ public static class SelfTest
 				catch (System.IO.InvalidDataException) { refused = true; }
 				Check(refused, $"a map pack with {bad} is refused");
 			}
+			// An update without b.webp: the old copy goes, a file outside the folder is never touched.
+			var outside = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"qn-outside-{System.Environment.ProcessId}.webp");
+			System.IO.File.WriteAllText(outside, "x");
+			var now = Storage.MapPacks.Unpack(Zip("wow/a.webp"), dir);
+			Storage.MapPacks.DropOld(new[] { "wow/a.webp", "b.webp", "../" + System.IO.Path.GetFileName(outside) }, now, dir);
+			Check(System.IO.File.Exists(System.IO.Path.Combine(dir, "wow", "a.webp")) && !System.IO.File.Exists(System.IO.Path.Combine(dir, "b.webp")),
+				"an updated map pack drops the files it no longer has");
+			Check(System.IO.File.Exists(outside), "... and nothing outside the maps folder");
+			System.IO.File.Delete(outside);
 		}
 		finally
 		{
