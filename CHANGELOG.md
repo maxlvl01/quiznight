@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.5b]
+
 ### Added
 - **Satellite detail on the WoW map.** Zoom in past 16× and the game's own minimap fades in over the painted map, like
   the OpenMap addon does in the game: you see the real ground, trees and roads under the drawing. It gets a bit
