@@ -356,6 +356,20 @@ ROADMAP.md in `maxlvl01/quiznight-releases` (move it to `maxlvl01/quiznight` whe
 Doc ids in reads and edits are full (`m81rec0vxb3.45279`, not the relative `.45279` a view prints); a search read takes `text`,
 not `query`; add an item with `insert` after a list item's id.
 
+## Bug reports and feedback
+
+Players' in-game reports (🐞 / 💡) are **files, not GitHub issues**, in the private repo `maxlvl01/quiznight-results`:
+`bugs/Reported/` and `features/Requested/` (`.md` + `.png`). Max moves them to `WIP` (fixed in a test build), `Pending`
+(waits for the public release) and `Resolved`, or asks Claude to (clone the repo, `git mv`, push). When Max says there is a
+new report: read the new `.md` files (skip the log, skip what's already in WIP/Pending/Resolved), add each to the roadmap
+doc's "Bug reports from GitHub" section with its report link and version, **rate it yourself and say the rating**
+(Max then gives feedback): `[Urgent]` immediate hotfix straight to the public release, skipping the test build (crash, data
+loss, game won't start/update; still ask before any push/release), `[High]` next version, `[Medium]` next version if there
+is room, `[Low]` can wait for a bigger version or 1.0. Jokes/empty reports stay out of the doc.
+Also move each report's files to the folder for its state: `Reported`/`Requested` = new, not scheduled; `WIP` = the fix is
+in a test (dev) version about to be tested; `Pending` = scheduled for the next public update; `Resolved` = done and
+released (when a test build ships a fix: WIP; when that version goes public: Resolved).
+
 ## Next up
 
 1. Install export templates and make a Windows build friends can run; check Steam works from it.
