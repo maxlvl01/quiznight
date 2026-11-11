@@ -14,6 +14,46 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.6b]
+
+### Changed
+- **Prettier dungeon entrances on the WoW map.** The entrances are now small swirling portals, like the entrance icon in
+  the game (blue for dungeons, orange for raids), instead of the stone archways. They're smaller and only show once you've
+  zoomed in to about 16×, so the map further out stays clean. (Max's idea.)
+
+## [0.15.5b]
+
+### Added
+- **Satellite detail on the WoW map.** Zoom in past 16× and the game's own minimap fades in over the painted map, like
+  the OpenMap addon does in the game: you see the real ground, trees and roads under the drawing. It gets a bit
+  stronger the further you zoom in. It's the real minimap from the game's files at full sharpness, so at 30–40× you can
+  make out single houses and paths. (Max's idea.)
+- **Dungeons and raids on the WoW map.** Once you zoom in a bit, every dungeon and raid entrance shows as a small archway
+  (blue for dungeons, orange for raids). Click one and you go inside, to Blizzard's own map of that dungeon, with a list of
+  its floors (and, at Blackrock Mountain or Ahn'Qiraj, of the other places behind the same entrance). "Back to the map" or a
+  right-click takes you out again. So map questions can now show a screenshot from inside a dungeon: put the right spot on
+  its floor, and players have to find the right entrance, go in and pick the right floor themselves. The right floor always
+  beats the wrong floor, and the wrong floor always beats being outside or in another dungeon; within those, closer still
+  wins. At the reveal, the map opens on the right floor, and the floor list says how many pins are on each floor. All 25
+  dungeons and raids with a map in the game (63 floors); WoW Forever's brand-new dungeons will follow once their maps are
+  sorted out. (Max's idea.)
+
+## [0.15.4b]
+
+### Changed
+- **The WoW Forever map has sharp coasts and a real sea now.** Zoomed in, the coasts looked blurry and the sea
+  was a smeared, stripy picture. That's because underneath the sharp zone art, the old Classic world map was still
+  showing: the sea between the land, and through the soft edges round every coast. Now WoW Forever is out, the map uses
+  the new OpenMap zone art made for it (223 pieces instead of 207). It paints the coasts and the sea just off them right
+  into the zones, and the far north-east and the south-west of Kalimdor are filled in. Further out, the old world map's
+  sea gives way to OpenMap's own sea as you zoom in. It's a sea texture that stays sharp at every zoom, the same one
+  the addon draws in the game. The map downloads again once (a little bigger). Thanks to OpenMap, and to Santiago Reyes
+  for the hand-painted gap fills baked into its zone art.
+
+### Fixed
+- **A map update could leave old pieces behind.** When a map download drops a file the old version had, the old copy
+  now goes too. Before, it stayed in your maps folder and the WoW map would still have drawn the outdated piece.
+
 ## [0.15.3b]
 
 ### Changed
@@ -1126,6 +1166,9 @@ On GitHub, each version heading links to its release, where the download is.
 - When the last player who hadn't answered leaves, the answer is revealed right away instead of waiting
   for the timer.
 
+[0.15.6b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.6b
+[0.15.5b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.5b
+[0.15.4b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.4b
 [0.15.3b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.3b
 [0.15.2b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.2b
 [0.15.1b]: https://github.com/maxlvl01/quiznight/releases/tag/v0.15.1b

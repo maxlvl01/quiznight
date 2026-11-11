@@ -84,6 +84,12 @@ the original design decisions; most still apply.
   changed; both = asked (this PC's / the other's / both). Deleting stays local (the cloud keeps it; this PC doesn't take it
   back unless it changed elsewhere). Downloads keep UpdatedAt (`QuizStore.SaveSynced`). `--sync-check` = a real round trip
   under the account "selftest"; `--sync-only ID` syncs one quiz with your Steam account.
+- **WoW dungeons** (`Shared/WowDungeons.cs`): entrances drawn on `WowMapCanvas` (`OnEntrance`), clicking one opens the
+  floor view in `WowAtlasView` (`Enter`/`Leave`, dev `--open wow --dungeon ID[,FLOOR]`). A pin inside is one NormPoint
+  past 1 (X = 10 × map id + x, Y = 10 × floor + y), so no format/protocol change; `Game` keeps it via `WowDungeons.Clamp`,
+  `WowAtlas.DistanceKm` asks `WowDungeons.DistanceKm` first (a nominal 500 yd floor; wrong floor +700 yd, outside +2000 yd).
+  WoW Forever's own four dungeons (Dalaran, Wetlands dig, Ruins of Lordaeron, Hall of Thanes) have only an addon author's
+  drawn maps, left out until they say yes.
 - **Steam avatars** (`Net/SteamAvatars`): every app asks Steam for the picture of "steam:<id>" players; `Avatar` draws it.
 - **The host runs the pace.** Questions open hidden (`Game.Shown`) until the host shows them; buzzers stay
   locked (`BuzzersOpen`) until unlocked — both lobby rules. Players get no content of a hidden question, and
@@ -202,9 +208,10 @@ the original design decisions; most still apply.
 | `scripts/Net/` | `SteamTransport` (lobbies + relay), `LanTransport` (TCP), `ClientSession` (player side, auto-reconnect), `Assets`, `ServerClock` |
 | `scripts/Storage/` | `QuizStore` (user://quizzes), `Images`, `Media`, `Settings` |
 | `scripts/Ui/` | `UiKit` (theme, colours, builders), `Widgets`, `MapView` (zoom/pan map), `WowMap` (seamless WoW map: world → continents → stitched zone tiles → cities), `ImageReveal` (zoom/pixel reveal) |
-| `assets/maps/wow/stitched/` | OpenMap's baked zone art (207 tiles), converted by `tools/openmap_tiles.gd` from the addon's `Media/Textures/MapZones` (BLP) |
+| `assets/maps/wow/stitched/` | OpenMap's baked zone art (223 tiles, OpenMap v0.7.5-beta for Forever, `E:/World of Warcraft/_forever_/Interface/AddOns/OpenMap`), converted by `tools/openmap_tiles.gd` from the addon's `Media/Textures/MapZones` (BLP); then `py -I tools/openmap_overview.py`. `assets/maps/wow/sea/` = its sea textures (`MapSeaField/947`, `MapSeaDark/Light`); `assets/maps/wow/mini/` = the game's minimap (1165 land tiles, 256 px, `<continent>_<tx>_<ty>`), graded and cut to the land by `tools/wow_minimap.py`, drawn from zoom 16. `assets/maps/wow/dungeons/<map id>_<floor>.webp` = Blizzard's dungeon maps (63 floors), data in `WowDungeons.Data.cs` by `py -I tools/wow_dungeons.py <OpenMap>`. Both were taken from the install with TACTSharp (github.com/wowdev/TACTSharp, `TACTTool -p wowf -m list -i LIST.txt -o DIR -d "E:/World of Warcraft"`, LIST = `fileDataId;name` lines; FileDataIDs in OpenMap's `Data/Minimap.lua` and `Data/DungeonMaps.lua`; BLPs open in Pillow, a dungeon floor = 4×3 tiles of 256 px cropped to 1002×668) |
 | `scripts/Ui/Screens/` | Home, QuizList, QuizOverview, QuestionEditor, HostLobby, WaitingRoom, HostGame (+ Curtain, HostNotes window), PlayerGame, Podium, Settings |
 | `scripts/Dev/` | `SelfTest`, `SampleQuiz`, `DevTools` (bots, autopilot, screenshots) |
+| `docs/game-graph.yaml` | How the game works as graphs (architecture, screens, question loop, messages, types), drawn on the "Quiznight? Game Graph" design canvas; update it when the flow changes |
 
 User data: `%APPDATA%\Quiznight\` (quizzes, settings.cfg, cache).
 
@@ -355,6 +362,20 @@ only points to the doc. When an item is done, tick it in the doc with its versio
 ROADMAP.md in `maxlvl01/quiznight-releases` (move it to `maxlvl01/quiznight` when it's next refreshed), refreshed from the doc only when Max says so.
 Doc ids in reads and edits are full (`m81rec0vxb3.45279`, not the relative `.45279` a view prints); a search read takes `text`,
 not `query`; add an item with `insert` after a list item's id.
+
+## Bug reports and feedback
+
+Players' in-game reports (🐞 / 💡) are **files, not GitHub issues**, in the private repo `maxlvl01/quiznight-results`:
+`bugs/Reported/` and `features/Requested/` (`.md` + `.png`). Max moves them to `WIP` (fixed in a test build), `Pending`
+(waits for the public release) and `Resolved`, or asks Claude to (clone the repo, `git mv`, push). When Max says there is a
+new report: read the new `.md` files (skip the log, skip what's already in WIP/Pending/Resolved), add each to the roadmap
+doc's "Bug reports from GitHub" section with its report link and version, **rate it yourself and say the rating**
+(Max then gives feedback): `[Urgent]` immediate hotfix straight to the public release, skipping the test build (crash, data
+loss, game won't start/update; still ask before any push/release), `[High]` next version, `[Medium]` next version if there
+is room, `[Low]` can wait for a bigger version or 1.0. Jokes/empty reports stay out of the doc.
+Also move each report's files to the folder for its state: `Reported`/`Requested` = new, not scheduled; `WIP` = the fix is
+in a test (dev) version about to be tested; `Pending` = scheduled for the next public update; `Resolved` = done and
+released (when a test build ships a fix: WIP; when that version goes public: Resolved).
 
 ## Next up
 

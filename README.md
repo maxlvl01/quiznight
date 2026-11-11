@@ -7,6 +7,14 @@ hears the questions, pictures, sounds and videos on their own screen.
 This is the Godot 4.7 (C#) version of Quiznight. It plays over **Steam** (using Valve's Spacewar
 test app, so everyone needs Steam running) or over **LAN** (same Wi-Fi, or several windows on one PC).
 
+## Screenshots
+
+| What players see | Map question editor |
+|---|---|
+| ![A multiple choice question as a player sees it](docs/screenshots/player-view.png) | ![Editing a map pin question on the Skyrim map](docs/screenshots/editor-map.png) |
+
+![Editing a put-in-order question](docs/screenshots/editor-order.png)
+
 ## What you can do
 
 - **Build quizzes** in the app — saved in `%APPDATA%\Quiznight\quizzes`, exported as

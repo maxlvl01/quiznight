@@ -1,0 +1,216 @@
+# Quiznight? — game graph
+#
+# How the game works, at code level: nodes (classes, states, messages) and edges (calls, transitions, packets).
+# Drawn as a talk on the "Quiznight? Game Graph" design canvas, one board per section, in talk order:
+#   https://claude.ai/artifact/5rfsxSUX8ZNdqRqBXVT99U
+# When the code changes, change this file first, then ask Claude to redraw the matching board.
+#
+# Edge kinds: call = a direct C# call in-process · host_sends / player_sends = a network message · state = a transition.
+
+meta:
+  game: Quiznight?
+  engine: Godot 4.7, C# (.NET 8)
+  written_for: 0.11.3b
+  pitch: >
+    A Jackbox-style quiz night where the host's game *is* the server. No backend, no dedicated server: the host
+    runs Room + Game in-process, players connect peer-to-host through Steam's relay (or LAN TCP), and everything is
+    polled on Godot's main thread, once per frame.
+
+# ------------------------------------------------------------------------------------------- 1. architecture
+architecture:
+  decisions:
+    host_authoritative: { why: "the host is the quizmaster and never plays, so trusting the host is free", effect: "players only send intents (buzz, answer); the host decides everything" }
+    in_process_server:  { why: "friends-only game, never published: no servers to pay for or run", effect: host leaves = room closed }
+    steam_app_480:      { why: "Valve's public Spacewar test app is enough for a private game", cost: "lobby searches see every Spacewar lobby, so ours are tagged" }
+    single_thread:      { why: "no locks, no races; Room/Game are plain objects, easy to test headless", cost: "awaited Steam calls resume inside SteamClient.RunCallbacks()" }
+    ui_in_code:         { why: "one Main.tscn; screens are C# that rebuild from RoomState", cost: inputs survive rebuilds only via Keyed slots }
+  nodes:
+    App:               { file: scripts/App.cs, role: "the one root Node: _Process drives everything" }
+    HostSession:       { file: scripts/Server/HostSession.cs, role: "transport ↔ Room glue: decodes Msg, calls Room/Game, Broadcast()" }
+    Room:              { file: scripts/Server/Room.cs, role: "players, settings, phase (lobby → playing → finished), ranking; implements IGameHooks" }
+    Game:              { file: scripts/Server/Game.cs, role: "pure rules: question flow, buzz queue, answers, play clock, reveal, scoring" }
+    IGameHooks:        { file: scripts/Server/Game.cs, role: "what Game asks of its Room: Now(), ActivePlayerIds(), Award(), Note*() stats", why: Game is testable with a fake clock and no network }
+    IHostTransport:    { file: scripts/Net/Transport.cs, impls: [SteamHostTransport, LanHostTransport], api: [Send, TrySend, Poll, Disconnect, PeerSteamId, MaxMessageBytes] }
+    IClientTransport:  { file: scripts/Net/Transport.cs, impls: [SteamClientTransport, LanClientTransport], api: [Send, Poll] }
+    ClientSession:     { file: scripts/Net/ClientSession.cs, role: "player side: Join, keeps the latest RoomState, reconnects every 3 s for 60 s" }
+    ClientMedia:       { file: scripts/Net/ClientMedia.cs, role: "reassembles MediaChunks into temp files, decrypts once the key arrives" }
+    Screens:           { dir: scripts/Ui/Screens, role: "HostGameScreen reads HostSession.State; PlayerGameScreen reads ClientSession.State" }
+  edges:
+    - { from: App,           to: HostSession,     kind: call, label: "Poll() every frame" }
+    - { from: App,           to: ClientSession,   kind: call, label: "Poll() every frame" }
+    - { from: HostSession,   to: IHostTransport,  kind: call, label: "Poll() · Send() · TrySend()" }
+    - { from: HostSession,   to: Room,            kind: call, label: "Join/Leave/Tick/ToState(viewer)" }
+    - { from: Room,          to: Game,            kind: call, label: "new Game(quiz, this, rng, SharedFiles) · Tick()" }
+    - { from: Game,          to: IGameHooks,      kind: call, label: "Now(), Award(), NoteBuzzTime() …" }
+    - { from: Room,          to: IGameHooks,      kind: implements }
+    - { from: IHostTransport, to: IClientTransport, kind: host_sends,   label: "state · joined · answerResult · MediaChunk" }
+    - { from: IClientTransport, to: IHostTransport, kind: player_sends, label: "join · buzz · answer · joker · mediaProgress" }
+    - { from: ClientSession, to: IClientTransport, kind: call }
+    - { from: ClientSession, to: ClientMedia,     kind: call, label: "bytes[0] == MediaChunk.Marker" }
+    - { from: Screens,       to: HostSession,     kind: call, label: "ShowQuestion() · Judge(bool) · Next()" }
+
+# ------------------------------------------------------------------------------------------- 2. one frame
+# Everything below runs on the main thread inside App._Process(delta), in this order.
+frame_loop:
+  steps:
+    - { step: SteamService.RunCallbacks(),  note: Steam callbacks; awaited Steam tasks continue here (so never shut Steam down inside) }
+    - { step: HostSession.Poll() }
+    - { step: "  _net.Poll()",              note: "fires Received(peer, bytes) → OnReceived → switch (msg.Type) → Room/Game → Broadcast()" }
+    - { step: "  Room.Tick() → Game.Tick()", note: "timers: _endsAt reached → DoReveal(); timeline turn over → MissTurn(); returns true if anything changed" }
+    - { step: "  Broadcast() if changed",   note: "one Msg.State per peer, each built by StateFor(playerId)" }
+    - { step: "  SendMedia()",              note: "background file chunks via TrySend, ≤ 32 chunks (8 MB) per peer per frame" }
+    - { step: "  progress Broadcast()",     note: "download rings, throttled to one every 0.4 s" }
+    - { step: ClientSession.Poll(),         note: "player side: _net.Poll(), Assets.Poll(), reconnect timer" }
+  rule: "Every mutation returns bool/Result 'did anything change'; only then does the host Broadcast(). No dirty flags, no diffing."
+
+# ------------------------------------------------------------------------------------------- 3. wire format
+wire:
+  json_message:
+    encode: "Msg.Encode(type, payload) → UTF-8 JSON { \"t\": type, \"d\": payload }"
+    serializer: "System.Text.Json, IncludeFields, camelCase, nulls omitted (Msg.Json)"
+    decode: "Msg.Decode(bytes) → (Type, JsonNode?) or null; garbage from a peer never throws"
+  media_chunk:
+    layout: "[0x01 Marker][id length: u8][id: UTF-8][total: i64][offset: i64][data ≤ 256 KB]"
+    why: "binary, so a 300 MB video isn't base64'd into JSON; JSON always starts with '{', chunks with 0x01"
+  lan_framing:   { class: FrameReader, layout: "[length: i32 LE][payload]", limits: "host accepts ≤ 1 MB frames from players" }
+  steam:         { api: "SteamNetworkingSockets relay, SendType.Reliable", max_message: 300 KB, note: "Steam's own limit is 512 KB; assets are split" }
+  per_viewer_state:
+    call: "Room.ToState(viewer) → RoomState { Game = Game.View(viewer), Ranking, Places, ServerNow, Downloads }"
+    rule: "a hidden question sends only its number, type and points; answers exist in RoomState only after Stage = reveal"
+    why: "players never receive what they shouldn't see, so a modded client has nothing to read"
+
+# ------------------------------------------------------------------------------------------- 4. joining
+join_handshake:
+  steps:
+    - { from: player, msg: "join { name, clientId, code }" }
+    - { at: host, check: "Steam mode: _net.PeerSteamId(peer) must exist (Steam-confirmed, never claimed)" }
+    - { at: host, check: "Limits.NormalizeCode(code) == Room.Code" }
+    - { at: host, check: "RoomSettings.FriendsOnly → Steamworks.Friend(id).IsFriend" }
+    - { at: host, check: "not in _kicked" }
+    - { at: host, does: "id = steam:<id> | lan:<clientId>; Room.Join(id, name) (same id = seat back)" }
+    - { from: host, msg: "joined { ok, playerId }", then: Broadcast() }
+  lobby_lookup: "the Steam lobby stores SteamService.CodeKey(code) = PBKDF2 of the room code, never the code itself"
+
+# ------------------------------------------------------------------------------------------- 5. question state machine
+question_loop:
+  fields: [Index, Stage (open | reveal), Shown, BuzzersOpen, Paused, _endsAt, _buzzes, _answers, _reveal]
+  nodes:
+    open:      { code: "Open(index)", sets: "Stage = open, Shown = false, BuzzersOpen = false, answers cleared" }
+    shown:     { code: "ShowQuestion() → StartShown(now)", sets: "Shown = true, _endsAt = now + limit", auto: "if !HostShowsQuestions()" }
+    buzzer:    { kind: decision, code: Question.IsBuzzer }
+    answering: { code: "Answer(playerId, index, value)", ends: "Tick(): now ≥ _endsAt, or CheckAllAnswered()" }
+    buzzing:   { code: "SetBuzzers(true) · BuzzIn(playerId)", auto: "if !HostUnlocksBuzzers()" }
+    judge:     { kind: decision, code: "Judge(bool correct)" }
+    reveal:    { code: "DoReveal() → ComputeReveal()", does: "SetMedia(false), points × Multiplier(id), _hooks.Award()" }
+    finished:  { code: "Next(): Index + 1 ≥ count → Finished = true" }
+  edges:
+    - { from: open,      to: shown,     label: ShowQuestion() }
+    - { from: shown,     to: buzzer }
+    - { from: buzzer,    to: answering, label: "no" }
+    - { from: buzzer,    to: buzzing,   label: "yes" }
+    - { from: answering, to: reveal,    label: "Tick() / all in" }
+    - { from: buzzing,   to: judge }
+    - { from: judge,     to: reveal,    label: "true" }
+    - { from: judge,     to: buzzing,   label: "false → next Waiting becomes Answering" }
+    - { from: reveal,    to: open,      label: "Room.Next() → Open(Index + 1)" }
+    - { from: reveal,    to: finished,  label: last question }
+  guards: "every host action returns false unless Stage == open && Shown && !Paused (Paused: a player dropped; clocks stop)"
+
+# ------------------------------------------------------------------------------------------- 6. buzz queue
+buzz_queue:
+  data: "List<Buzz> _buzzes, each { PlayerId, Status, AtMs, FastPass }"
+  status: [waiting, answering, wrong, correct]
+  rules:
+    - "BuzzIn refused unless open && IsBuzzer && Shown && BuzzersOpen && !Paused && not late && not already in"
+    - "AtMs = play-clock time for sound/video (how much they had to hear), else ms since the question opened"
+    - "nobody answering → Answering; otherwise → Waiting at the end"
+    - "Fast Pass: takes over from a non-Fast-Pass answerer (they go back to Waiting, first in line) or jumps ahead of every Waiting buzz"
+    - "Judge(false) → Wrong, next Waiting → Answering, _answeringSince restarts the answer timer"
+    - "Judge(true) → Correct → DoReveal()"
+    - "ReopenBuzzers(): everyone was wrong → _buzzes move to _pastBuzzes, buzzers open again"
+
+# ------------------------------------------------------------------------------------------- 7. media pipeline
+media_pipeline:
+  steps:
+    - { at: host,   code: "Room.SharedFiles",       note: "every sound, video and picture of the quiz, each with a random AES key" }
+    - { at: host,   code: "Task.Run(Encrypt)",      note: "AES-CBC, random 16-byte IV first; once per room, off the main thread" }
+    - { at: host,   code: "HostSession.SendMedia()", note: "per peer, question order from the current one; TrySend so it never blocks game messages" }
+    - { at: steam,  code: "SteamHostTransport.Outbox", note: "refused game messages queue and go first; background rate 64 KB/s–16 MB/s, halves when the buffer is full" }
+    - { at: player, code: "ClientMedia.Receive()",  note: "writes chunks to a temp file at their offset; reports mediaProgress in 5% steps" }
+    - { at: host,   code: "lobby Start waits for RoomState.Downloads" }
+    - { at: host,   code: "ShowQuestion()",         note: "PublicQuestion.Files now carries the file id + key → player decrypts (nobody can peek ahead)" }
+    - { at: player, code: "PlayClock.Seconds(room)", note: "MediaPlayedMs + (ServerClock.Now() − room.ServerNow): every copy plays in step with the host" }
+  clock_sync: "ServerClock.Sync(state.ServerNow) on each State: offset = local − host; deadlines (EndsAt) are host time"
+
+# ------------------------------------------------------------------------------------------- 7. AnyConverter
+# A separate Python/tkinter app (C:\Users\Xbox3\Desktop\AnyConverter, not in this repo), shipped next to the game.
+anyconverter:
+  why: "Godot plays Theora (.ogv) video only; players have MP4s"
+  flow:
+    - { at: game, code: QuestionEditorScreen, does: "refuses .mp4/.webm/… with a conversion hint" }
+    - { at: game, code: "VideoGuide.AnyConverterPath", does: "<exe dir>/AnyConverter/AnyConverter(.exe), null if missing → ffmpeg terminal guide" }
+    - { at: game, code: "OS.CreateProcess(converter, [\"--format\", \"ogv\", file])", note: "Linux: chmod +x first" }
+    - { at: converter, code: "App._apply_args(argv)", does: "preselects .ogv, adds the file" }
+    - { at: converter, code: "ffmpeg -c:v libtheora -q:v 7 -c:a libvorbis -q:a 5", note: "default Medium preset" }
+    - { at: game, code: "\"Use this video\" → File.Exists(OgvPath) → useOgv(ogv)" }
+  parallel_encode:
+    code: "App._parallel_video()"
+    why: "libtheora uses one CPU core"
+    slices: "n = max(2, min(cpu_count ÷ 1, 16, duration ÷ 3)); only for clips ≥ 6 s"
+    cuts: "one constant-rate frame grid; slice k seeks (bounds[k] − 0.5) / fps and stops after -frames:v bounds[k+1] − bounds[k]"
+    audio: "audio.mka encoded alongside as one more ThreadPoolExecutor job"
+    join: "ffmpeg -f concat -i parts.txt -i audio.mka -map 0:v -map 1:a -c copy (no re-encode)"
+    progress: "ffmpeg -progress pipe:1 → out_time_us per job; 90% video + 10% audio"
+  shipping: "tools/release.sh copies dist/AnyConverter.exe (and the Linux build) into AnyConverter/; its own update pack; FFmpeg not bundled (winget / apt / dnf offered)"
+
+# ------------------------------------------------------------------------------------------- 8. testing
+testing:
+  selftest:  { run: "--headless -- --selftest", covers: "rules, quiz files, WoW atlas, protocol, a real TCP round trip, Guard/safety; exit 0 = pass" }
+  bots:      { run: "--headless -- --bot Ann", note: "a real ClientSession over LAN that buzzes and answers" }
+  autopilot: { run: "-- --no-steam --host-sample --autopilot --quit-at-end --shots DIR", note: "the host plays a sample quiz alone, screenshots each step" }
+  why_it_works: "Game only talks to IGameHooks, Room only to Game: the whole match runs without a window or a network"
+
+# ------------------------------------------------------------------------------------------- appendix: screens
+screens:
+  nodes:
+    home:            { file: Ui/Screens/HomeScreen.cs }
+    quizzes:         { file: Ui/Screens/QuizListScreen.cs }
+    quiz_overview:   { file: Ui/Screens/QuizOverviewScreen.cs }
+    question_editor: { file: Ui/Screens/QuestionEditorScreen.cs }
+    host_lobby:      { file: Ui/Screens/RoomScreens.cs, class: HostLobbyScreen }
+    host_game:       { file: Ui/Screens/HostGameScreen.cs }
+    waiting_room:    { file: Ui/Screens/RoomScreens.cs, class: WaitingRoomScreen }
+    player_game:     { file: Ui/Screens/PlayerGameScreen.cs }
+    podium:          { file: Ui/Screens/RoomScreens.cs, class: PodiumScreen }
+    menu:            { screens: [SettingsScreen, EternalTableScreen, MatchHistoryScreen, ProfileScreen] }
+  edges:
+    - { from: home,          to: quizzes }
+    - { from: quizzes,       to: quiz_overview }
+    - { from: quiz_overview, to: question_editor }
+    - { from: home,          to: host_lobby }
+    - { from: host_lobby,    to: host_game,   label: Room.Start() }
+    - { from: host_game,     to: podium,      label: Room.Finish() }
+    - { from: home,          to: waiting_room, label: join with code }
+    - { from: waiting_room,  to: player_game }
+    - { from: player_game,   to: podium }
+    - { from: podium,        to: host_lobby,  label: Room.BackToLobby() }
+    - { from: home,          to: menu }
+
+# ------------------------------------------------------------------------------------------- appendix: messages
+messages:   # Msg in Shared/Protocol.cs
+  player_sends: [join, leave, buzz, answer, assetReq, mediaProgress, joker, rename, recording]
+  host_sends:   [joined, state, answerResult, closed, kicked, asset]
+  binary:       MediaChunk (host → player)
+
+# ------------------------------------------------------------------------------------------- appendix: question types
+question_types:   # QuestionType in Shared/Quiz.cs; quiz file format 7
+  mapPin:      { answer: AnswerValue.Point, scores: "closest by MapDistance (km), or top 3" }
+  estimation:  { answer: AnswerValue.Number, scores: "closest, or top 3" }
+  classic:     { answer: "buzz | typed text | Picks", scores: "host judges; typed answers matched with QuizRules.Typos" }
+  picture:     { answer: like classic, extra: "Slides, Game.SetSlide()" }
+  sound:       { answer: buzz, extra: "play clock; AtMs = how much was heard" }
+  video:       { answer: buzz, extra: ".ogv only (Godot has no MP4/WebM)" }
+  image:       { answer: buzz, extra: "zoom / pixelate reveal on the play clock" }
+  order:       { answer: "Picks (a permutation)", extra: "timeline variant: turns, Place(playerId, gap)" }
+  steps:       { answer: buzz, worth: "hints − hint index (Game.NextHint)" }
+  interactive: { answer: "mic WAV (16 kHz mono) in RecordingParts", then: "listening → voting (Vote) or PickFavourite" }

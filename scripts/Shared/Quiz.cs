@@ -784,9 +784,11 @@ public static class QuizRules
 
 	public static (double? Km, double Percent) MapDistance(int width, int height, double? widthKm, string? presetId, NormPoint a, NormPoint b)
 	{
+		// (the WoW map's pins inside a dungeon count as at its entrance for the %, the km measure them inside)
+		var (wa, wb) = presetId == WowAtlas.PresetId ? (WowDungeons.OnWorld(a), WowDungeons.OnWorld(b)) : (a, b);
 		var aspect = (double)height / width;
-		var dx = a.X - b.X;
-		var dy = (a.Y - b.Y) * aspect; // in units of map width
+		var dx = wa.X - wb.X;
+		var dy = (wa.Y - wb.Y) * aspect; // in units of map width
 		var dist = Math.Sqrt(dx * dx + dy * dy);
 		var diagonal = Math.Sqrt(1 + aspect * aspect);
 		var percent = dist / diagonal * 100;
