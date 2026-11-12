@@ -384,6 +384,31 @@ Also move each report's files to the folder for its state: `Reported`/`Requested
 in a test (dev) version about to be tested; `Pending` = scheduled for the next public update; `Resolved` = done and
 released (when a test build ships a fix: WIP; when that version goes public: Resolved).
 
+## In progress: 0.16.0d1 "Chapter and Verse" (paused 2026-11-12, to go on from the main PC)
+
+Branch `claude/moderation-tiles-questions-598b2a` (pushed). The code is done, the self-test passes (626), screenshots
+checked; **no test build yet**. What's in it (details under "Chapters and breaks" above, player text in CHANGELOG.md):
+- Chapter and break tiles between questions on the quiz page (Add chapter / Add break, ▲ ▼, click to edit, ×; play
+  order only). A chapter counts its own questions up to the next chapter. Quiz format 18 (`tiles`).
+- In the game each tile is its own full-screen slide on host and player screens; the host goes on with "Next slide"
+  (Space), then "Show question". Max's feedback: separate slides, not stacked cards.
+- "Take a break" on the host's game screen (5/10/15 min or no countdown): before a hidden question it shows right away;
+  at a reveal it opens the next question with the break slide in front.
+- Dev: `--tiles` with `--screen quiz` or `--host-sample` adds two chapters and a 5-minute break to the sample quiz; the
+  autopilot steps through the slides.
+
+To finish, on the main PC:
+1. Check out the branch, `dotnet build`, `--selftest`.
+2. Look at the add/edit pop-up on the quiz page once (`--screen quiz --tiles`, click "Add break"): not seen on screen yet.
+3. Make the test build: `tools/release.sh --test` (version is already 0.16.0d1 in project.godot, changelog section
+   exists). Then tick "Test 0.16.0d1 with friends" in the roadmap doc's "Next: 0.16" section once Max has tried it.
+4. Merge the branch into master when Max is happy (ask before pushing master).
+
+Why it wasn't released from the other PC: that PC lacks the release setup. Godot is installed via WinGet there
+(`%LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono_…\Godot_v4.7.2-stable_mono_win64\`, not on the
+Desktop, so `GODOT=` must point there); no export templates, no `C:\godot-src` (slim template), no AnyConverter, and
+`gh` not logged in. The tokens were only in its `quiznight-local-setup` worktree. Set those up before releasing from it.
+
 ## Next up
 
 1. Install export templates and make a Windows build friends can run; check Steam works from it.
