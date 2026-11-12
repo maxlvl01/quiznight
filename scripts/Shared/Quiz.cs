@@ -444,6 +444,33 @@ public sealed class Question
 		QuizJson.ReadQuestion((System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse(QuizJson.WriteQuestion(this).ToJsonString())!);
 }
 
+/// <summary>
+/// A tile between two questions (Quiz.Tiles): a chapter (a title for the next questions; how many it has is counted, up to
+/// the next chapter) or a break (a pause with an optional countdown). The game shows it to everyone before its question.
+/// </summary>
+public sealed class QuizTile
+{
+	public const string Chapter = "chapter";
+	public const string Break = "break";
+	public const int TitleMaxLength = 60;
+	public const int TextMaxLength = 200;
+	public const int BreakMinMax = 60;
+	public const int Max = 100;
+
+	public string Id = "";
+	public string Kind = Chapter;
+	public string Title = "";
+	public string Text = "";
+	/// <summary>The slot: the index of the question it comes before (the number of questions before it).</summary>
+	public int At;
+	/// <summary>Breaks: how long, in minutes (0: no countdown, the host goes on when everyone is back).</summary>
+	public int BreakMin;
+
+	public bool IsChapter => Kind == Chapter;
+
+	public QuizTile Copy() => (QuizTile)MemberwiseClone();
+}
+
 public sealed class Quiz
 {
 	public int Version = QuizRules.FormatVersion;
@@ -463,6 +490,37 @@ public sealed class Quiz
 	/// and its "Play in this order". Types not in it come after, in the editor's order.
 	/// </summary>
 	public List<string> TypeOrder = new();
+	/// <summary>
+	/// Chapter and break tiles between the questions (format 18): each sits before the question at its At (a slot, not a
+	/// question: moving questions around leaves the tiles where they are, so a chapter keeps its place in the night).
+	/// </summary>
+	public List<QuizTile> Tiles = new();
+
+	/// <summary>The tiles before question at (its slot), breaks first, then chapters, each in the order they were added.</summary>
+	public List<QuizTile> TilesAt(int at) => Tiles.Where(t => t.At == at).OrderBy(t => t.IsChapter ? 1 : 0).ToList();
+
+	/// <summary>The chapters in play order.</summary>
+	public List<QuizTile> Chapters() => Tiles.Where(t => t.IsChapter).OrderBy(t => t.At).ThenBy(t => Tiles.IndexOf(t)).ToList();
+
+	/// <summary>How many questions a chapter has: from its slot to the next chapter (breaks don't end one) or the end.</summary>
+	public int ChapterLength(QuizTile chapter)
+	{
+		var next = Tiles.Where(t => t.IsChapter && t.At > chapter.At).Select(t => t.At).DefaultIfEmpty(Questions.Count).Min();
+		return Math.Max(0, Math.Min(next, Questions.Count) - chapter.At);
+	}
+
+	/// <summary>A question was taken out at index: the tiles after it move up with the questions.</summary>
+	public void QuestionRemoved(int index)
+	{
+		foreach (var t in Tiles) if (t.At > index) t.At--;
+		ClampTiles();
+	}
+
+	/// <summary>Keeps every tile on a slot that exists (0 to the number of questions).</summary>
+	public void ClampTiles()
+	{
+		foreach (var t in Tiles) t.At = Math.Clamp(t.At, 0, Questions.Count);
+	}
 
 	public MapAsset? MapById(string? id) => id == null ? null : Maps.FirstOrDefault(m => m.Id == id);
 
@@ -543,8 +601,9 @@ public static class QuizRules
 	/// 15: quizzes remember the order of their categories (categoryOrder), for the overview's "By category".
 	/// 16: estimation questions can have an info line and the date their data ends (info, dataAsOf).
 	/// 17: quizzes remember the order of their question types (typeOrder), for the overview's "By type".
+	/// 18: chapter and break tiles between the questions (tiles).
 	/// </summary>
-	public const int FormatVersion = 17;
+	public const int FormatVersion = 18;
 
 	public static readonly string[] ChoiceLetters = { "A", "B", "C", "D" };
 

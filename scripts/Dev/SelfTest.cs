@@ -608,6 +608,45 @@ public static class SelfTest
 			&& QuizJson.Parse(QuizJson.Write(typed), out _)!.TypeOrder.SequenceEqual(ordered.TypeOrder),
 			"a quiz keeps its question types' order (unknown types are dropped)");
 
+		// Chapter and break tiles: kept in the file, counted, moved up when a question before them goes, shown before their question.
+		var chaptered = SampleQuiz.WithTiles(SampleQuiz.Build());
+		var n = chaptered.Questions.Count;
+		var tilesBack = QuizJson.Parse(QuizJson.Write(chaptered), out _)!;
+		Check(tilesBack.Tiles.Count == 3 && tilesBack.Tiles.Select(t => (t.Kind, t.At, t.Title, t.BreakMin)).SequenceEqual(chaptered.Tiles.OrderBy(t => t.At).Select(t => (t.Kind, t.At, t.Title, t.BreakMin)))
+			&& QuizJson.Parse(QuizJson.Write(SampleQuiz.Build()), out _)!.Tiles.Count == 0,
+			"a quiz keeps its chapters and breaks (and one without stays without)");
+		var ch = chaptered.Chapters();
+		Check(ch.Count == 2 && chaptered.ChapterLength(ch[0]) == n / 2 && chaptered.ChapterLength(ch[1]) == n - n / 2,
+			"a chapter counts its questions up to the next chapter (a break in between doesn't end it)");
+		var shifted = SampleQuiz.WithTiles(SampleQuiz.Build());
+		shifted.Questions.RemoveAt(0);
+		shifted.QuestionRemoved(0);
+		Check(shifted.Tiles.Count(t => t.At == 0) == 1 && shifted.Chapters()[1].At == n / 2 - 1 && shifted.ChapterLength(shifted.Chapters()[0]) == n / 2 - 1,
+			"deleting a question before a tile moves the tile up with the questions");
+		var odd = QuizJson.Parse("{\"maps\":[],\"questions\":[],\"tiles\":[{\"kind\":\"break\",\"at\":99,\"minutes\":500},{\"kind\":\"weird\",\"at\":-3}]}", out _)!;
+		Check(odd.Tiles.Count == 2 && odd.Tiles.All(t => t.At == 0) && odd.Tiles[0].BreakMin == QuizTile.BreakMinMax && odd.Tiles[1].IsChapter,
+			"odd tiles in a file are made safe (slots that exist, a break at most an hour)");
+		var (tileRoom, tileClock) = NewRoom(chaptered, "ann", "bob");
+		tileRoom.Start();
+		var tg = tileRoom.Game!;
+		Check(!tg.Shown && tg.View("ann").Tiles is [{ Kind: QuizTile.Chapter, Number: 1, Chapters: 2 } first1] && first1.Questions == n / 2 && tg.View("host").Tiles.Count == 1,
+			"a chapter before a question holds it hidden (even when questions show by themselves) and everyone sees it");
+		Check(tg.ShowQuestion() && tg.Shown && tg.View("ann").Tiles.Count == 0, "the host shows the question: the chapter goes");
+		Check(tg.Index == 0, "first question");
+		while (tg.Index < n / 2 - 1)
+		{
+			tileRoom.Next();
+			tileRoom.Next();
+			if (tg.Index < n / 2) Check(tg.Shown, "questions without a tile show by themselves");
+		}
+		tileRoom.Next();
+		tileClock.Now += 1000;
+		tileRoom.Next();
+		Eq(tg.Index, n / 2, "the second chapter's first question");
+		var tv = tg.View("ann").Tiles;
+		Check(!tg.Shown && tv.Count == 2 && tv[0].Kind == QuizTile.Break && tv[0].EndsAt == tileClock.Now + 5 * 60_000L && tv[1].Number == 2,
+			"a break and a chapter at the same place: the break first, with its countdown, then the chapter");
+
 		var informed = SampleQuiz.Build();
 		var est = informed.Questions.First(q => q.Type == QuestionType.Estimation);
 		est.Info = "Steam hours";

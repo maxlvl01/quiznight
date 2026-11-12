@@ -606,6 +606,22 @@ public sealed class GameView
 	public bool FastPassTaken;
 	/// <summary>Jokers played: everyone's once their question is shown, your own (still takeable back) before that.</summary>
 	public List<JokerPlay> Jokers = new();
+	/// <summary>The quiz's chapter and break tiles before this question, while it's still hidden (else empty).</summary>
+	public List<TileView> Tiles = new();
+}
+
+/// <summary>A chapter or break tile as the game shows it (Quiz.Tiles), before the question it sits in front of.</summary>
+public sealed class TileView
+{
+	public string Kind = QuizTile.Chapter;
+	public string Title = "";
+	public string Text = "";
+	/// <summary>Chapters: how many questions it has, which one it is and how many there are.</summary>
+	public int Questions;
+	public int Number;
+	public int Chapters;
+	/// <summary>Breaks with a length: host-clock time it ends (counted from when the host got to it).</summary>
+	public long? EndsAt;
 }
 
 public sealed class Result

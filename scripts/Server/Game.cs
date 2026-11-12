@@ -155,7 +155,9 @@ public sealed class Game
 			Version = quiz.Version, Id = quiz.Id, Title = quiz.Title, CreatedAt = quiz.CreatedAt, UpdatedAt = quiz.UpdatedAt,
 			Maps = quiz.Maps,
 			Questions = quiz.Questions.Select(q => q.IsChoice ? QuizRules.ShuffleChoices(q, rng) : q.Type == QuestionType.Order ? QuizRules.ShuffleOrder(q, rng) : q).ToList(),
+			Tiles = quiz.Tiles.Select(t => t.Copy()).ToList(),
 		};
+		_quiz.ClampTiles();
 		_hooks = hooks;
 		SharedFiles = shared ?? ShareFiles(_quiz);
 		Open(Math.Clamp(first, 0, Math.Max(0, _quiz.Questions.Count - 1)));
@@ -275,7 +277,27 @@ public sealed class Game
 		_decideAt = null;
 		Shown = false;
 		BuzzersOpen = false;
-		if (!_hooks.HostShowsQuestions()) StartShown(now);
+		_hiddenSince = now;
+		// (a chapter or break before it waits for the host, also when questions show by themselves)
+		if (!_hooks.HostShowsQuestions() && _quiz.TilesAt(Index).Count == 0) StartShown(now);
+	}
+
+	/// <summary>When the current question opened (hidden): a break before it counts down from then.</summary>
+	long _hiddenSince;
+
+	/// <summary>The chapter and break tiles before the current question, as everyone sees them while it's hidden.</summary>
+	List<TileView> TileViews()
+	{
+		if (Stage != Shared.Stage.Open || Shown) return new();
+		var chapters = _quiz.Chapters();
+		return _quiz.TilesAt(Index).Select(t => new TileView
+		{
+			Kind = t.Kind, Title = t.Title, Text = t.Text,
+			Questions = t.IsChapter ? _quiz.ChapterLength(t) : 0,
+			Number = t.IsChapter ? chapters.IndexOf(t) + 1 : 0,
+			Chapters = chapters.Count,
+			EndsAt = !t.IsChapter && t.BreakMin > 0 ? _hiddenSince + t.BreakMin * 60_000L : null,
+		}).ToList();
 	}
 
 	/// <summary>A new round of buzzers opens: reaction times count from now.</summary>
@@ -1528,6 +1550,7 @@ public sealed class Game
 			FastPassTaken = JokerIndex is { } fi && FastPassTaken(fi, viewer),
 			// (a joker for a question not shown yet is a secret: only its player sees it, and can take it back)
 			Jokers = _jokers.Where(j => (viewer != "host" && Mates(j.PlayerId, viewer)) || Locked(j)).Select(j => new JokerPlay { PlayerId = j.PlayerId, Kind = j.Kind, Index = j.Index }).ToList(),
+			Tiles = TileViews(),
 		};
 		if (viewer == "host")
 		{

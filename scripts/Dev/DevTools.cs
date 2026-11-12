@@ -289,6 +289,8 @@ public sealed class DevTools
 		{
 			TakesOver = true;
 			var sample = WithTestMedia(SampleQuiz.Build());
+			// (--tiles: with chapters and a break)
+			if (Has("--tiles")) SampleQuiz.WithTiles(sample);
 			var quiz = Value("--host") is { } file ? QuizStore.Import(file) : QuizStore.Save(sample);
 			_app.HostQuiz(quiz, NetMode.Lan, Has("--continue") ? NightSaves.Load(quiz.Id) : null);
 			// --teams N: the lobby with team mode on (N teams), for screenshots
@@ -393,6 +395,7 @@ public sealed class DevTools
 					var sample = Has("--tour-quiz") ? Ui.Tutorial.TourQuiz() : SampleQuiz.Build();
 					if (Value("--category-order") is { } order) sample.CategoryOrder = order.Split(',').ToList();
 					if (Value("--type-order") is { } types) sample.TypeOrder = types.Split(',').ToList();
+					if (Has("--tiles")) SampleQuiz.WithTiles(sample);
 					_app.GoQuiz(QuizStore.Save(sample).Id);
 					break;
 				}

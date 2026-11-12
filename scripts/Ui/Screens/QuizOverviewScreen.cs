@@ -23,7 +23,7 @@ public partial class QuizOverviewScreen : Control
 	readonly Label _error = U.Error();
 	readonly LineEdit _title;
 	/// <summary>Ctrl+Z / Ctrl+Y: moving, deleting and renaming, back and forth (the questions themselves aren't copied).</summary>
-	readonly EditHistory<(string Title, List<Question> Questions, List<string> Categories, List<string> Types)> _history;
+	readonly EditHistory<(string Title, List<Question> Questions, List<string> Categories, List<string> Types, List<QuizTile> Tiles)> _history;
 	/// <summary>The questions picked with Ctrl+click or Shift+click: they move (drag, to top/bottom) and delete together.</summary>
 	readonly HashSet<Question> _picked = new();
 	/// <summary>Where a Shift+click's range starts: the last question clicked with Ctrl or Shift.</summary>
@@ -107,12 +107,13 @@ public partial class QuizOverviewScreen : Control
 		spot.Size = spot.CustomMinimumSize;
 		spot.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, (int)ButtonDock.Margin);
 		RefreshList();
-		_history = new(() => (_quiz.Title, _quiz.Questions.ToList(), _quiz.CategoryOrder.ToList(), _quiz.TypeOrder.ToList()), state =>
+		_history = new(() => (_quiz.Title, _quiz.Questions.ToList(), _quiz.CategoryOrder.ToList(), _quiz.TypeOrder.ToList(), _quiz.Tiles.Select(t => t.Copy()).ToList()), state =>
 		{
 			_quiz.Title = state.Title;
 			_quiz.Questions = state.Questions.ToList();
 			_quiz.CategoryOrder = state.Categories.ToList();
 			_quiz.TypeOrder = state.Types.ToList();
+			_quiz.Tiles = state.Tiles.Select(t => t.Copy()).ToList();
 			_title.Text = state.Title;
 			_titleDirty = false;
 			Save();
@@ -157,8 +158,12 @@ public partial class QuizOverviewScreen : Control
 		_picked.IntersectWith(_quiz.Questions);
 		if (_quiz.Questions.Count == 0) _questions.AddChild(U.Muted("No questions yet — pick a type on the right.", 13));
 		string? group = null;
+		// (chapters and breaks only show in play order: they sit between the questions as they're played)
+		var tiles = _sort == "play";
 		foreach (var i in Shown())
 		{
+			if (tiles)
+				foreach (var t in _quiz.TilesAt(i)) _questions.AddChild(TileRow(t));
 			// (by category or type: a heading for each, with arrows that change their order)
 			if (_sort == "category" && _quiz.Questions[i].Category is var cat && cat != group)
 			{
@@ -171,6 +176,18 @@ public partial class QuizOverviewScreen : Control
 				_questions.AddChild(TypeHead(kind));
 			}
 			_questions.AddChild(Row(i));
+		}
+		if (tiles)
+			foreach (var t in _quiz.TilesAt(_quiz.Questions.Count)) _questions.AddChild(TileRow(t));
+		if (_quiz.Questions.Count > 0)
+		{
+			var add = U.H(8,
+				U.Small("Add chapter", () => EditTile(null, QuizTile.Chapter)).On(Glyph.Kind.Bookmark, 14)
+					.Tip("A title for the next questions (e.g. \"Round 2: Music\"), shown to everyone before them. It counts its questions by itself, up to the next chapter."),
+				U.Small("Add break", () => EditTile(null, QuizTile.Break)).On(Glyph.Kind.Cup, 14)
+					.Tip("A little pause between two questions, with a countdown if you like"));
+			if (!tiles) add.AddChild(U.Muted("(chapters and breaks show in play order)", 12, false).With(l => l.SizeFlagsVertical = SizeFlags.ShrinkCenter));
+			_questions.AddChild(U.Pad(add, 0, 4, 0, 0));
 		}
 		RefreshSortBar();
 		RefreshPicked();
@@ -367,6 +384,7 @@ public partial class QuizOverviewScreen : Control
 			Dialogs.Confirm(this, "Delete this question?", "Delete", () =>
 			{
 				_quiz.Questions.RemoveAt(i);
+				_quiz.QuestionRemoved(i);
 				_quiz.DropUnusedMaps();
 				Save();
 				_history.Record();
@@ -379,6 +397,114 @@ public partial class QuizOverviewScreen : Control
 		_rows[q] = panel;
 		Style(q);
 		return panel;
+	}
+
+	/// <summary>
+	/// A chapter or break tile between the questions: what it says, how many questions the chapter has (counted up to the
+	/// next one), ▲ ▼ to move it past a question, click to edit, × to delete.
+	/// </summary>
+	Control TileRow(QuizTile t)
+	{
+		var chapter = t.IsChapter;
+		var ink = chapter ? C.Accent : C.Teal;
+		var count = chapter ? _quiz.ChapterLength(t) : 0;
+		var head = t.Title != "" ? t.Title : Lang.T(chapter ? "Chapter without a title" : "Break");
+		var sub = chapter
+			? (count == 0 ? Lang.T("Chapter · no questions yet: add some below it") : Lang.F("Chapter {0} · {1}", _quiz.Chapters().IndexOf(t) + 1, U.Plural(count, "question", "questions")))
+			: (t.BreakMin > 0 ? Lang.F("Break · {0} min", t.BreakMin) : Lang.T("Break · no countdown"));
+		if (t.At >= _quiz.Questions.Count && !chapter) sub += Lang.T(" · after the last question, so it isn't shown");
+		var title = U.Text(head, 14, C.Text, Fonts.Bold).Raw();
+		title.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+		title.ClipText = true;
+		var text = U.V(0, title, U.Text(sub, 12, ink)).Grow();
+		var open = new Button { Flat = true, MouseDefaultCursorShape = CursorShape.PointingHand, TooltipText = Lang.T("Click to edit") }.Grow();
+		open.Pressed += () => EditTile(t, t.Kind);
+		var content = U.H(10, Glyph.Rect(chapter ? Glyph.Kind.Bookmark : Glyph.Kind.Cup, 20, ink), text);
+		content.MouseFilter = MouseFilterEnum.Ignore;
+		foreach (var c in content.GetChildren().OfType<Control>()) c.MouseFilter = MouseFilterEnum.Ignore;
+		foreach (var c in text.GetChildren().OfType<Control>()) c.MouseFilter = MouseFilterEnum.Ignore;
+		open.AddChild(content.With(c => c.SetAnchorsPreset(LayoutPreset.FullRect)));
+		open.CustomMinimumSize = new Vector2(0, 42);
+		var up = U.Small("▲", () => MoveTile(t, -1)).Tip("One question earlier");
+		up.Disabled = t.At <= 0;
+		var down = U.Small("▼", () => MoveTile(t, 1)).Tip("One question later");
+		down.Disabled = t.At >= _quiz.Questions.Count;
+		var del = U.Small("×", () => Dialogs.Confirm(this, chapter ? "Delete this chapter? Its questions stay." : "Delete this break?", "Delete", () =>
+		{
+			_quiz.Tiles.Remove(t);
+			Save();
+			_history.Record();
+			RefreshList();
+		})).Tip("Delete");
+		var panel = U.Panel(U.H(6, open, up, down, del), "Card2");
+		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(ink, 0.1f), 10, new Color(ink, 0.6f), 1, 10, 4));
+		return panel;
+	}
+
+	void MoveTile(QuizTile t, int by)
+	{
+		var to = System.Math.Clamp(t.At + by, 0, _quiz.Questions.Count);
+		if (to == t.At) return;
+		t.At = to;
+		Save();
+		_history.Record();
+		Callable.From(RefreshList).CallDeferred();
+	}
+
+	/// <summary>
+	/// A chapter or break in a pop-up: its title, text, minutes (breaks) and before which question it goes. tile null = a
+	/// new one: before the first picked question, else before question 1 for the quiz's first chapter, else at the end (so
+	/// the questions added next go into it).
+	/// </summary>
+	void EditTile(QuizTile? tile, string kind)
+	{
+		var draft = tile?.Copy() ?? new QuizTile
+		{
+			Id = System.Guid.NewGuid().ToString("N")[..12],
+			Kind = kind,
+			At = _picked.Count > 0 ? _picked.Select(p => _quiz.Questions.IndexOf(p)).Where(x => x >= 0).DefaultIfEmpty(0).Min()
+				: kind == QuizTile.Chapter && !_quiz.Tiles.Any(x => x.IsChapter) ? 0 : _quiz.Questions.Count,
+		};
+		var chapter = draft.IsChapter;
+		var d = new ConfirmationDialog
+		{
+			Title = Lang.T(tile == null ? (chapter ? "Add chapter" : "Add break") : (chapter ? "Chapter" : "Break")),
+			OkButtonText = Lang.T(tile == null ? "Add" : "Done"),
+			CancelButtonText = Lang.T("Cancel"),
+		};
+		var body = U.V(14, U.Muted(chapter
+			? "Shown to everyone before its first question, with how many questions it has (counted up to the next chapter)."
+			: "Shown to everyone before the question after it. You go on with \"Show question\" whenever you like.", 13));
+		body.AddChild(U.Field(chapter ? "Title" : "Title (optional)",
+			U.Input(draft.Title, chapter ? "e.g. Round 2: Music" : "e.g. Snack break", x => draft.Title = x, QuizTile.TitleMaxLength)));
+		if (!chapter)
+		{
+			var minutes = new SpinBox { MinValue = 0, MaxValue = QuizTile.BreakMinMax, Value = draft.BreakMin, Suffix = Lang.T("min"), CustomMinimumSize = new Vector2(140, 0), SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+			minutes.ValueChanged += v => draft.BreakMin = (int)v;
+			body.AddChild(U.Field("Countdown", minutes, "0 = no countdown: you go on when everyone is back."));
+		}
+		body.AddChild(U.Field(chapter ? "What's coming (optional)" : "Text (optional)",
+			U.Area(draft.Text, chapter ? "e.g. Name the song from its first five seconds." : "e.g. Grab a drink, back in five!", x => draft.Text = x, 2, QuizTile.TextMaxLength)));
+		var at = new SpinBox { MinValue = 1, MaxValue = _quiz.Questions.Count + 1, Value = draft.At + 1, CustomMinimumSize = new Vector2(140, 0), SizeFlagsHorizontal = SizeFlags.ShrinkBegin };
+		at.ValueChanged += v => draft.At = (int)v - 1;
+		body.AddChild(U.Field("Before question", at, Lang.F("{0} = after the last question", _quiz.Questions.Count + 1)));
+		d.AddChild(body.MinSize(520, 0));
+		d.Confirmed += () =>
+		{
+			draft.Title = draft.Title.Trim();
+			draft.Text = draft.Text.Trim();
+			draft.At = System.Math.Clamp(draft.At, 0, _quiz.Questions.Count);
+			var k = tile == null ? -1 : _quiz.Tiles.IndexOf(tile);
+			if (k >= 0) _quiz.Tiles[k] = draft;
+			else if (_quiz.Tiles.Count < QuizTile.Max) _quiz.Tiles.Add(draft);
+			Save();
+			_history.Record();
+			RefreshList();
+		};
+		d.Confirmed += d.QueueFree;
+		d.Canceled += d.QueueFree;
+		AddChild(d);
+		d.PopupCentered();
 	}
 
 	/// <summary>A row's frame: the accent colour and thicker while it's picked.</summary>
@@ -417,7 +543,11 @@ public partial class QuizOverviewScreen : Control
 		_pickBar.AddChild(U.Small("To the end", () => MoveMany(indexes, _quiz.Questions.Count)).Tip("Plays them last, in their order"));
 		_pickBar.AddChild(U.Small("Delete", () => Dialogs.Confirm(this, Lang.F("Delete these {0} questions?", _picked.Count), "Delete", () =>
 		{
-			_quiz.Questions.RemoveAll(_picked.Contains);
+			foreach (var at in _picked.Select(p => _quiz.Questions.IndexOf(p)).Where(x => x >= 0).OrderByDescending(x => x).ToList())
+			{
+				_quiz.Questions.RemoveAt(at);
+				_quiz.QuestionRemoved(at);
+			}
 			_picked.Clear();
 			_quiz.DropUnusedMaps();
 			Save();

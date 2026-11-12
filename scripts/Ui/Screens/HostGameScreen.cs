@@ -127,9 +127,11 @@ public partial class HostGameScreen : Control, IRoomScreen
 		_imageReveal?.Update(game);
 
 		// (rebuilt when the host ticks an answer or gives a bonus)
-		_content.Set((reveal != null ? $"{key}|{string.Join(",", reveal.Entries.Select(e => $"{e.PlayerId}:{e.Points}:{e.Bonus}"))}" : key + tlKey) + iaKey, () =>
+		_content.Set((reveal != null ? $"{key}|{string.Join(",", reveal.Entries.Select(e => $"{e.PlayerId}:{e.Points}:{e.Bonus}"))}" : key + tlKey) + iaKey + (game.Shown ? "" : "|hidden"), () =>
 		{
 			var box = U.V(14);
+			// (a chapter or break before this question: what the players see now, until the host shows the question)
+			if (game.Stage == Stage.Open && !game.Shown && GameParts.TileCards(game, 26) is { } tiles) box.AddChild(tiles);
 			if (ia != null) Interactive(box, room, ia, reveal != null);
 			// (the host also sees the bonus's answer, and keeps the line at the reveal, where they give the bonus)
 			if ((reveal == null || game.HostBonusAnswer != null) && GameParts.BonusLine(q, 18, game.HostBonusAnswer) is { } bonusLine) box.AddChild(bonusLine);
@@ -217,7 +219,8 @@ public partial class HostGameScreen : Control, IRoomScreen
 			}
 			if (game.Stage == Stage.Open && !game.Shown)
 			{
-				row.AddChild(U.Muted("Players don't see this question yet.", 15, false).Grow());
+				row.AddChild(U.Muted(game.Tiles.Count == 0 ? "Players don't see this question yet."
+					: game.Tiles.Any(t => t.Kind == QuizTile.Break) ? "Players see the break. Show the question when everyone is back." : "Players see the chapter. Show the question when you're ready.", 15, false).Grow());
 				row.AddChild(U.Btn("Host notes", "", HostNotes.Open).Tip("The question and answer in a separate window, e.g. for your second monitor"));
 				row.AddChild(U.Btn("Show question  (Space)", "AccentButton", _host.ShowQuestion, 20));
 				return row;

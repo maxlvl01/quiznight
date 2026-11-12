@@ -76,7 +76,7 @@ wire:
   steam:         { api: "SteamNetworkingSockets relay, SendType.Reliable", max_message: 300 KB, note: "Steam's own limit is 512 KB; assets are split" }
   per_viewer_state:
     call: "Room.ToState(viewer) → RoomState { Game = Game.View(viewer), Ranking, Places, ServerNow, Downloads }"
-    rule: "a hidden question sends only its number, type and points; answers exist in RoomState only after Stage = reveal"
+    rule: "a hidden question sends only its number, type and points (and the chapter/break tiles before it, GameView.Tiles); answers exist in RoomState only after Stage = reveal"
     why: "players never receive what they shouldn't see, so a modded client has nothing to read"
 
 # ------------------------------------------------------------------------------------------- 4. joining

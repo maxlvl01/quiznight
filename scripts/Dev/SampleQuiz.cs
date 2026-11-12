@@ -68,6 +68,19 @@ public static class SampleQuiz
 		return results;
 	}
 
+	/// <summary>The quiz with chapter and break tiles (--tiles): a first chapter, then halfway a 5-minute break and a second chapter.</summary>
+	public static Quiz WithTiles(Quiz quiz)
+	{
+		var half = quiz.Questions.Count / 2;
+		quiz.Tiles = new()
+		{
+			new QuizTile { Id = "tile-1", Kind = QuizTile.Chapter, Title = "Warm-up", Text = "A bit of everything to get going.", At = 0 },
+			new QuizTile { Id = "tile-2", Kind = QuizTile.Chapter, Title = "Round 2: Eyes and ears", Text = "Pictures, sounds and maps.", At = half },
+			new QuizTile { Id = "tile-3", Kind = QuizTile.Break, Title = "Snack break", Text = "Grab a drink, back in five!", At = half, BreakMin = 5 },
+		};
+		return quiz;
+	}
+
 	public static Quiz Build()
 	{
 		var skyrim = new MapAsset { Id = "map-skyrim", Name = "Skyrim", PresetId = "skyrim", WidthKm = MapPresets.Get("skyrim")!.WidthKm };

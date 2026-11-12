@@ -43,7 +43,9 @@ public static class QuizJson
 			Questions = qs.OfType<JsonObject>().Select(ReadQuestion).ToList(),
 			CategoryOrder = Strings(o["categoryOrder"], 200),
 			TypeOrder = Strings(o["typeOrder"], 50).Where(QuestionType.All.Contains).ToList(),
+			Tiles = o["tiles"] is JsonArray tiles ? tiles.OfType<JsonObject>().Select(ReadTile).Take(QuizTile.Max).ToList() : new(),
 		};
+		quiz.ClampTiles();
 		SkyrimCrop.Migrate(quiz);
 		return quiz;
 	}
@@ -66,8 +68,33 @@ public static class QuizJson
 			["questions"] = new JsonArray(quiz.Questions.Select(q => (JsonNode)WriteQuestion(q)).ToArray()),
 		};
 		if (quiz.CategoryOrder.Count > 0) o["categoryOrder"] = new JsonArray(quiz.CategoryOrder.Select(c => (JsonNode)JsonValue.Create(c)!).ToArray());
+		if (quiz.Tiles.Count > 0) o["tiles"] = new JsonArray(quiz.Tiles.OrderBy(x => x.At).Select(x => (JsonNode)WriteTile(x)).ToArray());
 		if (quiz.TypeOrder.Count > 0) o["typeOrder"] = new JsonArray(quiz.TypeOrder.Select(t => (JsonNode)JsonValue.Create(t)!).ToArray());
 		return o.ToJsonString(new JsonSerializerOptions { WriteIndented = indented });
+	}
+
+	static QuizTile ReadTile(JsonObject o)
+	{
+		var title = Str(o, "title");
+		var text = Str(o, "text");
+		return new QuizTile
+		{
+			Id = Str(o, "id") is { Length: > 0 } id ? id : Guid.NewGuid().ToString("N")[..12],
+			Kind = Str(o, "kind") == QuizTile.Break ? QuizTile.Break : QuizTile.Chapter,
+			Title = title.Length > QuizTile.TitleMaxLength ? title[..QuizTile.TitleMaxLength] : title,
+			Text = text.Length > QuizTile.TextMaxLength ? text[..QuizTile.TextMaxLength] : text,
+			At = (int)Math.Clamp(Num(o, "at", 0), 0, 10_000),
+			BreakMin = (int)Math.Clamp(Num(o, "minutes", 0), 0, QuizTile.BreakMinMax),
+		};
+	}
+
+	static JsonObject WriteTile(QuizTile t)
+	{
+		var o = new JsonObject { ["id"] = t.Id, ["kind"] = t.Kind, ["at"] = t.At };
+		if (t.Title != "") o["title"] = t.Title;
+		if (t.Text != "") o["text"] = t.Text;
+		if (!t.IsChapter && t.BreakMin > 0) o["minutes"] = t.BreakMin;
+		return o;
 	}
 
 	public static JsonObject WriteQuestion(Question q)

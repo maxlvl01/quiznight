@@ -26,6 +26,48 @@ public static class GameParts
 	/// A place in the stats tables: a small box in the medal's colour for the top 3, a plain one after that, "–" for
 	/// none (centred in its row, so it lines up with the profile pictures).
 	/// </summary>
+	/// <summary>
+	/// The chapter and break tiles before a hidden question (GameView.Tiles), big: a chapter's title, its text and how many
+	/// questions it has; a break with its countdown. Null when there are none.
+	/// </summary>
+	public static Control? TileCards(GameView game, int size = 40)
+	{
+		if (game.Tiles.Count == 0) return null;
+		var column = U.V(14);
+		foreach (var t in game.Tiles)
+		{
+			var chapter = t.Kind == QuizTile.Chapter;
+			var ink = chapter ? C.Accent : C.Teal;
+			var box = U.V(10);
+			box.Alignment = BoxContainer.AlignmentMode.Center;
+			var eyebrow = chapter
+				? (t.Chapters > 1 ? Lang.F("Chapter {0} of {1}", t.Number, t.Chapters) : Lang.T("Chapter"))
+				: Lang.T("Break");
+			var top = Row(10, Glyph.Rect(chapter ? Glyph.Kind.Bookmark : Glyph.Kind.Cup, size * 2 / 3, ink), U.Text(eyebrow.ToUpper(), size / 2, ink, Fonts.Spaced));
+			top.Alignment = BoxContainer.AlignmentMode.Center;
+			box.AddChild(top);
+			var title = t.Title != "" ? t.Title : chapter ? "" : Lang.T("Time for a little break");
+			if (title != "") box.AddChild(U.Text(title, size, C.Text, Fonts.Black, true).Raw().With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
+			if (t.Text != "") box.AddChild(U.Text(t.Text, size * 9 / 20, C.Text, null, true).Raw().With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
+			if (chapter && t.Questions > 0)
+				box.AddChild(U.Muted(t.Questions == 1 ? Lang.T("1 question") : Lang.F("The next {0} questions", t.Questions), size * 2 / 5, false, HorizontalAlignment.Center));
+			if (!chapter)
+			{
+				if (t.EndsAt != null)
+				{
+					var clock = Row(10, U.Muted("Back in", size * 2 / 5, false), new Countdown(t.EndsAt, null, size));
+					clock.Alignment = BoxContainer.AlignmentMode.Center;
+					box.AddChild(clock);
+				}
+				else box.AddChild(U.Muted("The host goes on when everyone is back.", size * 2 / 5, false, HorizontalAlignment.Center));
+			}
+			var panel = U.Panel(U.Pad(box.MinSize(0, size * 4), 24, 18, 24, 18), "Card2");
+			panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(ink, 0.08f), 16, ink, 2, 18, 14));
+			column.AddChild(panel);
+		}
+		return column;
+	}
+
 	/// <summary>"Category: Geography" (the quiz maker's own categories as they wrote them).</summary>
 	public static Control CategoryPill(string category) =>
 		U.Pill(Lang.F("Category: {0}", Categories.Label(category)), C.Sky).Raw();

@@ -163,8 +163,9 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		if (!game.Shown)
 		{
 			// (the space under "Get ready" explains the coming question, or shows tonight's stats)
-			_panel.Set($"{key}|hidden|{_readyTab}|{string.Join(",", room.Ranking.Select(id => room.Score(id)))}", () => U.V(14,
-				Status(U.Bold("Get ready…", 28), U.Muted("The host is about to show the next question.", 16)),
+			// (a chapter or break before it takes the place of "Get ready")
+			_panel.Set($"{key}|hidden|{_readyTab}|{string.Join(",", room.Ranking.Select(id => room.Score(id)))}|{game.Tiles.Count}", () => U.V(14,
+				GameParts.TileCards(game) ?? Status(U.Bold("Get ready…", 28), U.Muted("The host is about to show the next question.", 16)),
 				U.Segmented(new[] { ("how", "How it works"), ("stats", "Tonight so far") }, _readyTab, id =>
 				{
 					_readyTab = id;

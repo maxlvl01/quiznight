@@ -673,7 +673,7 @@ public static class Bolt
 /// </summary>
 public static class Glyph
 {
-	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right, Cloud }
+	public enum Kind { Trophy, Gamepad, Folder, Camera, Eye, Dice, Magnifier, Hourglass, Sun, Warning, Pause, Play, Info, Refresh, Left, Right, Cloud, Bookmark, Cup }
 
 	// (24 × 24, white; holes by even-odd, so one path can carry the details)
 	static string Body(Kind kind) => kind switch
@@ -697,6 +697,9 @@ public static class Glyph
 		Kind.Right => "<path fill='none' stroke='#fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round' d='M9 4.5 16.5 12 9 19.5'/>",
 		// (a cloud with an arrow up and an arrow down cut out of it: Sync)
 		Kind.Cloud => "<path fill-rule='evenodd' d='M6.5 21A5.5 5.5 0 0 1 5.4 10.1 7 7 0 0 1 18.6 9.1 6 6 0 0 1 18 21zM9 9.5l3.4 4h-2.1v5H7.7v-5H5.6zM15 18.5l-3.4-4h2.1v-5h2.6v5h2.1z'/>",
+		// (a bookmark ribbon with a notch: a chapter; a cup with a handle and steam: a break)
+		Kind.Bookmark => "<path d='M6.5 2h11A1.5 1.5 0 0 1 19 3.5V22l-7-4.6L5 22V3.5A1.5 1.5 0 0 1 6.5 2z'/>",
+		Kind.Cup => "<path d='M3 9h14v4.5A6.5 6.5 0 0 1 10.5 20h-1A6.5 6.5 0 0 1 3 13.5z'/><path fill-rule='evenodd' d='M17.2 10h1.3a3.5 3.5 0 0 1 0 7h-2.2l.9-2h1.3a1.5 1.5 0 0 0 0-3h-1.3z'/><path d='M2 21h16v1.5H2zM7 2.5c1.2 1 1.2 2.4 0 3.5s-1.2 1.8 0 2.4L5.8 8.4C4.4 7.4 4.6 6 5.8 5S7 3.2 5.8 2.6zM11.5 2.5c1.2 1 1.2 2.4 0 3.5s-1.2 1.8 0 2.4l-1.2.0c-1.4-1-1.2-2.4 0-3.4s1.2-1.8 0-2.4z'/>",
 		_ => "",
 	};
 
