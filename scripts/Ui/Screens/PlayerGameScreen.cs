@@ -111,8 +111,10 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 		// (a slideshow the host has shown all of: this player flips through it on their own, starting where the host is)
 		var ownSlide = q is { AllSlidesShown: true, SlideCount: > 1 } && game.Stage == Stage.Open ? (_mySlide is { } ms && ms.Index == game.Index ? ms.Slide : q.Slide ?? 0) : (int?)null;
 		if (ownSlide is { } own) _mySlide = (game.Index, own);
-		_question.Set($"{key}|{game.Interactive?.Phase}|{q.Hints?.Count}|{ownSlide}", () =>
+		_question.Set($"{key}|{game.Interactive?.Phase}|{q.Hints?.Count}|{ownSlide}|{game.Tile != null}", () =>
 		{
+			// (a chapter or break slide takes the whole space)
+			if (!game.Shown && game.Tile != null) return null;
 			var box = U.V(14, GameParts.Row(16,
 				U.Text(game.Shown || game.Stage == Stage.Reveal ? q.Prompt : "", 30, C.Text, Fonts.Black, true).Raw(),
 				game.Stage == Stage.Open && game.Shown ? new Countdown(game.EndsAt, null, 30) { Follow = () => _room.Game?.EndsAt } : U.Gap(0)));
@@ -160,12 +162,17 @@ public partial class PlayerGameScreen : Control, IRoomScreen
 			_panel.Set($"{key}|reveal|{string.Join(",", game.Reveal!.Entries.Select(e => $"{e.PlayerId}:{e.Points}:{e.Bonus}"))}", () => Reveal(room));
 			return;
 		}
+		// (a chapter or break before the question: a slide of its own, one after the other as the host goes on)
+		if (!game.Shown && game.Tile is { } tile)
+		{
+			_panel.Set($"{key}|tile|{game.TileStep}|{game.TileCount}|{tile.Kind}|{tile.EndsAt}", () => GameParts.TileSlide(tile));
+			return;
+		}
 		if (!game.Shown)
 		{
 			// (the space under "Get ready" explains the coming question, or shows tonight's stats)
-			// (a chapter or break before it takes the place of "Get ready")
-			_panel.Set($"{key}|hidden|{_readyTab}|{string.Join(",", room.Ranking.Select(id => room.Score(id)))}|{game.Tiles.Count}", () => U.V(14,
-				GameParts.TileCards(game) ?? Status(U.Bold("Get ready…", 28), U.Muted("The host is about to show the next question.", 16)),
+			_panel.Set($"{key}|hidden|{_readyTab}|{string.Join(",", room.Ranking.Select(id => room.Score(id)))}", () => U.V(14,
+				Status(U.Bold("Get ready…", 28), U.Muted("The host is about to show the next question.", 16)),
 				U.Segmented(new[] { ("how", "How it works"), ("stats", "Tonight so far") }, _readyTab, id =>
 				{
 					_readyTab = id;

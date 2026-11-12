@@ -105,17 +105,20 @@ public partial class HostGameScreen : Control, IRoomScreen
 			return U.Panel(row, "Bar");
 		});
 
-		_head.Set(key + ia?.Phase, () => GameParts.Row(16,
+		// (a chapter or break slide before the question: the host sees it as the players do, the question waits behind it)
+		var tile = game.Stage == Stage.Open && !game.Shown ? game.Tile : null;
+		var tileKey = tile == null ? "" : $"|tile{game.TileStep}/{game.TileCount}|{tile.Kind}|{tile.EndsAt}";
+		_head.Set(key + ia?.Phase + (tile != null ? "|tile" : ""), () => tile != null ? null : GameParts.Row(16,
 			U.Text(q.Prompt, 34, C.Text, Fonts.Black, true).Raw(),
 			game.Stage == Stage.Open ? new Countdown(game.EndsAt, null, 34) { Follow = () => _game?.EndsAt } : U.Gap(0)));
 
 		// The player stays alive through the reveal so the music doesn't restart.
 		// Sound, video and image reveals start once the question is shown.
-		_media.Set($"{game.Index}|{game.Shown}", () =>
+		_media.Set($"{game.Index}|{game.Shown}{tileKey}", () =>
 		{
 			_player = null;
 			_imageReveal = null;
-			if (!game.Shown) return null;
+			if (!game.Shown) return tile != null ? GameParts.TileSlide(tile, 44) : null;
 			if (q.Type == QuestionType.Image)
 				return _imageReveal = new HostImageReveal(_host, _host.Room.Quiz.Questions[game.Index], U.Flexible);
 			if (!q.IsMedia) return null;
@@ -127,11 +130,10 @@ public partial class HostGameScreen : Control, IRoomScreen
 		_imageReveal?.Update(game);
 
 		// (rebuilt when the host ticks an answer or gives a bonus)
-		_content.Set((reveal != null ? $"{key}|{string.Join(",", reveal.Entries.Select(e => $"{e.PlayerId}:{e.Points}:{e.Bonus}"))}" : key + tlKey) + iaKey + (game.Shown ? "" : "|hidden"), () =>
+		_content.Set((reveal != null ? $"{key}|{string.Join(",", reveal.Entries.Select(e => $"{e.PlayerId}:{e.Points}:{e.Bonus}"))}" : key + tlKey) + iaKey + (tile != null ? "|tile" : ""), () =>
 		{
 			var box = U.V(14);
-			// (a chapter or break before this question: what the players see now, until the host shows the question)
-			if (game.Stage == Stage.Open && !game.Shown && GameParts.TileCards(game, 26) is { } tiles) box.AddChild(tiles);
+			if (tile != null) return box;
 			if (ia != null) Interactive(box, room, ia, reveal != null);
 			// (the host also sees the bonus's answer, and keeps the line at the reveal, where they give the bonus)
 			if ((reveal == null || game.HostBonusAnswer != null) && GameParts.BonusLine(q, 18, game.HostBonusAnswer) is { } bonusLine) box.AddChild(bonusLine);
@@ -197,7 +199,7 @@ public partial class HostGameScreen : Control, IRoomScreen
 
 		var answering = game.Buzzes.FirstOrDefault(b => b.Status == BuzzStatus.Answering);
 		var last = game.Index + 1 >= game.Total;
-		_controls.Set($"{key}{iaKey}|{answering?.PlayerId}|{answering?.AtSec}|{game.Buzzes.Count}|{game.Buzzes.Count(b => b.Status == BuzzStatus.Wrong)}|{game.Shown}|{game.BuzzersOpen}|{tl?.TurnPlayerId}|{tl?.Current}|{tl?.Phase}|{game.AnswersClosed}|{GameParts.PausedText(room)}", () =>
+		_controls.Set($"{key}{iaKey}|{answering?.PlayerId}|{answering?.AtSec}|{game.Buzzes.Count}|{game.Buzzes.Count(b => b.Status == BuzzStatus.Wrong)}|{game.Shown}|{game.BuzzersOpen}|{tl?.TurnPlayerId}|{tl?.Current}|{tl?.Phase}|{game.AnswersClosed}|{GameParts.PausedText(room)}{tileKey}", () =>
 		{
 			var row = GameParts.Row(10);
 			row.Alignment = BoxContainer.AlignmentMode.End;
@@ -219,10 +221,15 @@ public partial class HostGameScreen : Control, IRoomScreen
 			}
 			if (game.Stage == Stage.Open && !game.Shown)
 			{
-				row.AddChild(U.Muted(game.Tiles.Count == 0 ? "Players don't see this question yet."
-					: game.Tiles.Any(t => t.Kind == QuizTile.Break) ? "Players see the break. Show the question when everyone is back." : "Players see the chapter. Show the question when you're ready.", 15, false).Grow());
+				var more = game.TileStep + 1 < game.TileCount;
+				row.AddChild(U.Muted(tile == null ? "Players don't see this question yet."
+					: Lang.F(tile.Kind == QuizTile.Break ? "Everyone sees the break{0}. Go on when everyone is back." : "Everyone sees the chapter{0}.",
+						game.TileCount > 1 ? Lang.F(" (slide {0} of {1})", game.TileStep + 1, game.TileCount) : ""), 15, false).Grow());
 				row.AddChild(U.Btn("Host notes", "", HostNotes.Open).Tip("The question and answer in a separate window, e.g. for your second monitor"));
-				row.AddChild(U.Btn("Show question  (Space)", "AccentButton", _host.ShowQuestion, 20));
+				if (tile?.Kind != QuizTile.Break) row.AddChild(BreakButton());
+				row.AddChild(more
+					? U.Btn("Next slide  (Space)", "AccentButton", _host.NextTile, 20)
+					: U.Btn("Show question  (Space)", "AccentButton", _host.ShowQuestion, 20));
 				return row;
 			}
 			if (game.Stage == Stage.Open && q.Buzzer && answering == null)
@@ -268,7 +275,11 @@ public partial class HostGameScreen : Control, IRoomScreen
 				if (tl?.Phase == TimelinePhase.Result)
 					row.AddChild(U.Btn(tl.Current == null && tl.Left == 0 ? "Show results  (Space)" : "Next turn  (Space)", "AccentButton", _host.NextTurn, 20));
 			}
-			else row.AddChild(U.Btn(last ? "Show final results" : "Next question", "AccentButton", _host.Next, 20));
+			else
+			{
+				if (!last) row.AddChild(BreakButton());
+				row.AddChild(U.Btn(last ? "Show final results" : "Next question", "AccentButton", _host.Next, 20));
+			}
 			return row;
 		});
 
@@ -293,6 +304,15 @@ public partial class HostGameScreen : Control, IRoomScreen
 
 
 	GameView? _game;
+
+	/// <summary>"Take a break": one that isn't in the quiz, now (before the hidden question, or at a reveal before the next).</summary>
+	Control BreakButton() => U.Btn("Take a break", "", () => Dialogs.Choose(this,
+			"Everyone sees a break slide until you go on. How long?", "Take a break", new[] { "5 minutes", "10 minutes", "15 minutes", "No countdown" },
+			i =>
+			{
+				if (i >= 0) _host.TakeBreak(i switch { 0 => 5, 1 => 10, 2 => 15, _ => 0 });
+			}))
+		.On(Glyph.Kind.Cup, 16).Tip("A little pause that isn't in the quiz: everyone sees a break slide, with a countdown if you like");
 
 	/// <summary>Picture slideshows: ◀ "Picture 2 / 5" ▶ under the picture (the arrow keys do the same).</summary>
 	Control SlideControls(int slide, int count)
@@ -387,7 +407,8 @@ public partial class HostGameScreen : Control, IRoomScreen
 			return;
 		}
 		if (e is not InputEventKey { Pressed: true, Echo: false, Keycode: Key.Space } || _game is not { Stage: Stage.Open, Paused: false } game) return;
-		if (!game.Shown) _host.ShowQuestion();
+		if (!game.Shown && game.TileStep + 1 < game.TileCount) _host.NextTile();
+		else if (!game.Shown) _host.ShowQuestion();
 		else if (game.AnswersClosed) _host.Reveal();
 		else if (game.Timeline?.Phase == TimelinePhase.Locked) _host.RevealPlacement();
 		else if (game.Timeline?.Phase == TimelinePhase.Result) _host.NextTurn();

@@ -629,9 +629,11 @@ public static class SelfTest
 		var (tileRoom, tileClock) = NewRoom(chaptered, "ann", "bob");
 		tileRoom.Start();
 		var tg = tileRoom.Game!;
-		Check(!tg.Shown && tg.View("ann").Tiles is [{ Kind: QuizTile.Chapter, Number: 1, Chapters: 2 } first1] && first1.Questions == n / 2 && tg.View("host").Tiles.Count == 1,
+		Check(!tg.Shown && tg.View("ann") is { Tile: { Kind: QuizTile.Chapter, Number: 1, Chapters: 2 } first1, TileCount: 1 } && first1.Questions == n / 2 && tg.View("host").Tile != null,
 			"a chapter before a question holds it hidden (even when questions show by themselves) and everyone sees it");
-		Check(tg.ShowQuestion() && tg.Shown && tg.View("ann").Tiles.Count == 0, "the host shows the question: the chapter goes");
+		Check(!tg.NextTile(), "no next slide after the last one: the host shows the question");
+		Check(tg.ShowQuestion() && tg.Shown && tg.View("ann").Tile == null, "the host shows the question: the chapter goes");
+		Check(!tg.TakeBreak(5), "no break while a question runs");
 		Check(tg.Index == 0, "first question");
 		while (tg.Index < n / 2 - 1)
 		{
@@ -643,9 +645,21 @@ public static class SelfTest
 		tileClock.Now += 1000;
 		tileRoom.Next();
 		Eq(tg.Index, n / 2, "the second chapter's first question");
-		var tv = tg.View("ann").Tiles;
-		Check(!tg.Shown && tv.Count == 2 && tv[0].Kind == QuizTile.Break && tv[0].EndsAt == tileClock.Now + 5 * 60_000L && tv[1].Number == 2,
-			"a break and a chapter at the same place: the break first, with its countdown, then the chapter");
+		var tv = tg.View("ann");
+		Check(!tg.Shown && tv is { TileStep: 0, TileCount: 2, Tile: { Kind: QuizTile.Break } brk } && brk.EndsAt == tileClock.Now + 5 * 60_000L,
+			"a break and a chapter at the same place: two slides, the break first, with its countdown");
+		tileClock.Now += 60_000;
+		Check(tg.NextTile() && tg.View("ann") is { TileStep: 1, Tile: { Kind: QuizTile.Chapter, Number: 2 } } && !tg.Shown,
+			"the host goes on: the chapter is the next slide, the question still hidden");
+		Check(tg.TakeBreak(10) && tg.View("ann").Tile is { Kind: QuizTile.Break, EndsAt: { } ends } && ends == tileClock.Now + 10 * 60_000L && tg.View("ann").TileCount == 3,
+			"a break the host takes before a hidden question shows right away (its countdown from now), then the chapter again");
+		Check(tg.NextTile() && tg.View("ann").Tile?.Kind == QuizTile.Chapter && tg.ShowQuestion(), "then the chapter, then the question");
+		tileRoom.Next();
+		Check(tg.Stage == Stage.Reveal && tg.TakeBreak(0), "at a reveal the host can take a break");
+		tileRoom.Next();
+		Check(tg.Index == n / 2 + 1 && !tg.Shown && tg.View("ann").Tile is { Kind: QuizTile.Break, EndsAt: null },
+			"it comes up before the next question (which waits for it), without a countdown");
+		Check(tg.ShowQuestion(), "and the host goes on");
 
 		var informed = SampleQuiz.Build();
 		var est = informed.Questions.First(q => q.Type == QuestionType.Estimation);

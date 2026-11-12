@@ -27,45 +27,40 @@ public static class GameParts
 	/// none (centred in its row, so it lines up with the profile pictures).
 	/// </summary>
 	/// <summary>
-	/// The chapter and break tiles before a hidden question (GameView.Tiles), big: a chapter's title, its text and how many
-	/// questions it has; a break with its countdown. Null when there are none.
+	/// A chapter or break slide (GameView.Tile), shown to everyone in place of the hidden question: a chapter's number,
+	/// title, text and how many questions it has; a break with its countdown. The same on the host's screen and players'.
 	/// </summary>
-	public static Control? TileCards(GameView game, int size = 40)
+	public static Control TileSlide(TileView t, int size = 48)
 	{
-		if (game.Tiles.Count == 0) return null;
-		var column = U.V(14);
-		foreach (var t in game.Tiles)
+		var chapter = t.Kind == QuizTile.Chapter;
+		var ink = chapter ? C.Accent : C.Teal;
+		var box = U.V(size / 3);
+		box.Alignment = BoxContainer.AlignmentMode.Center;
+		var eyebrow = chapter
+			? (t.Chapters > 1 ? Lang.F("Chapter {0} of {1}", t.Number, t.Chapters) : Lang.T("Chapter"))
+			: Lang.T("Break");
+		var top = Row(12, Glyph.Rect(chapter ? Glyph.Kind.Bookmark : Glyph.Kind.Cup, size * 2 / 3, ink), U.Text(eyebrow.ToUpper(), size / 2, ink, Fonts.Spaced));
+		top.Alignment = BoxContainer.AlignmentMode.Center;
+		box.AddChild(top);
+		var title = t.Title != "" ? t.Title : chapter ? "" : Lang.T("Time for a little break");
+		if (title != "") box.AddChild(U.Text(title, size * 5 / 4, C.Text, Fonts.Black, true).Raw().With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
+		if (t.Text != "") box.AddChild(U.Text(t.Text, size / 2, C.Text, null, true).Raw().With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
+		if (chapter && t.Questions > 0)
+			box.AddChild(U.Muted(t.Questions == 1 ? Lang.T("1 question") : Lang.F("The next {0} questions", t.Questions), size * 2 / 5, false, HorizontalAlignment.Center));
+		if (!chapter)
 		{
-			var chapter = t.Kind == QuizTile.Chapter;
-			var ink = chapter ? C.Accent : C.Teal;
-			var box = U.V(10);
-			box.Alignment = BoxContainer.AlignmentMode.Center;
-			var eyebrow = chapter
-				? (t.Chapters > 1 ? Lang.F("Chapter {0} of {1}", t.Number, t.Chapters) : Lang.T("Chapter"))
-				: Lang.T("Break");
-			var top = Row(10, Glyph.Rect(chapter ? Glyph.Kind.Bookmark : Glyph.Kind.Cup, size * 2 / 3, ink), U.Text(eyebrow.ToUpper(), size / 2, ink, Fonts.Spaced));
-			top.Alignment = BoxContainer.AlignmentMode.Center;
-			box.AddChild(top);
-			var title = t.Title != "" ? t.Title : chapter ? "" : Lang.T("Time for a little break");
-			if (title != "") box.AddChild(U.Text(title, size, C.Text, Fonts.Black, true).Raw().With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
-			if (t.Text != "") box.AddChild(U.Text(t.Text, size * 9 / 20, C.Text, null, true).Raw().With(l => l.HorizontalAlignment = HorizontalAlignment.Center));
-			if (chapter && t.Questions > 0)
-				box.AddChild(U.Muted(t.Questions == 1 ? Lang.T("1 question") : Lang.F("The next {0} questions", t.Questions), size * 2 / 5, false, HorizontalAlignment.Center));
-			if (!chapter)
+			if (t.EndsAt != null)
 			{
-				if (t.EndsAt != null)
-				{
-					var clock = Row(10, U.Muted("Back in", size * 2 / 5, false), new Countdown(t.EndsAt, null, size));
-					clock.Alignment = BoxContainer.AlignmentMode.Center;
-					box.AddChild(clock);
-				}
-				else box.AddChild(U.Muted("The host goes on when everyone is back.", size * 2 / 5, false, HorizontalAlignment.Center));
+				var clock = Row(12, U.Muted("Back in", size * 2 / 5, false), new Countdown(t.EndsAt, null, size * 5 / 4));
+				clock.Alignment = BoxContainer.AlignmentMode.Center;
+				box.AddChild(clock);
 			}
-			var panel = U.Panel(U.Pad(box.MinSize(0, size * 4), 24, 18, 24, 18), "Card2");
-			panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(ink, 0.08f), 16, ink, 2, 18, 14));
-			column.AddChild(panel);
+			else box.AddChild(U.Muted("The host goes on when everyone is back.", size * 2 / 5, false, HorizontalAlignment.Center));
 		}
-		return column;
+		var panel = U.Panel(U.Pad(box, 32, 24, 32, 24), "Card2").MinSize(0, size * 8);
+		panel.AddThemeStyleboxOverride("panel", UiTheme.Box(new Color(ink, 0.08f), 18, ink, 2, 18, 14));
+		// (as tall as the space there is: the slide takes the question's place)
+		return panel.MarkFlexible();
 	}
 
 	/// <summary>"Category: Geography" (the quiz maker's own categories as they wrote them).</summary>

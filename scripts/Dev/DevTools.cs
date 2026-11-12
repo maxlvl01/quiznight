@@ -887,7 +887,7 @@ public sealed class DevTools
 		var g = state?.Game;
 		var moment = state == null
 			? _app.CurrentScreen?.GetType().Name ?? ""
-			: $"{state.Phase}-{g?.Index}-{g?.Stage}{(g is { Shown: false } ? "-hidden" : g is { Question.Buzzer: true, BuzzersOpen: false } ? "-locked" : "")}-{g?.Buzzes.Count}-{g?.Buzzes.Count(b => b.Status == BuzzStatus.Wrong)}-{g?.AnsweredIds.Count}-{state.Players.Count}{(g?.Timeline is { } tl ? $"-tl{tl.Placed.Count}{tl.TurnOrder.IndexOf(tl.TurnPlayerId ?? "")}{tl.WrongGaps.Count}{tl.Phase[0]}" : "")}{(g?.Reveal?.Entries.Count(e => e.Bonus) is > 0 and var bonuses ? $"-bonus{bonuses}" : "")}{(g is { Paused: true } ? "-paused" : "")}-on{state.Players.Count(p => p.Connected)}";
+			: $"{state.Phase}-{g?.Index}-{g?.Stage}{(g is { Shown: false } ? $"-hidden{(g.TileCount > 0 ? $"-slide{g.TileStep}" : "")}" : g is { Question.Buzzer: true, BuzzersOpen: false } ? "-locked" : "")}-{g?.Buzzes.Count}-{g?.Buzzes.Count(b => b.Status == BuzzStatus.Wrong)}-{g?.AnsweredIds.Count}-{state.Players.Count}{(g?.Timeline is { } tl ? $"-tl{tl.Placed.Count}{tl.TurnOrder.IndexOf(tl.TurnPlayerId ?? "")}{tl.WrongGaps.Count}{tl.Phase[0]}" : "")}{(g?.Reveal?.Entries.Count(e => e.Bonus) is > 0 and var bonuses ? $"-bonus{bonuses}" : "")}{(g is { Paused: true } ? "-paused" : "")}-on{state.Players.Count(p => p.Connected)}";
 		if (moment != _lastMoment)
 		{
 			_lastMoment = moment;
@@ -907,7 +907,7 @@ public sealed class DevTools
 		var s = host.State;
 		var g = s.Game;
 		var answering = g?.Buzzes.FirstOrDefault(b => b.Status == BuzzStatus.Answering);
-		var key = $"{s.Phase}|{g?.Index}|{g?.Stage}|{g?.Shown}|{g?.BuzzersOpen}|{answering?.PlayerId}|{g?.Buzzes.Count}|{s.Players.Count(p => p.Connected)}|{g?.Timeline?.Placed.Count}|{g?.Timeline?.TurnPlayerId}|{g?.Timeline?.WrongGaps.Count}|{g?.Timeline?.Phase}|{g?.Question.Slide}|{g?.Question.Hints?.Count}|{g?.Interactive?.Phase}|{g?.Interactive?.Clip}|{g?.Interactive?.Plays}|{g?.Interactive?.DoneIds.Count}|{g?.AnswersClosed}";
+		var key = $"{s.Phase}|{g?.Index}|{g?.Stage}|{g?.Shown}|{g?.BuzzersOpen}|{answering?.PlayerId}|{g?.Buzzes.Count}|{s.Players.Count(p => p.Connected)}|{g?.Timeline?.Placed.Count}|{g?.Timeline?.TurnPlayerId}|{g?.Timeline?.WrongGaps.Count}|{g?.Timeline?.Phase}|{g?.Question.Slide}|{g?.Question.Hints?.Count}|{g?.Interactive?.Phase}|{g?.Interactive?.Clip}|{g?.Interactive?.Plays}|{g?.Interactive?.DoneIds.Count}|{g?.AnswersClosed}|{g?.TileStep}";
 		if (key != _pilotKey)
 		{
 			_pilotKey = key;
@@ -929,7 +929,9 @@ public sealed class DevTools
 			case Phase.Playing when g!.Stage == Stage.Open:
 				if (!g.Shown)
 				{
-					if (waited > 1.2) host.ShowQuestion();
+					// (chapter and break slides one by one, then the question)
+					if (waited > 1.2 && g.TileStep + 1 < g.TileCount) host.NextTile();
+					else if (waited > 1.2) host.ShowQuestion();
 					break;
 				}
 				// Sound and video: start it once every player has the file (or after a while), like a host would.

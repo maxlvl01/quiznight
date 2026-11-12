@@ -277,27 +277,68 @@ public sealed class Game
 		_decideAt = null;
 		Shown = false;
 		BuzzersOpen = false;
-		_hiddenSince = now;
+		// (the quiz's chapters and breaks before it, after a break the host asked for at the last reveal)
+		_tiles.Clear();
+		if (_breakNext is { } min) _tiles.Add(new QuizTile { Kind = QuizTile.Break, BreakMin = min });
+		_breakNext = null;
+		_tiles.AddRange(_quiz.TilesAt(Index));
+		TileStep = 0;
+		_tileSince = now;
 		// (a chapter or break before it waits for the host, also when questions show by themselves)
-		if (!_hooks.HostShowsQuestions() && _quiz.TilesAt(Index).Count == 0) StartShown(now);
+		if (!_hooks.HostShowsQuestions() && _tiles.Count == 0) StartShown(now);
 	}
 
-	/// <summary>When the current question opened (hidden): a break before it counts down from then.</summary>
-	long _hiddenSince;
+	/// <summary>The chapters and breaks before the current question, one after the other (each its own slide).</summary>
+	readonly List<QuizTile> _tiles = new();
+	/// <summary>Which of them everyone sees now (while the question is hidden).</summary>
+	public int TileStep { get; private set; }
+	/// <summary>When the tile shown now came up: a break counts down from then.</summary>
+	long _tileSince;
+	/// <summary>A break the host takes at a reveal: it comes up before the next question.</summary>
+	int? _breakNext;
 
-	/// <summary>The chapter and break tiles before the current question, as everyone sees them while it's hidden.</summary>
-	List<TileView> TileViews()
+	/// <summary>The tile everyone sees now, or null.</summary>
+	TileView? CurrentTile()
 	{
-		if (Stage != Shared.Stage.Open || Shown) return new();
+		if (Stage != Shared.Stage.Open || Shown || TileStep >= _tiles.Count) return null;
+		var t = _tiles[TileStep];
 		var chapters = _quiz.Chapters();
-		return _quiz.TilesAt(Index).Select(t => new TileView
+		return new TileView
 		{
 			Kind = t.Kind, Title = t.Title, Text = t.Text,
 			Questions = t.IsChapter ? _quiz.ChapterLength(t) : 0,
 			Number = t.IsChapter ? chapters.IndexOf(t) + 1 : 0,
 			Chapters = chapters.Count,
-			EndsAt = !t.IsChapter && t.BreakMin > 0 ? _hiddenSince + t.BreakMin * 60_000L : null,
-		}).ToList();
+			EndsAt = !t.IsChapter && t.BreakMin > 0 ? _tileSince + t.BreakMin * 60_000L : null,
+		};
+	}
+
+	/// <summary>The host goes on to the next chapter or break slide (the last one goes on with ShowQuestion).</summary>
+	public bool NextTile()
+	{
+		if (Stage != Shared.Stage.Open || Shown || Paused || TileStep + 1 >= _tiles.Count) return false;
+		TileStep++;
+		_tileSince = _hooks.Now();
+		return true;
+	}
+
+	/// <summary>
+	/// The host takes a break that wasn't planned (minutes 0 = no countdown): before a hidden question it comes up right
+	/// away, at a reveal it comes up before the next question (then Room.Next opens it). Not while a question runs.
+	/// </summary>
+	public bool TakeBreak(int minutes)
+	{
+		minutes = Math.Clamp(minutes, 0, QuizTile.BreakMinMax);
+		if (Paused) return false;
+		if (Stage == Shared.Stage.Open && !Shown)
+		{
+			_tiles.Insert(Math.Min(TileStep, _tiles.Count), new QuizTile { Kind = QuizTile.Break, BreakMin = minutes });
+			_tileSince = _hooks.Now();
+			return true;
+		}
+		if (Stage != Shared.Stage.Reveal || Index + 1 >= _quiz.Questions.Count) return false;
+		_breakNext = minutes;
+		return true;
 	}
 
 	/// <summary>A new round of buzzers opens: reaction times count from now.</summary>
@@ -1550,7 +1591,9 @@ public sealed class Game
 			FastPassTaken = JokerIndex is { } fi && FastPassTaken(fi, viewer),
 			// (a joker for a question not shown yet is a secret: only its player sees it, and can take it back)
 			Jokers = _jokers.Where(j => (viewer != "host" && Mates(j.PlayerId, viewer)) || Locked(j)).Select(j => new JokerPlay { PlayerId = j.PlayerId, Kind = j.Kind, Index = j.Index }).ToList(),
-			Tiles = TileViews(),
+			Tile = CurrentTile(),
+			TileStep = TileStep,
+			TileCount = Stage == Shared.Stage.Open && !Shown ? _tiles.Count : 0,
 		};
 		if (viewer == "host")
 		{

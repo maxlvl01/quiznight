@@ -19,10 +19,13 @@ On GitHub, each version heading links to its release, where the download is.
 ### Added
 - **Chapters.** On the quiz page, "Add chapter" puts a tile between your questions, like "Round 2: Music", with a line
   about what's coming if you like. The game counts its questions by itself, up to the next chapter. When the night gets
-  there, everyone sees the chapter big on their screen ("Chapter 2 of 3 · The next 8 questions") until the host shows
-  the question. (Max's idea.)
+  there, everyone sees the chapter as a slide of its own, filling the screen ("Chapter 2 of 3 · The next 8 questions"),
+  until the host shows the question. (Max's idea.)
 - **Breaks.** "Add break" puts a little pause between two questions: a title, a text ("Grab a drink!") and a countdown
-  of up to an hour if you like. Everyone sees it until the host goes on.
+  of up to an hour if you like. A break and a chapter in the same place are two slides: the host goes from one to the
+  next with "Next slide" (Space), then shows the question.
+- **Take a break any time.** The host can also take a break that isn't in the quiz: "Take a break" (5, 10 or 15 minutes,
+  or no countdown) at a reveal or before a question is shown. Everyone sees the break slide until the host goes on.
 - Chapters and breaks sit between the questions in the play order: move them with ▲ ▼, click one to change it. They
   stay where they are when you move questions around, so dragging a question under a chapter puts it into that chapter.
 

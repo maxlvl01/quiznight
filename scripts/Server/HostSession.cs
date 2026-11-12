@@ -519,6 +519,16 @@ public sealed class HostSession : IDisposable
 	public void SetBuzzers(bool open) => GameAction(g => g.SetBuzzers(open));
 	public void EndRecording() => GameAction(g => g.EndRecordingNow());
 	public void NextHint() => GameAction(g => g.NextHint());
+	/// <summary>The next chapter or break slide before the hidden question.</summary>
+	public void NextTile() => GameAction(g => g.NextTile());
+
+	/// <summary>A break the host takes now: before the hidden question, or at a reveal before the next one (which opens).</summary>
+	public void TakeBreak(int minutes)
+	{
+		if (!Playing() || !Room.Game!.TakeBreak(minutes)) return;
+		if (Room.Game.Stage == Stage.Reveal) Room.Next();
+		Broadcast();
+	}
 	public void SetClip(int clip) => GameAction(g => g.SetClip(clip));
 	public void PlayClip() => GameAction(g => g.PlayClip());
 	public void StartVoting() => GameAction(g => g.StartVoting());
