@@ -19,6 +19,8 @@ public partial class QuizOverviewScreen : Control
 
 	/// <summary>Dev runs (--screen quiz --list category): how the list opens.</summary>
 	public static string ListedBy { set => _sort = value; }
+	/// <summary>Dev runs (--screen quiz --edit-tile chapter|break): the screen opens with that tile's pop-up.</summary>
+	public static string? OpenTile;
 	readonly VBoxContainer _foot = U.V(8);
 	readonly Label _error = U.Error();
 	readonly LineEdit _title;
@@ -107,6 +109,8 @@ public partial class QuizOverviewScreen : Control
 		spot.Size = spot.CustomMinimumSize;
 		spot.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomRight, LayoutPresetMode.KeepSize, (int)ButtonDock.Margin);
 		RefreshList();
+		if (OpenTile is { } kind) Callable.From(() => EditTile(null, kind == QuizTile.Break ? QuizTile.Break : QuizTile.Chapter)).CallDeferred();
+		OpenTile = null;
 		_history = new(() => (_quiz.Title, _quiz.Questions.ToList(), _quiz.CategoryOrder.ToList(), _quiz.TypeOrder.ToList(), _quiz.Tiles.Select(t => t.Copy()).ToList()), state =>
 		{
 			_quiz.Title = state.Title;
@@ -505,6 +509,8 @@ public partial class QuizOverviewScreen : Control
 		d.Canceled += d.QueueFree;
 		AddChild(d);
 		d.PopupCentered();
+		// (its wrapped hints measure tall before they have a width, so the first size reached past the screen: shrink once laid out)
+		Callable.From(() => { d.ResetSize(); d.MoveToCenter(); }).CallDeferred();
 	}
 
 	/// <summary>A row's frame: the accent colour and thicker while it's picked.</summary>

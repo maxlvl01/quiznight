@@ -151,7 +151,7 @@ the original design decisions; most still apply.
   questions up to the next chapter (`Quiz.ChapterLength`; breaks don't end one). `Game.Open` keeps a question with tiles hidden
   even when questions show by themselves; each tile is its own slide (`GameView.Tile`/`TileStep`/`TileCount`, host `NextTile`,
   a break's `EndsAt` from when its slide came up), drawn full size by `GameParts.TileSlide` on both screens. The host's
-  "Take a break" (`Game.TakeBreak`) adds an unplanned break: before the hidden question now, or at a reveal before the next. Quiz page: `TileRow`/`EditTile`, play order only. `--tiles`
+  "Take a break" (`Game.TakeBreak`) adds an unplanned break: before the hidden question now, or at a reveal before the next. Quiz page: `TileRow`/`EditTile` (`--edit-tile chapter|break` opens it), play order only. `--tiles`
   with `--screen quiz` or `--host-sample`.
 - **Quiz page** (`QuizOverviewScreen`): Ctrl/Shift+click pick rows (`_picked`, by question), a picked row's drag moves all
   of them (`QuestionRowButton.Dragged` → `MoveMany`). "By category" groups by `Quiz.CategoryOrder` (format 15), ▲ ▼ per

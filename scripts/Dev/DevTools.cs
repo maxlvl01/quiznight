@@ -391,6 +391,8 @@ public sealed class DevTools
 				{
 					// (--list play|type|category|created: the list shown that way; --category-order a,b,c: the quiz's categories' order; --type-order a,b: its types' order)
 					if (Value("--list") is { } listed) QuizOverviewScreen.ListedBy = listed;
+					// (--edit-tile chapter|break: with the add pop-up open)
+					QuizOverviewScreen.OpenTile = Value("--edit-tile");
 					// (--tour-quiz: the guided tour's sample, which has categories)
 					var sample = Has("--tour-quiz") ? Ui.Tutorial.TourQuiz() : SampleQuiz.Build();
 					if (Value("--category-order") is { } order) sample.CategoryOrder = order.Split(',').ToList();
