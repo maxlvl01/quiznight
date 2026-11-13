@@ -384,10 +384,11 @@ Also move each report's files to the folder for its state: `Reported`/`Requested
 in a test (dev) version about to be tested; `Pending` = scheduled for the next public update; `Resolved` = done and
 released (when a test build ships a fix: WIP; when that version goes public: Resolved).
 
-## In progress: 0.16.0d1 "Chapter and Verse" (paused 2026-11-12, to go on from the main PC)
+## In progress: 0.16.0d1 "Chapter and Verse" (test build out 2026-11-13, waiting for Max to try it)
 
-Branch `claude/moderation-tiles-questions-598b2a` (pushed). The code is done, the self-test passes (626), screenshots
-checked; **no test build yet**. What's in it (details under "Chapters and breaks" above, player text in CHANGELOG.md):
+Branch `claude/moderation-tiles-questions-598b2a`. The code is done, the self-test passes (626; 612 on the export), the
+tile pop-up was fixed (it ran off the screen) and the **test build is on quiznight-test-releases** (v0.16.0d1, with the
+changed WoW Azeroth map pack uploaded by `map_packs.sh --test`). What's in it (details under "Chapters and breaks" above, player text in CHANGELOG.md):
 - Chapter and break tiles between questions on the quiz page (Add chapter / Add break, ▲ ▼, click to edit, ×; play
   order only). A chapter counts its own questions up to the next chapter. Quiz format 18 (`tiles`).
 - In the game each tile is its own full-screen slide on host and player screens; the host goes on with "Next slide"
@@ -397,12 +398,13 @@ checked; **no test build yet**. What's in it (details under "Chapters and breaks
 - Dev: `--tiles` with `--screen quiz` or `--host-sample` adds two chapters and a 5-minute break to the sample quiz; the
   autopilot steps through the slides.
 
-To finish, on the main PC:
-1. Check out the branch, `dotnet build`, `--selftest`.
-2. Look at the add/edit pop-up on the quiz page once (`--screen quiz --tiles`, click "Add break"): not seen on screen yet.
-3. Make the test build: `tools/release.sh --test` (version is already 0.16.0d1 in project.godot, changelog section
-   exists). Then tick "Test 0.16.0d1 with friends" in the roadmap doc's "Next: 0.16" section once Max has tried it.
-4. Merge the branch into master when Max is happy (ask before pushing master).
+To finish:
+1. Once Max has tried it, tick "Test 0.16.0d1 with friends" in the roadmap doc's "Next: 0.16" section.
+2. Merge the branch into master when Max is happy (ask before pushing master or the branch).
+3. Public release (plain `release.sh`) only when Max says so; the public maps then need plain `tools/map_packs.sh` first.
+
+Release files on the main PC: `results-token.txt` and `issues-token.txt` are gitignored and live in the main checkout
+(`issues-token.txt` was only in old worktrees until 2026-11-13); a new worktree needs both copied in before `release.sh`.
 
 Why it wasn't released from the other PC: that PC lacks the release setup. Godot is installed via WinGet there
 (`%LOCALAPPDATA%\Microsoft\WinGet\Packages\GodotEngine.GodotEngine.Mono_…\Godot_v4.7.2-stable_mono_win64\`, not on the
