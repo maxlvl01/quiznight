@@ -14,6 +14,8 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+## [0.15.7b]
+
 ### Fixed
 - **A broken message from a player can't freeze the room any more.** A changed game could send a message with an empty
   field (a missing name, for example). The host's game tripped over it and skipped everything else that frame. Sent every
