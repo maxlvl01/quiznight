@@ -257,32 +257,5 @@ public static class WowAtlas
 		return (maxContinentDiagonal + Hypot(a.X - b.X, (a.Y - b.Y) * aspect) * yardsPerWorldWidth) * YardKm;
 	}
 
-	/// <summary>The capital city in this zone, with where to draw its label (its centre, kept inside the map).</summary>
-	public static IEnumerable<(Map City, NormPoint At)> CitiesOn(Map map) =>
-		Maps.Where(m => m.City && CityZone[m.Id] == map.Id).Select(city =>
-		{
-			var r = city.Region!.Value;
-			var at = FromLocation(map, new Location(city.Continent!.Value, (r.XMin + r.XMax) / 2, (r.YMin + r.YMax) / 2));
-			static double Clamp(double v) => Math.Min(0.94, Math.Max(0.06, v));
-			return (city, new NormPoint(Clamp(at.X), Clamp(at.Y)));
-		});
-
-	/// <summary>Where a click on a world or continent map leads, or null if nowhere.</summary>
-	public static Map? ChildAt(Map map, NormPoint p)
-	{
-		if (map.Kind == Kind.World) return ContinentAtWorld(p) is { } c ? ContinentMap(c) : null;
-		if (map.Kind == Kind.Continent) return ZoneAt(ToLocation(map, p));
-		return null;
-	}
-
-	/// <summary>A stored world-map point on this map, if it lies on it.</summary>
-	public static NormPoint? OnMap(Map map, NormPoint world)
-	{
-		if (map.Kind == Kind.World) return world;
-		if (WorldToLocation(world) is not { } loc || loc.Continent != map.Continent) return null;
-		var p = FromLocation(map, loc);
-		return p.X >= 0 && p.X <= 1 && p.Y >= 0 && p.Y <= 1 ? p : null;
-	}
-
 	static double Hypot(double a, double b) => Math.Sqrt(a * a + b * b);
 }

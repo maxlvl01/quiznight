@@ -71,9 +71,14 @@ public sealed class LanHostTransport : IHostTransport
 
 	public string? PeerSteamId(string peer) => null;
 
+	/// <summary>A player whose game stopped reading: past this much waiting, the connection is closed (the seat stays).</summary>
+	const long MaxBacklog = 64 * 1024 * 1024;
+
 	public void Send(string peer, byte[] data)
 	{
-		if (_peers.TryGetValue(peer, out var p)) Queue(p, data);
+		if (!_peers.TryGetValue(peer, out var p)) return;
+		if (p.OutBytes > MaxBacklog) Disconnect(peer);
+		else Queue(p, data);
 	}
 
 	public bool TrySend(string peer, byte[] data)

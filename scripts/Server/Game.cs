@@ -40,7 +40,8 @@ public interface IGameHooks
 	void NoteDistance(string playerId, double km);
 	void NotePercentOff(string playerId, double percent);
 	/// <summary>…and that they scored on a question.</summary>
-	void NoteScored(string playerId);
+	/// <summary>Whether a player scored on this question (the host's ticks can change it at the reveal).</summary>
+	void NoteScored(string playerId, bool scored = true);
 	int Score(string playerId);
 	void Award(string playerId, int points);
 	long Now();
@@ -385,7 +386,7 @@ public sealed class Game
 			// resuming gives them all another one.
 			if (Shown && Question.IsBuzzer && !Paused && _buzzes.All(b => b.Status is BuzzStatus.Wrong or BuzzStatus.Correct))
 			{
-				if (_buzzes.Count > 0 && Active().All(id => _buzzes.Any(b => b.PlayerId == id))) ReopenBuzzers();
+				if (_buzzes.Count > 0 && Active().All(id => _buzzes.Any(b => Mates(b.PlayerId, id)))) ReopenBuzzers();
 				if (!BuzzersOpen) BuzzersOpened(now);
 				BuzzersOpen = true;
 			}
@@ -519,7 +520,8 @@ public sealed class Game
 		AnswerValue value;
 		if (q.Type == QuestionType.Estimation)
 		{
-			if (raw?.Num is not { } n || !double.IsFinite(n)) return Result.Fail("Please enter a number.");
+			// (finite but huge, like 1e308, overflows the percent-off maths into Infinity, which JSON can't send)
+			if (raw?.Num is not { } n || !double.IsFinite(n) || Math.Abs(n) > 1e15) return Result.Fail("Please enter a number.");
 			value = AnswerValue.Number(n);
 		}
 		else if (q.Type == QuestionType.Order)
@@ -1131,9 +1133,16 @@ public sealed class Game
 		if (q.IsList)
 		{
 			// (each answer that matches one the quiz maker wrote down is ticked already; the host changes what they like)
+			var keys = q.AnswerText.Split('\n', ';').Select(s => s.Trim()).Where(s => s != "").ToList();
 			var entries = _answers.Where(a => a.Value.Texts is { Count: > 0 }).Select(a =>
 			{
-				var right = a.Value.Texts!.Select(t => q.AnswerText.Trim() != "" && QuizRules.WrittenMatches(t, q.AnswerText)).ToList();
+				// (each line of the key counts once: "Verstappen" and "Verstapen" are one right answer, not two)
+				var used = new HashSet<int>();
+				var right = a.Value.Texts!.Select(t =>
+				{
+					var k = Enumerable.Range(0, keys.Count).FirstOrDefault(i => !used.Contains(i) && QuizRules.WrittenMatches(t, keys[i]), -1);
+					return k >= 0 && used.Add(k);
+				}).ToList();
 				var count = right.Count(r => r);
 				return new RevealEntry { PlayerId = a.PlayerId, Value = a.Value, Text = string.Join(" · ", a.Value.Texts!), ItemsRight = right, Correct = count > 0, Points = count * q.Points };
 			}).OrderByDescending(e => e.Points).ToList();
@@ -1251,6 +1260,7 @@ public sealed class Game
 			return false;
 		entry.Correct = !entry.Correct;
 		SetPoints(entry, ((entry.Correct ? Question.Points : 0) + (entry.Bonus ? Question.BonusPoints : 0)) * Multiplier(playerId));
+		_hooks.NoteScored(playerId, entry.Points > 0);
 		_reveal.WinnerIds = _reveal.Entries.Where(e => e.Correct).Select(e => e.PlayerId).ToList();
 		return true;
 	}
@@ -1264,6 +1274,7 @@ public sealed class Game
 		var count = right.Count(r => r);
 		entry.Correct = count > 0;
 		SetPoints(entry, (count * Question.Points + (entry.Bonus ? Question.BonusPoints : 0)) * Multiplier(playerId));
+		_hooks.NoteScored(playerId, entry.Points > 0);
 		_reveal.WinnerIds = _reveal.Entries.Where(e => e.Correct).Select(e => e.PlayerId).ToList();
 		return true;
 	}

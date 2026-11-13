@@ -186,7 +186,8 @@ public static class QuizJson
 		q.Prompt = Str(o, "prompt", q.Prompt);
 		// (read as a whole number first: a question copied in memory still holds it as one)
 		q.CreatedAt = o["createdAt"] is JsonValue made && made.TryGetValue<long>(out var madeMs) ? Math.Max(0, madeMs) : (long)Math.Max(0, Num(o, "createdAt", 0));
-		q.Points = (int)Num(o, "points", q.Points);
+		// (the editor keeps these in range; a file from someone else might not: -5 points, or a 0 s timer that closes at once)
+		q.Points = (int)Math.Clamp(Num(o, "points", q.Points), QuestionLimits.PointsMin, QuestionLimits.PointsMax);
 		q.Image = ReadImage(o["image"]);
 		if (o["slides"] is JsonArray slides)
 			q.Slides = slides.Select(ReadImage).OfType<ImageAsset>().Take(QuestionLimits.SlidesMax).ToList();
@@ -206,7 +207,7 @@ public static class QuizJson
 		q.CorrectChoice = (int)Num(o, "correctChoice", 0);
 		if (o["correctChoices"] is JsonArray correct)
 			q.CorrectChoices = correct.Select(c => c is JsonValue v && v.TryGetValue<double>(out var n) ? (int)n : -1).Where(i => i is >= 0 and < 4).Distinct().ToList();
-		q.TimeLimitSec = (int)Num(o, "timeLimitSec", q.TimeLimitSec);
+		q.TimeLimitSec = (int)Math.Clamp(Num(o, "timeLimitSec", q.TimeLimitSec), QuestionLimits.TimeLimitMin, QuestionLimits.TimeLimitMax);
 		q.OrderMode = Str(o, "orderMode", OrderMode.All) == OrderMode.Timeline ? OrderMode.Timeline : OrderMode.All;
 		if (o["items"] is JsonArray items)
 			q.Items = items.Select(i => i is JsonValue v && v.TryGetValue<string>(out var s) ? s : "")

@@ -62,7 +62,7 @@ public static class BugReports
 			using var stream = new FileStream(path, FileMode.Open, System.IO.FileAccess.Read, FileShare.ReadWrite);
 			using var reader = new StreamReader(stream);
 			var lines = reader.ReadToEnd().Split('\n');
-			return NoSteamIds(CrashReports.Anonymise(string.Join('\n', lines.Skip(Math.Max(0, lines.Length - LogLines))), System.Environment.UserName));
+			return NoSteamIds(CrashReports.Anonymise(string.Join('\n', lines.Skip(Math.Max(0, lines.Length - LogLines)))));
 		}
 		catch (Exception e)
 		{

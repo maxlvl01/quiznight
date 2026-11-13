@@ -46,6 +46,6 @@ fi
 FILES=()
 for f in $NEW; do FILES+=("$OUT/$f"); done
 # (the packs first, then the list that points to them)
-[ ${#FILES[@]} -gt 0 ] && gh release upload "$TAG" --repo "$REPO" "${FILES[@]}"
+[ ${#FILES[@]} -gt 0 ] && gh release upload "$TAG" --repo "$REPO" --clobber "${FILES[@]}"
 gh release upload "$TAG" --repo "$REPO" --clobber "$OUT/maps.json" "$OUT/maps.json.sig"
 echo "Maps published on $REPO."

@@ -244,6 +244,7 @@ public sealed class SteamHostTransport : IHostTransport
 	sealed class Outbox
 	{
 		public readonly Queue<byte[]> Waiting = new();
+		public long WaitingBytes;
 		/// <summary>Background bytes per second this connection gets (adapts).</summary>
 		public double Rate = 1024 * 1024;
 		public double WindowStart;
@@ -251,6 +252,7 @@ public sealed class SteamHostTransport : IHostTransport
 		public double LastFull;
 	}
 
+	const long MaxBacklog = 64 * 1024 * 1024;
 	const double MinRate = 64 * 1024, MaxRate = 16 * 1024 * 1024, Window = 0.25;
 	readonly Dictionary<string, Outbox> _outbox = new();
 
@@ -268,14 +270,22 @@ public sealed class SteamHostTransport : IHostTransport
 	{
 		if (!_peers.TryGetValue(peer, out var p)) return;
 		var o = OutboxOf(peer);
+		// (a player whose game stopped reading: past this much waiting, the connection is closed; the seat stays)
+		if (o.WaitingBytes > MaxBacklog)
+		{
+			Disconnect(peer);
+			return;
+		}
 		if (o.Waiting.Count > 0)
 		{
 			o.Waiting.Enqueue(data);
+			o.WaitingBytes += data.Length;
 			return;
 		}
 		if (p.Conn.SendMessage(data, SendType.Reliable) == Steamworks.Result.LimitExceeded)
 		{
 			o.Waiting.Enqueue(data);
+			o.WaitingBytes += data.Length;
 			Full(o);
 		}
 	}
@@ -303,7 +313,7 @@ public sealed class SteamHostTransport : IHostTransport
 			{
 				var result = p.Conn.SendMessage(o.Waiting.Peek(), SendType.Reliable);
 				if (result == Steamworks.Result.LimitExceeded) break;
-				o.Waiting.Dequeue(); // (sent, or refused for good: a closed connection)
+				o.WaitingBytes -= o.Waiting.Dequeue().Length; // (sent, or refused for good: a closed connection)
 			}
 			if (now - o.WindowStart >= Window)
 			{

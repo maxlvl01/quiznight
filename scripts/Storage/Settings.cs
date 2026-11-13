@@ -11,6 +11,7 @@ public static class Settings
 {
 	const string FilePath = "user://settings.cfg";
 	static ConfigFile? _cfg;
+	static bool _readOnly;
 
 	static ConfigFile Cfg
 	{
@@ -18,7 +19,15 @@ public static class Settings
 		{
 			if (_cfg != null) return _cfg;
 			_cfg = new ConfigFile();
-			_cfg.Load(FilePath); // missing on first start: fine
+			// (missing on first start: fine; there but unreadable, e.g. locked by a virus scanner: saving now would write a
+			// file with only the one changed setting, so this session doesn't save, and a copy is kept just in case)
+			var err = _cfg.Load(FilePath);
+			if (err is not (Error.Ok or Error.FileNotFound))
+			{
+				_readOnly = true;
+				DirAccess.CopyAbsolute(ProjectSettings.GlobalizePath(FilePath), ProjectSettings.GlobalizePath(FilePath + ".bak"));
+				GD.PushWarning($"Couldn't read the settings ({err}): they won't be saved this time.");
+			}
 			return _cfg;
 		}
 	}
@@ -37,7 +46,7 @@ public static class Settings
 	{
 		Cfg.SetValue("app", key, value);
 		_values[key] = value;
-		Cfg.Save(FilePath);
+		if (!_readOnly) Cfg.Save(FilePath);
 	}
 
 	/// <summary>

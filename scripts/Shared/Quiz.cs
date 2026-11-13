@@ -594,7 +594,8 @@ public static class QuizRules
 			var o = Normalize(option);
 			if (o == "") continue;
 			var allowed = o.Length >= 9 ? 2 : o.Length >= 5 ? 1 : 0;
-			if (Distance(a, o) <= allowed) return true;
+			// (typos are for letters: 350000 isn't a typo of 250000, but "Apolo 11" still is one of "Apollo 11")
+			if (Distance(a, o) <= allowed && a.Where(char.IsDigit).SequenceEqual(o.Where(char.IsDigit))) return true;
 		}
 		return false;
 	}

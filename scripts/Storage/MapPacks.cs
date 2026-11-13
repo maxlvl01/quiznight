@@ -105,7 +105,7 @@ public static class MapPacks
 			var o = new JsonObject();
 			foreach (var (id, p) in Installed)
 				o[id] = new JsonObject { ["sha256"] = p.Sha256, ["files"] = new JsonArray(p.Files.Select(f => (JsonNode)JsonValue.Create(f)!).ToArray()) };
-			File.WriteAllText(InstalledFile, o.ToJsonString());
+			QuizStore.WriteSafely(InstalledFile, o.ToJsonString());
 		}
 	}
 

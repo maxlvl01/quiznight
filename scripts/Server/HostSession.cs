@@ -89,8 +89,6 @@ public sealed class HostSession : IDisposable
 		return total <= 0 ? 100 : Math.Clamp((int)Math.Floor(got * 100 / total), 0, 100);
 	}
 
-	string? CurrentMediaId() => Playing() ? Room.Game!.CurrentMedia?.Id : null;
-
 	/// <summary>Download progress came in: everyone's rings update, a few times a second at most.</summary>
 	bool _progressChanged;
 	double _progressSentAt;
@@ -212,6 +210,7 @@ public sealed class HostSession : IDisposable
 	{
 		Trace.Log("host", $"connection {peer} closed");
 		_videoSent.Remove(peer);
+		_assetsSent.Remove(peer);
 		_peerClient.Remove(peer);
 		if (!_peerPlayer.Remove(peer, out var playerId)) return;
 		// A newer connection may already have taken over this seat.
@@ -221,12 +220,19 @@ public sealed class HostSession : IDisposable
 		Broadcast();
 	}
 
+	// (a player's game can send anything, e.g. a null name: one bad message must never stop the host's loop)
 	void OnReceived(string peer, byte[] bytes)
+	{
+		try { Handle(peer, bytes); }
+		catch (Exception e) { Trace.Log("host", $"message from {peer} failed: {e.GetType().Name}: {e.Message}"); }
+	}
+
+	void Handle(string peer, byte[] bytes)
 	{
 		if (Msg.Decode(bytes) is not { } msg) return;
 		_peerPlayer.TryGetValue(peer, out var playerId);
 		// (download progress comes several times a second: not worth a line each)
-		if (msg.Type != Msg.MediaProgress) Trace.Log("host", $"from {playerId ?? peer}: {msg.Type}");
+		if (msg.Type != Msg.MediaProgress) Trace.Log("host", $"from {playerId ?? peer}: {(msg.Type.Length > 32 ? msg.Type[..32] : msg.Type)}");
 		switch (msg.Type)
 		{
 			case Msg.Join:
@@ -301,6 +307,8 @@ public sealed class HostSession : IDisposable
 
 	void HandleJoin(string peer, JoinRequest req)
 	{
+		// (one seat per connection: joining again under new ids would leave "connected" ghost seats the game waits for)
+		if (_peerPlayer.ContainsKey(peer)) return;
 		// Over Steam, Steam vouches for who is connecting, and nobody else gets a seat: a game claiming to be some Steam
 		// account could otherwise take that player's seat (and points). On LAN the player's game says who it is.
 		var cid = (req.ClientId ?? "").Trim();
@@ -331,7 +339,7 @@ public sealed class HostSession : IDisposable
 			return;
 		}
 		var id = steamId != null ? "steam:" + steamId
-			: cid is { Length: > 0 and <= 64 } && !cid.StartsWith("steam") ? "lan:" + cid
+			: cid is { Length: > 0 and <= 64 } && !cid.StartsWith("steam") ? LanId(cid)
 			: "lan:" + peer;
 		if (_kicked.Contains(id) || cid != "" && _kicked.Contains("client:" + cid))
 		{
@@ -364,8 +372,19 @@ public sealed class HostSession : IDisposable
 		Broadcast();
 	}
 
+	/// <summary>A LAN player's id: a hash of their game's client id. Ids are in everyone's state, and the raw client id
+	/// is what wins a seat back, so showing it would let anyone take that seat.</summary>
+	public static string LanId(string clientId) =>
+		"lan:" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(clientId)))[..16].ToLowerInvariant();
+
+	/// <summary>Per connection: the pictures already sent, by key (asking again for one is ignored, so nobody can make
+	/// the host send the same megabytes over and over).</summary>
+	readonly Dictionary<string, HashSet<string>> _assetsSent = new();
+
 	void SendAsset(string peer, string key)
 	{
+		if (!_assetsSent.TryGetValue(peer, out var sentKeys)) _assetsSent[peer] = sentKeys = new();
+		if (sentKeys.Count > 2000 || !sentKeys.Add(key)) return;
 		var dataUrl = Room.Game?.AssetDataUrl(key);
 		if (dataUrl == null || !DataUrl.TryParse(dataUrl, out var mime, out var base64)) return;
 		// base64 grows by 4/3 and the message needs some room for its envelope.

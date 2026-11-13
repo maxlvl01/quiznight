@@ -790,6 +790,14 @@ public static class SelfTest
 		Check(net.Reply("p3")?.Ok == false, "Steam: a game that only claims a Steam ID gets no seat");
 		net.Deliver("p1", Msg.Join, new JoinRequest { Name = "Ann", Code = "abcd" });
 		Check(net.Reply("p1")?.Ok == true && room.GetPlayer("steam:111") != null, "Steam: the right code (any case) gets in, as the Steam account Steam names");
+		// (null fields from a modified game: the host shrugs them off instead of throwing out of its loop)
+		net.Deliver("p1", Msg.Rename, new System.Text.Json.Nodes.JsonObject { ["name"] = null });
+		net.Deliver("p1", Msg.AssetRequest, new System.Text.Json.Nodes.JsonObject { ["key"] = null });
+		net.Deliver("p1", Msg.Join, new System.Text.Json.Nodes.JsonObject { ["name"] = null, ["code"] = "abcd", ["clientId"] = "x" });
+		Check(room.GetPlayer("steam:111")?.Name == "Ann" && room.Players.Count == 1, "null fields and a second join on one connection change nothing");
+		Check(Room.CleanName(null) == "", "a missing name is just empty");
+		room.NotePercentOff("steam:111", double.PositiveInfinity);
+		Check(Msg.Encode(Msg.State, room.ToState("steam:111")).Length > 0, "an endless percent-off isn't stored (JSON can't send Infinity)");
 		host.UpdateSettings(friendsOnly: true);
 		net.Deliver("p2", Msg.Join, new JoinRequest { Name = "Bob", Code = "ABCD" });
 		Check(net.Reply("p2")?.Ok == false, "friends only: someone who isn't the host's Steam friend stays out");
@@ -968,15 +976,16 @@ public static class SelfTest
 			var g5 = r5.Game!;
 			Check(g5.View("ann").Interactive == null && g5.View("ann").Question.Judging == Judging.List, "players get a list question, no recording");
 			Check(g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Hamilton" })).Ok, "ann sends her list so far");
-			Check(g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Hamilton", "hamilton", " ", "Shumacher", "Alonso" }, true)).Ok, "ann sends it again, done");
+			Check(g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Hamilton", "hamilton", " ", "Shumacher", "Schumacher", "Alonso" }, true)).Ok, "ann sends it again, done");
 			Check(!g5.Answer("ann", 0, AnswerValue.Listed(new[] { "Senna" })).Ok, "no changes after done");
-			Eq(g5.View("ann").MyAnswer?.Texts?.Count, 3, "repeats and blanks are left out");
+			Eq(g5.View("ann").MyAnswer?.Texts?.Count, 4, "repeats and blanks are left out");
 			Check(!g5.AnswersClosed, "still open while bob types");
 			Check(g5.Answer("bob", 0, AnswerValue.Listed(new[] { "Vettel" }, true)).Ok && g5.AnswersClosed, "everyone done: answers close");
 			Check(g5.HostReveal(), "host reveals the list");
 			var ann = g5.View("host").Reveal!.Entries.First(e => e.PlayerId == "ann");
-			Check(ann.ItemsRight!.SequenceEqual(new[] { true, true, false }) && ann.Points == 2, "written-down answers are ticked by themselves (typos too)");
+			Check(ann.ItemsRight!.SequenceEqual(new[] { true, true, false, false }) && ann.Points == 2, "written-down answers are ticked by themselves (typos too, each key once)");
 			Check(g5.ToggleListItem("ann", 2) && r5.Score("ann") == 3 && g5.ToggleListItem("bob", 0) && r5.Score("bob") == 1, "the host ticks more: a point each");
+			Check(r5.StatsOf("bob").Scored == 1 && g5.ToggleListItem("bob", 0) && r5.StatsOf("bob").Scored == 0, "hand ticks count in the stats (and come off again)");
 		}
 		{
 			// (0.13: the host's "+5 s")
@@ -1147,6 +1156,10 @@ public static class SelfTest
 		Check(g.ToggleWritten("bob") && room.Scores["bob"] - before.Bob == 1, "host ticks an answer");
 		Check(g.ToggleWritten("ann") && room.Scores["ann"] - before.Ann == 0, "host unticks one");
 		Check(!QuizRules.WrittenMatches("Sydney", "Canberra / Canberra City") && QuizRules.WrittenMatches("canberra city", "Canberra / Canberra City"), "several accepted answers");
+		Check(!QuizRules.WrittenMatches("350000", "250000") && !QuizRules.WrittenMatches("25000", "250000") && QuizRules.WrittenMatches("Apolo 11", "Apollo 11"),
+			"numbers have no typos (letters still do)");
+		var wild = QuizJson.ReadQuestion((System.Text.Json.Nodes.JsonObject)System.Text.Json.Nodes.JsonNode.Parse("""{"id":"w","type":"classic","points":-5,"timeLimitSec":0}""")!);
+		Check(wild.Points == QuestionLimits.PointsMin && wild.TimeLimitSec == QuestionLimits.TimeLimitMin, "a quiz file's points and timer are kept in range");
 		room.Next();
 		Timeline(room, clock, g);
 
@@ -1429,6 +1442,8 @@ public static class SelfTest
 			"Christmas songs: 1 to 26 December");
 		Check(Storage.CrashReports.HasError("ok\nERROR: System.NullReferenceException: Object reference not set\n   at X")
 			&& !Storage.CrashReports.HasError("ERROR: Couldn't load a font\nWARNING: x"), "crash reports: C# errors found in a log, plain Godot errors not");
+		Check(Storage.CrashReports.AnonymiseFolder(@"C:\Users\maxmu\x C:/Users/maxmu/y maxmum", "maxmu") == @"C:\Users\<user>\x C:/Users/<user>/y maxmum",
+			"the profile folder's own name is left out of paths (and only there)");
 		Check(Storage.CrashReports.Anonymise(@"C:\Users\Max\AppData\Roaming\Quiznight", "max") == @"C:\Users\<user>\AppData\Roaming\Quiznight",
 			"crash reports: the user name is left out of paths");
 		{
@@ -1694,7 +1709,7 @@ public static class SelfTest
 		}
 
 		Check(await Until(() => host.Room.Players.Count == 2 && ann.State?.Players.Count == 2 && bob.State?.Players.Count == 2), "both players joined");
-		Eq(ann.MyId, "lan:ann-id", "player id from client id");
+		Eq(ann.MyId, HostSession.LanId("ann-id"), "player id from a hash of the client id");
 		Check(host.Start().Ok, "network start");
 		Check(await Until(() => bob.State?.Phase == Phase.Playing), "players see the game");
 		Check(bob.State!.Game!.HostAnswer == null, "no answer leaks to players");
@@ -1713,7 +1728,7 @@ public static class SelfTest
 		Check(await Until(() => ann.State?.Game?.Buzzes.FirstOrDefault()?.Status == BuzzStatus.Answering), "after the short wait the buzzer answers");
 		host.Judge(true);
 		Check(await Until(() => ann.State?.Game?.Stage == Stage.Reveal), "reveal reaches players");
-		Eq(ann.State!.Score("lan:bob-id"), 1, "score sent");
+		Eq(ann.State!.Score(HostSession.LanId("bob-id")), 1, "score sent");
 
 		host.Next();
 		Check(await Until(() => ann.State?.Game is { Index: 1, Stage: Stage.Open }), "next question");

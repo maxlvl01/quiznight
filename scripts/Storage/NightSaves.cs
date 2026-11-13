@@ -25,8 +25,7 @@ public static class NightSaves
 		{
 			Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
 			// (a new file first, then swapped in: a crash while writing never leaves half a save)
-			File.WriteAllText(path + ".tmp", json);
-			File.Move(path + ".tmp", path, true);
+			QuizStore.WriteSafely(path, json);
 			(_lastPath, _lastJson) = (path, json);
 		}
 		catch (Exception e)

@@ -220,6 +220,9 @@ public static class Updater
 		{
 			if (Directory.Exists(UpdateDir)) Directory.Delete(UpdateDir, true);
 			Directory.CreateDirectory(newFiles);
+			// (the version in the release's name isn't signed, the update list is: without a list saying this very version,
+			// an old signed build could be put up under a new number and roll everyone back)
+			if (!release.Private && release.ManifestUrl == null) throw new UpdateRefused(NotSigned);
 			if (release.ManifestUrl != null)
 			{
 				try
@@ -227,7 +230,7 @@ public static class Updater
 					await DownloadChangedFiles(release, installDir, newFiles, exeName, Report);
 					return;
 				}
-				catch (Exception e)
+				catch (Exception e) when (e is not UpdateRefused)
 				{
 					GD.Print($"Updating file by file didn't work ({e.Message}), downloading the whole build.");
 					Directory.Delete(newFiles, true);
@@ -269,8 +272,10 @@ public static class Updater
 		// (the list says which files and packs, with their SHA-256: only a signed one is used)
 		var listBytes = await http.GetByteArrayAsync(release.ManifestUrl);
 		if (release.ManifestSigUrl == null || !SignedByMax(SHA256.HashData(listBytes), await http.GetByteArrayAsync(release.ManifestSigUrl)))
-			throw new InvalidOperationException(NotSigned);
+			throw new UpdateRefused(NotSigned);
 		var list = JsonNode.Parse(listBytes) ?? throw new InvalidOperationException("The update list is empty.");
+		if (AppVersion.Parse(list["version"]?.GetValue<string>()) != release.Version)
+			throw new UpdateRefused(Lang.F("The update list is for another version than {0}, so it wasn't installed.", release.Version.ToString()));
 		var files = (list["files"] as JsonArray)?.OfType<JsonObject>()
 			.Select(f => new FileEntry(f["path"]!.GetValue<string>(), f["size"]!.GetValue<long>(), f["sha256"]!.GetValue<string>(), f["pack"]!.GetValue<string>()))
 			.ToList() ?? throw new InvalidOperationException("The update's file list is empty.");
@@ -377,14 +382,40 @@ public static class Updater
 		File.Delete(zipPath);
 	}
 
-	/// <summary>Waits for the game to close, copies the new build over the old one (retrying while files are still locked), restarts it.</summary>
+	/// <summary>An update that must not be installed at all (no falling back to the whole zip).</summary>
+	sealed class UpdateRefused(string message) : Exception(message);
+
+	/// <summary>
+	/// Waits for the game to close, copies the new build over the old one (retrying while files are still locked), restarts
+	/// it. The files it replaces are copied aside first: if the new ones can't all be copied, the old ones go back, so the
+	/// game is never half new and half old (it offers the update again on the next start).
+	/// </summary>
 	const string WindowsScript = """
 		param([int]$ProcId, [string]$From, [string]$To, [string]$Exe)
 		Wait-Process -Id $ProcId -Timeout 60 -ErrorAction SilentlyContinue
 		Start-Sleep -Milliseconds 500
-		for ($i = 0; $i -lt 15; $i++) {
-			try { Copy-Item -Path (Join-Path $From '*') -Destination $To -Recurse -Force -ErrorAction Stop; break }
+		$Bak = Join-Path (Split-Path $From -Parent) 'old'
+		try {
+			foreach ($f in Get-ChildItem -LiteralPath $From -Recurse -File) {
+				$rel = $f.FullName.Substring($From.Length).TrimStart('\')
+				$old = Join-Path $To $rel
+				if (Test-Path -LiteralPath $old) {
+					$b = Join-Path $Bak $rel
+					New-Item -ItemType Directory -Force -Path (Split-Path $b -Parent) | Out-Null
+					Copy-Item -LiteralPath $old -Destination $b -Force -ErrorAction Stop
+				}
+			}
+		} catch { Start-Process -FilePath $Exe -WorkingDirectory $To; exit }
+		$ok = $false
+		for ($i = 0; $i -lt 15 -and -not $ok; $i++) {
+			try { Copy-Item -Path (Join-Path $From '*') -Destination $To -Recurse -Force -ErrorAction Stop; $ok = $true }
 			catch { Start-Sleep -Seconds 1 }
+		}
+		if (-not $ok -and (Test-Path -LiteralPath $Bak)) {
+			for ($i = 0; $i -lt 15; $i++) {
+				try { Copy-Item -Path (Join-Path $Bak '*') -Destination $To -Recurse -Force -ErrorAction Stop; break }
+				catch { Start-Sleep -Seconds 1 }
+			}
 		}
 		Start-Process -FilePath $Exe -WorkingDirectory $To
 		""";
@@ -395,7 +426,12 @@ public static class Updater
 		PID=$1; FROM=$2; TO=$3; EXE=$4
 		i=0
 		while kill -0 "$PID" 2>/dev/null && [ $i -lt 120 ]; do sleep 0.5; i=$((i+1)); done
-		cp -rf "$FROM"/. "$TO"/
+		BAK="$(dirname "$FROM")/old"
+		if (cd "$FROM" && find . -type f | while read -r f; do
+			if [ -f "$TO/$f" ]; then mkdir -p "$BAK/$(dirname "$f")" && cp -p "$TO/$f" "$BAK/$f" || exit 1; fi
+		done); then
+			cp -rf "$FROM"/. "$TO"/ || cp -rf "$BAK"/. "$TO"/
+		fi
 		chmod +x "$EXE"
 		[ -f "$TO/AnyConverter/AnyConverter" ] && chmod +x "$TO/AnyConverter/AnyConverter"
 		cd "$TO" && nohup "$EXE" >/dev/null 2>&1 &

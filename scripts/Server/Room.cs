@@ -222,14 +222,18 @@ public sealed class Room : IGameHooks
 		Q(playerId).Km = km;
 	}
 
-	public void NoteScored(string playerId)
+	public void NoteScored(string playerId, bool scored = true)
 	{
-		StatsOf(playerId).Scored++;
-		Q(playerId).Right = true;
+		var q = Q(playerId);
+		if (q.Right == scored) return;
+		q.Right = scored;
+		StatsOf(playerId).Scored += scored ? 1 : -1;
 	}
 
 	public void NotePercentOff(string playerId, double percent)
 	{
+		// (stats go out in every state: Infinity there would make every message fail for the rest of the night)
+		if (!double.IsFinite(percent)) return;
 		var s = StatsOf(playerId);
 		s.PercentOff += percent;
 		s.PercentAnswers++;
@@ -401,9 +405,9 @@ public sealed class Room : IGameHooks
 		};
 	}
 
-	public static string CleanName(string raw)
+	public static string CleanName(string? raw)
 	{
-		var name = string.Join(' ', raw.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+		var name = string.Join(' ', (raw ?? "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 		static string Cut(string s, int max) => s.Length > max ? s[..max].TrimEnd() : s;
 		// (a clan tag in front has its own room: "[OTB] maxlvl01" is fine)
 		var (tag, rest) = Limits.SplitClanTag(name);

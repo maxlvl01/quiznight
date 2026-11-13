@@ -19,6 +19,8 @@ public static class Guard
 	public const int MaxQuizJsonBytes = 64 * 1024 * 1024;
 	/// <summary>One shared file (sound, video, picture) a host may send a player: the editor allows 80 MB, encryption adds a little.</summary>
 	public const long MaxSharedFileBytes = 96L * 1024 * 1024;
+	/// <summary>All the sound and video files of one quiz zip together (they're held in memory once read).</summary>
+	public const long MaxQuizFilesBytes = 1024L * 1024 * 1024;
 	/// <summary>All the files a host may send a player in one room.</summary>
 	public const long MaxSharedTotalBytes = 3L * 1024 * 1024 * 1024;
 

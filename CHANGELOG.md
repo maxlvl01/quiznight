@@ -14,6 +14,42 @@ On GitHub, each version heading links to its release, where the download is.
 
 ## [Unreleased]
 
+### Fixed
+- **A broken message from a player can't freeze the room any more.** A changed game could send a message with an empty
+  field (a missing name, for example). The host's game tripped over it and skipped everything else that frame. Sent every
+  frame, that stopped timers and updates for everyone. Now a bad message is written to the log and ignored.
+- **A huge estimate can't break the night.** An estimate like 1 followed by 300 zeros, against a small right answer,
+  made the "% off" stat endless. Every update to the players then failed for the rest of the night. Answers above a
+  million billion are now refused, and an endless stat is never kept.
+- **Updates can't leave a half-updated game.** If a file stayed locked while an update was copied in (a virus scanner, for
+  example), the game started anyway with some new and some old files. Now the files it replaces are copied aside first.
+  If the new ones can't all be copied, the old ones go back, and the update is offered again on the next start.
+- **Updates check the version they say they are.** The update's signed file list must name exactly the version being
+  installed, so an old build can't be put up under a new number.
+- **On LAN, nobody can take another player's seat.** Player ids used to show the secret that wins a seat back. Now
+  they're a scrambled copy of it. One connection also can't join several times any more and leave "ghost" players the
+  game waits for.
+- **The host can't be flooded with picture requests.** Each picture goes to each player once. A player whose game stops
+  reading is disconnected after 64 MB pile up (their seat stays).
+- **Settings aren't wiped when the file can't be read.** If `settings.cfg` was locked at the start, the next change saved
+  a file with only that one setting. Now nothing is saved that time, and a `.bak` copy is kept.
+- **Importing a zip has a total limit.** Each sound or video was limited, but not all of them together. A crafted zip
+  could fill the memory. All files together may now be up to 1 GB.
+- **Your name is left out of logs on more PCs.** With a Microsoft account, the Windows user folder often has a different
+  name than the account. That folder name now comes out of crash logs and bug reports too.
+- **Typed numbers must be exact.** Typo tolerance let 350000 count for 250000. Numbers in an answer must now match exactly.
+  Letters still allow typos ("Apolo 11" still counts).
+- **Team mode: pressing Play again reopens the buzzers** after every team buzzed wrong. It used to wait for every
+  player, but only one per team can buzz.
+- **Answers ticked by hand count in the stats.** Ticking a typed answer or a list item now also counts for "questions
+  scored" and the awards, and unticking takes it off again.
+- **A list answer counts once.** "Verstappen" and "Verstapen" in one list used to score two points for one answer.
+- **Quiz files can't have out-of-range points or timers.** Points (1–10) and time limits (5–300 s) are now kept in range
+  when a file is loaded, as the editor already does. Before, a file from someone else could give -5 points or a timer
+  that ended at once.
+- **Saves are flushed to the disk.** Quizzes, saved nights, podiums and the sync record are written so that a power cut
+  can't leave an empty file.
+
 ## [0.15.6b]
 
 ### Changed

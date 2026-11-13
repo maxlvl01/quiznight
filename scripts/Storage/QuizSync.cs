@@ -363,7 +363,7 @@ public static class QuizSync
 		{
 			var all = File.Exists(RecordPath) ? JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(File.ReadAllText(RecordPath)) ?? new() : new();
 			all[account] = record;
-			File.WriteAllText(RecordPath, JsonSerializer.Serialize(all));
+			QuizStore.WriteSafely(RecordPath, JsonSerializer.Serialize(all));
 		}
 		catch (Exception e) when (e is IOException or JsonException)
 		{

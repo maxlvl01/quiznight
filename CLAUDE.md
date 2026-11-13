@@ -118,7 +118,8 @@ the original design decisions; most still apply.
 - **Results and the eternal table** (`Storage/Results.cs`, `ResultsUpload.cs`): when a game over Steam ends, an
   exported build uploads a CSV to the private repo `maxlvl01/quiznight-results` (`results/`), using the
   fine-grained token in `results-token.txt` (repo root, gitignored, shipped via the export include_filter; it can only
-  write that repo). Only if the upload fails is the CSV kept in Documents/Quiznight/Results. Editor runs and LAN games
+  write that repo, but anyone who unpacks the .pck has it, so everything in that repo, sync zips and shares included, is
+  readable and deletable by any player: audit 2026-11-13, not fixed yet). Only if the upload fails is the CSV kept in Documents/Quiznight/Results. Editor runs and LAN games
   never upload. To update the table: copy the repo's CSVs into `assets/results/` (nights before 1.0: `assets/results/beta/`,
   the Beta table) with a 3-line `importer="keep"` .import each (else Godot imports CSVs as translations); `EternalTableScreen` adds them up per player id (the same
   night twice counts once). Never ship test results there.

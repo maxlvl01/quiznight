@@ -121,11 +121,9 @@ public static class QuizStore
 		if (touch) quiz.UpdatedAt = NowMs();
 		Directory.CreateDirectory(FolderPath);
 		var path = PathFor(quiz.Id);
-		var tmp = path + ".tmp";
 		try
 		{
-			File.WriteAllText(tmp, QuizJson.Write(quiz));
-			File.Move(tmp, path, true);
+			WriteSafely(path, QuizJson.Write(quiz));
 		}
 		catch (Exception e) when (e is IOException or UnauthorizedAccessException)
 		{
@@ -252,6 +250,21 @@ public static class QuizStore
 		Path.GetExtension(name) is { Length: > 1 } ext ? ext.ToLowerInvariant()
 		: mime switch { "audio/mpeg" => ".mp3", "audio/wav" or "audio/x-wav" => ".wav", "video/ogg" => ".ogv", _ => ".ogg" };
 
+	/// <summary>
+	/// Writes a file so that a crash or power cut never leaves half of it: a new file first, flushed to the disk, then
+	/// swapped in (File.WriteAllText alone can leave an empty file after a power cut, even with the swap).
+	/// </summary>
+	public static void WriteSafely(string path, string text)
+	{
+		var tmp = path + ".tmp";
+		using (var f = new FileStream(tmp, FileMode.Create, System.IO.FileAccess.Write))
+		{
+			f.Write(System.Text.Encoding.UTF8.GetBytes(text));
+			f.Flush(true);
+		}
+		File.Move(tmp, path, true);
+	}
+
 	/// <summary>An exported zip back: quiz.json, with each media/ file put back into its question.</summary>
 	public static Quiz ReadZip(string path)
 	{
@@ -263,11 +276,15 @@ public static class QuizStore
 			string text;
 			using (var r = json.Open()) text = System.Text.Encoding.UTF8.GetString(Guard.ReadCapped(r, Guard.MaxQuizJsonBytes));
 			var quiz = QuizJson.Parse(text, out var error) ?? throw new UserError(error ?? QuizJson.NotAQuiz);
+			long total = 0;
 			foreach (var q in quiz.Questions)
 			{
 				if (q.Media == null || zip.Entries.FirstOrDefault(e => e.FullName.StartsWith($"media/{q.Id}.")) is not { } file) continue;
 				using var s = file.Open();
-				q.Media.DataUrl = Server.DataUrl.Make(q.Media.Mime, Guard.ReadCapped(s, Guard.MaxSharedFileBytes));
+				var bytes = Guard.ReadCapped(s, Guard.MaxSharedFileBytes);
+				// (each file is capped, but a hundred tiny-when-zipped 90 MB files would still fill the memory)
+				if ((total += bytes.Length) > Guard.MaxQuizFilesBytes) throw new InvalidDataException(Lang.T("its sounds and videos are too big all together."));
+				q.Media.DataUrl = Server.DataUrl.Make(q.Media.Mime, bytes);
 			}
 			return quiz;
 		}

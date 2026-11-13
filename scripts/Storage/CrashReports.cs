@@ -76,6 +76,19 @@ public static class CrashReports
 	public static string Anonymise(string text, string user) =>
 		user == "" ? text : text.Replace(user, "<user>", StringComparison.OrdinalIgnoreCase);
 
+	/// <summary>The user name and the profile folder's name (C:\Users\maxmu for the account max.mustermann) left out.</summary>
+	public static string Anonymise(string text) =>
+		AnonymiseFolder(Anonymise(text, System.Environment.UserName), Path.GetFileName(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile).TrimEnd('\\', '/')));
+
+	/// <summary>Only inside paths (\Users\NAME, /Users/NAME, /home/NAME): a short folder name could be any word.</summary>
+	public static string AnonymiseFolder(string text, string folder)
+	{
+		if (folder is "" or "<user>") return text;
+		foreach (var root in new[] { "\\Users\\", "/Users/", "/home/" })
+			text = text.Replace(root + folder, root + "<user>", StringComparison.OrdinalIgnoreCase);
+		return text;
+	}
+
 	static void Check(FileInfo log, bool crashed, string since)
 	{
 		var sent = Godot.FileAccess.FileExists(Sent) ? Godot.FileAccess.GetFileAsString(Sent).Split('\n') : Array.Empty<string>();
@@ -96,7 +109,7 @@ public static class CrashReports
 			.AppendLine()
 			.Append(tail)
 			.ToString();
-		report = Anonymise(report, System.Environment.UserName);
+		report = Anonymise(report);
 		var name = log.Name;
 		_ = Task.Run(async () =>
 		{

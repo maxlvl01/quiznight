@@ -23,7 +23,7 @@ public static class Podiums
 		{
 			Directory.CreateDirectory(Folder);
 			var safe = new string(results.QuizTitle.Select(c => char.IsLetterOrDigit(c) ? c : '-').Take(40).ToArray()).Trim('-');
-			File.WriteAllText(System.IO.Path.Combine(Folder, $"{results.Date:yyyyMMdd-HHmmss}-{(safe == "" ? "quiz" : safe)}.json"), results.ToJson());
+			QuizStore.WriteSafely(System.IO.Path.Combine(Folder, $"{results.Date:yyyyMMdd-HHmmss}-{(safe == "" ? "quiz" : safe)}.json"), results.ToJson());
 		}
 		catch (Exception e)
 		{
